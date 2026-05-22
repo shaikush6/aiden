@@ -1,4 +1,4 @@
-// OpenAI TTS with Web Speech API fallback
+// OpenAI TTS — silently no-ops if API key is missing.
 // All public functions return Promise<void> that resolve when audio finishes.
 
 const LETTER_SOUNDS: Record<string, string> = {
@@ -20,9 +20,6 @@ function stopCurrent() {
     currentAudio.pause()
     currentAudio.src = ''
     currentAudio = null
-  }
-  if (typeof window !== 'undefined' && window.speechSynthesis) {
-    window.speechSynthesis.cancel()
   }
 }
 
@@ -51,62 +48,20 @@ async function fetchTTS(text: string, speed: number): Promise<string | null> {
   }
 }
 
-function speakWithWebSpeech(text: string, rate = 0.8, pitch = 1.1): Promise<void> {
-  return new Promise(resolve => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      resolve()
-      return
-    }
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text.toLowerCase())
-    utterance.rate = rate
-    utterance.pitch = pitch
-    utterance.volume = 1
-    const voices = window.speechSynthesis.getVoices()
-    const preferred = voices.find(
-      v => v.lang.startsWith('en') && (
-        v.name.includes('Samantha') || v.name.includes('Karen') ||
-        v.name.includes('Moira') || v.name.includes('Veena')
-      )
-    )
-    const english = voices.find(v => v.lang.startsWith('en-US') || v.lang.startsWith('en-GB'))
-    const voice = preferred || english || voices[0]
-    if (voice) utterance.voice = voice
-    utterance.onend = () => resolve()
-    utterance.onerror = () => resolve()
-    window.speechSynthesis.speak(utterance)
-  })
-}
-
 async function playTTS(text: string, speed = 1.0): Promise<void> {
   if (typeof window === 'undefined') return
 
   stopCurrent()
 
   const url = await fetchTTS(text, speed)
-
-  if (!url) {
-    // Fallback to Web Speech API
-    await speakWithWebSpeech(text, 0.8, 1.1)
-    return
-  }
+  if (!url) return  // no key or network error — stay silent
 
   return new Promise(resolve => {
     const audio = new Audio(url)
     currentAudio = audio
-    audio.onended = () => {
-      currentAudio = null
-      resolve()
-    }
-    audio.onerror = () => {
-      currentAudio = null
-      // Try Web Speech fallback
-      speakWithWebSpeech(text, 0.8, 1.1).then(resolve)
-    }
-    audio.play().catch(() => {
-      currentAudio = null
-      speakWithWebSpeech(text, 0.8, 1.1).then(resolve)
-    })
+    audio.onended = () => { currentAudio = null; resolve() }
+    audio.onerror = () => { currentAudio = null; resolve() }
+    audio.play().catch(() => { currentAudio = null; resolve() })
   })
 }
 
