@@ -1,64 +1,71 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Navigation, { type TabId } from '@/components/Navigation';
+import PhonicsTab from '@/components/PhonicsTab';
+import PatternsTab from '@/components/PatternsTab';
+import MathTab from '@/components/MathTab';
+import SolarTab from '@/components/SolarTab';
+
+const TAB_BACKGROUNDS: Record<TabId, string> = {
+  phonics: 'from-sky-300 via-sky-200 to-cyan-200',
+  patterns: 'from-purple-300 via-violet-200 to-fuchsia-200',
+  math: 'from-orange-300 via-amber-200 to-yellow-200',
+  solar: 'from-slate-900 via-indigo-950 to-slate-900',
+};
+
+const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string; textColor: string }> = {
+  phonics: { title: 'READ WITH ME', subtitle: 'Tap words and letters to hear them!', icon: '🔤', textColor: 'text-sky-800' },
+  patterns: { title: 'SPOT THE PATTERN', subtitle: 'What comes next?', icon: '🔷', textColor: 'text-purple-800' },
+  math: { title: 'NUMBER TIME', subtitle: 'Count, add, and explore!', icon: '🔢', textColor: 'text-orange-800' },
+  solar: { title: 'SPACE EXPLORER', subtitle: 'Discover our solar system!', icon: '🪐', textColor: 'text-indigo-200' },
+};
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<TabId>('phonics');
+
+  const header = TAB_HEADERS[activeTab];
+  const bg = TAB_BACKGROUNDS[activeTab];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className={`min-h-screen bg-gradient-to-br ${bg} transition-all duration-500`}>
+      {/* App header */}
+      <header className="pt-4 pb-2 px-4 flex items-center justify-between">
+        <div>
+          <h1 className={`text-4xl font-black leading-none ${header.textColor} drop-shadow`}>
+            {header.icon} {header.title}
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className={`text-sm font-bold mt-0.5 ${activeTab === 'solar' ? 'text-indigo-300' : 'text-gray-500'}`}>
+            {header.subtitle}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        {/* Aiden badge */}
+        <div className="bg-white/80 rounded-2xl px-3 py-2 shadow text-center">
+          <p className="text-xs font-black text-gray-400 leading-none">FOR</p>
+          <p className="text-xl font-black text-indigo-600 leading-none">AIDEN</p>
         </div>
+      </header>
+
+      {/* Navigation */}
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Tab content */}
+      <main className="mt-2">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.25 }}
+          >
+            {activeTab === 'phonics' && <PhonicsTab />}
+            {activeTab === 'patterns' && <PatternsTab />}
+            {activeTab === 'math' && <MathTab />}
+            {activeTab === 'solar' && <SolarTab />}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
