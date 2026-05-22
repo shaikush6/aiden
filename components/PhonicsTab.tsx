@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
@@ -35,13 +35,48 @@ const VOWEL_SELECTED: Record<VowelSound, string> = {
   U: 'ring-4 ring-purple-600 scale-110',
 };
 
-function WordCard({ word, onConfetti }: { word: CVCWord; onConfetti: () => void }) {
-  const [letterPop, setLetterPop] = useState<number | null>(null);
+type CardState = 'hidden' | 'speaking' | 'revealed';
 
-  const handleWordClick = useCallback(() => {
-    speakWord(word.word);
+function SoundWave() {
+  return (
+    <div className="flex items-center gap-1 justify-center">
+      {[0, 1, 2].map(i => (
+        <motion.div
+          key={i}
+          className="w-2 rounded-full bg-sky-400"
+          animate={{ height: ['8px', '24px', '8px'] }}
+          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function WordCard({ word, onConfetti }: { word: CVCWord; onConfetti: () => void }) {
+  const [cardState, setCardState] = useState<CardState>('hidden');
+  const [letterPop, setLetterPop] = useState<number | null>(null);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleWordClick = useCallback(async () => {
+    if (cardState === 'speaking') return;
+
+    // Reset any existing timer
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+
+    // Start fresh: hide emoji, show speaking animation
+    setCardState('speaking');
+
+    await speakWord(word.word);
+
+    // Reveal emoji with flip
+    setCardState('revealed');
     onConfetti();
-  }, [word.word, onConfetti]);
+
+    // Reset after 3 seconds
+    resetTimer.current = setTimeout(() => {
+      setCardState('hidden');
+    }, 3000);
+  }, [cardState, word.word, onConfetti]);
 
   const handleLetterClick = useCallback((letter: string, idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -50,14 +85,57 @@ function WordCard({ word, onConfetti }: { word: CVCWord; onConfetti: () => void 
     setTimeout(() => setLetterPop(null), 400);
   }, []);
 
+  const handleRespeakClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    speakWord(word.word);
+  }, [word.word]);
+
   return (
     <motion.div
-      whileHover={{ scale: 1.05 }}
+      whileHover={{ scale: cardState === 'speaking' ? 1 : 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="bg-white rounded-2xl shadow-lg p-4 flex flex-col items-center gap-2 cursor-pointer select-none border-4 border-sky-200 hover:border-sky-400 transition-colors"
+      className="bg-white rounded-2xl shadow-lg p-4 flex flex-col items-center gap-2 cursor-pointer select-none border-4 border-sky-200 hover:border-sky-400 transition-colors relative"
       onClick={handleWordClick}
+      style={{ minHeight: '140px' }}
     >
-      <span className="text-4xl">{word.emoji}</span>
+      {/* Re-speak button — only when revealed */}
+      {cardState === 'revealed' && (
+        <button
+          onClick={handleRespeakClick}
+          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-sky-100 hover:bg-sky-200 transition-colors text-sm"
+          aria-label="Hear word again"
+        >
+          🔊
+        </button>
+      )}
+
+      {/* Emoji area */}
+      <div className="w-12 h-12 flex items-center justify-center">
+        {cardState === 'hidden' && (
+          <motion.div
+            animate={{ borderColor: ['#7dd3fc', '#0ea5e9', '#7dd3fc'] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="w-12 h-12 rounded-xl border-4 border-dashed border-sky-300 flex items-center justify-center text-sky-400 font-black text-2xl bg-sky-50"
+          >
+            ?
+          </motion.div>
+        )}
+
+        {cardState === 'speaking' && <SoundWave />}
+
+        {cardState === 'revealed' && (
+          <motion.div
+            initial={{ rotateY: 90, scale: 0.8 }}
+            animate={{ rotateY: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+            className="text-4xl"
+          >
+            {word.emoji}
+          </motion.div>
+        )}
+      </div>
+
+      {/* Letters */}
       <div className="flex gap-1">
         {word.word.split('').map((letter, idx) => (
           <motion.span
@@ -70,12 +148,17 @@ function WordCard({ word, onConfetti }: { word: CVCWord; onConfetti: () => void 
           </motion.span>
         ))}
       </div>
+
+      {/* Tap hint */}
+      {cardState === 'hidden' && (
+        <span className="text-xs text-sky-400 font-bold">TAP TO HEAR!</span>
+      )}
     </motion.div>
   );
 }
 
 function SentenceView({ sentence }: { sentence: Phonicssentence }) {
-  const handleClick = () => speakText(sentence.text.toLowerCase(), 0.65, 1.1);
+  const handleClick = () => speakText(sentence.text.toLowerCase());
 
   return (
     <motion.div
@@ -92,17 +175,26 @@ function SentenceView({ sentence }: { sentence: Phonicssentence }) {
 
 function StoryView({ story }: { story: (typeof PHONICS_STORIES)[0] }) {
   const handleSentenceClick = (sentence: string) => {
-    speakText(sentence.toLowerCase(), 0.65, 1.1);
+    speakText(sentence.toLowerCase());
   };
 
   const handleFullStory = () => {
     const fullText = story.sentences.join(' ');
-    speakText(fullText.toLowerCase(), 0.65, 1.1);
+    speakText(fullText.toLowerCase());
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-2xl font-black text-sky-800 text-center">{story.title}</h3>
+      <div className="flex items-center justify-center gap-2">
+        <h3 className="text-2xl font-black text-sky-800 text-center">{story.title}</h3>
+        <button
+          onClick={() => speakText(story.title.toLowerCase())}
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-sky-100 hover:bg-sky-200 transition-colors text-sm flex-shrink-0"
+          aria-label="Hear title"
+        >
+          🔊
+        </button>
+      </div>
       {story.sentences.map((s, i) => (
         <motion.div
           key={i}
