@@ -12,12 +12,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const response = await openai.audio.speech.create({
-      model: 'gpt-4o-mini-tts',
-      voice: 'shimmer',
+      model: 'gpt-4o-mini-tts-2025-12-15',
+      voice: 'nova',
       input: text,
       speed,
       instructions:
-        'Speak in a warm, friendly, encouraging tone suitable for a 4-year-old child. Speak clearly and not too fast.',
+        'You are reading aloud for a 4-year-old child who is learning to read and count. Use a warm, gentle, enthusiastic tone — like a kind teacher who loves children. Pronounce every word clearly and naturally, including individual letters and numbers. Never sound robotic or flat. Be encouraging and fun.',
     })
     const buffer = Buffer.from(await response.arrayBuffer())
     return new NextResponse(buffer, {

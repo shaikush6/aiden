@@ -12,8 +12,11 @@ const LETTER_SOUNDS: Record<string, string> = {
 // Blob URL cache: text -> object URL
 const cache = new Map<string, string>()
 
-// Current audio element — stop previous before starting new
+// Current audio + request sequence counter.
+// The sequence counter ensures that if two speak() calls race,
+// only the LAST one actually plays — no overlapping or cut-off audio.
 let currentAudio: HTMLAudioElement | null = null
+let reqSeq = 0
 
 function stopCurrent() {
   if (currentAudio) {
@@ -24,11 +27,8 @@ function stopCurrent() {
 }
 
 async function fetchTTS(text: string, speed: number): Promise<string | null> {
-  // Check cache first
   const cacheKey = `${text}|${speed}`
-  if (cache.has(cacheKey)) {
-    return cache.get(cacheKey)!
-  }
+  if (cache.has(cacheKey)) return cache.get(cacheKey)!
 
   try {
     const res = await fetch('/api/tts', {
@@ -36,9 +36,7 @@ async function fetchTTS(text: string, speed: number): Promise<string | null> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, speed }),
     })
-
     if (!res.ok) return null
-
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     cache.set(cacheKey, url)
@@ -52,10 +50,13 @@ async function playTTS(text: string, speed = 1.0): Promise<void> {
   if (typeof window === 'undefined') return
 
   stopCurrent()
-
+  const mySeq = ++reqSeq          // claim a sequence slot
   const url = await fetchTTS(text, speed)
-  if (!url) return  // no key or network error — stay silent
 
+  // If another call was made while we were fetching, discard this result
+  if (!url || mySeq !== reqSeq) return
+
+  stopCurrent()                   // stop anything that snuck in during the await
   return new Promise(resolve => {
     const audio = new Audio(url)
     currentAudio = audio
