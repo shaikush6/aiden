@@ -31,7 +31,6 @@ export async function POST() {
       session: {
         type: 'realtime',
         model: 'gpt-realtime-2',
-        voice: 'ash',
         instructions: MIMI_INSTRUCTIONS,
       },
     }),
