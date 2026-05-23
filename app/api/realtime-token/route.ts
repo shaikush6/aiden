@@ -29,6 +29,7 @@ export async function POST() {
     body: JSON.stringify({
       expires_after: { anchor: 'created_at', seconds: 600 },
       session: {
+        type: 'realtime',
         model: 'gpt-realtime-2',
         modalities: ['audio', 'text'],
         voice: 'ash',
