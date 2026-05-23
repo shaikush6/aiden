@@ -20,16 +20,23 @@ export async function POST() {
     return NextResponse.json({ error: 'No API key configured' }, { status: 500 })
   }
 
-  const res = await fetch('https://api.openai.com/v1/realtime/sessions', {
+  const res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-realtime-preview',
-      voice: 'ash',
-      instructions: MIMI_INSTRUCTIONS,
+      expires_after: { anchor: 'created_at', seconds: 600 },
+      session: {
+        model: 'gpt-realtime-2',
+        modalities: ['audio', 'text'],
+        voice: 'ash',
+        instructions: MIMI_INSTRUCTIONS,
+        input_audio_format: 'pcm16',
+        output_audio_format: 'pcm16',
+        max_response_output_tokens: 4096,
+      },
     }),
   })
 
