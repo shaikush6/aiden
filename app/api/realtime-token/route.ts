@@ -32,6 +32,7 @@ export async function POST() {
         type: 'realtime',
         model: 'gpt-realtime-2',
         instructions: MIMI_INSTRUCTIONS,
+        audio: { output: { voice: 'ash' } },
       },
     }),
   })
@@ -42,7 +43,6 @@ export async function POST() {
   }
 
   const data = await res.json()
-  const token = data.client_secret?.value ?? null
-  // DEBUG: remove after confirming response shape
-  return NextResponse.json({ token, _debug: data })
+  const token = data.value ?? null
+  return NextResponse.json({ token })
 }
