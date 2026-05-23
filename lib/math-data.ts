@@ -154,6 +154,52 @@ export const MATH_RIDDLES: MathRiddle[] = [
     riddle: 'A house has 2 windows upstairs and 3 downstairs. How many windows total?',
     answer: 5, options: [4, 5, 6],
   },
+  {
+    id: 26, emoji: '🎲',
+    riddle: 'I am a number you can make with TWO THREES. Who am I?',
+    answer: 6, options: [5, 6, 7],
+    hint: 'Three plus three...',
+  },
+  {
+    id: 27, emoji: '🕰️',
+    riddle: 'I come before 20 but after 17. I have a 1 and an 8. Who am I?',
+    answer: 18, options: [17, 18, 19],
+  },
+  {
+    id: 28, emoji: '✂️',
+    riddle: 'I am half of 10. Who am I?',
+    answer: 5, options: [4, 5, 6],
+    hint: 'Cut 10 in two equal pieces...',
+  },
+  {
+    id: 29, emoji: '📅',
+    riddle: 'I am the number of days in a week. Who am I?',
+    answer: 7, options: [5, 7, 8],
+  },
+  {
+    id: 30, emoji: '🤚',
+    riddle: 'You have 10 fingers. You fold 3. How many can you see?',
+    answer: 7, options: [6, 7, 8],
+    hint: '10 take away 3...',
+  },
+  {
+    id: 31, emoji: '🎱',
+    riddle: 'I am a double! 4 and 4 makes me. Who am I?',
+    answer: 8, options: [6, 8, 10],
+    hint: 'Four plus four...',
+  },
+  {
+    id: 32, emoji: '🔟',
+    riddle: 'Count by twos: 2, 4, 6, 8, ___',
+    answer: 10, options: [9, 10, 12],
+    hint: 'Keep counting by twos!',
+  },
+  {
+    id: 33, emoji: '9️⃣',
+    riddle: 'I am the biggest single digit. Who am I?',
+    answer: 9, options: [8, 9, 10],
+    hint: 'Single digit means just one digit — 1 through 9.',
+  },
 ];
 
 export const OBJECT_EMOJIS = [
@@ -178,6 +224,34 @@ export function generateCountProblems(): CountProblem[] {
   }
   return problems;
 }
+
+export interface NumberBond {
+  total: number;
+  partA: number;
+  partB: number;
+  emoji: string;
+}
+
+// Number bonds to 5 (easier)
+export const NUMBER_BONDS_TO_5: NumberBond[] = [
+  { total: 5, partA: 1, partB: 4, emoji: '🍓' },
+  { total: 5, partA: 2, partB: 3, emoji: '🌻' },
+  { total: 5, partA: 3, partB: 2, emoji: '🐮' },
+  { total: 5, partA: 4, partB: 1, emoji: '🦁' },
+];
+
+// All number bonds to 10
+export const NUMBER_BONDS_TO_10: NumberBond[] = [
+  { total: 10, partA: 1, partB: 9, emoji: '🍎' },
+  { total: 10, partA: 2, partB: 8, emoji: '🐟' },
+  { total: 10, partA: 3, partB: 7, emoji: '⭐' },
+  { total: 10, partA: 4, partB: 6, emoji: '🌸' },
+  { total: 10, partA: 5, partB: 5, emoji: '🦋' },
+  { total: 10, partA: 6, partB: 4, emoji: '🍊' },
+  { total: 10, partA: 7, partB: 3, emoji: '🚀' },
+  { total: 10, partA: 8, partB: 2, emoji: '🐸' },
+  { total: 10, partA: 9, partB: 1, emoji: '🌈' },
+];
 
 export const ADD_PROBLEMS: MathProblem[] = [
   { id: 1, type: 'add', a: 1, b: 2, aEmojis: '🍎', bEmojis: '🍊', answer: 3, options: [2, 3, 4] },

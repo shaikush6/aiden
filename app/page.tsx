@@ -1,18 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navigation, { type TabId } from '@/components/Navigation';
 import PhonicsTab from '@/components/PhonicsTab';
 import PatternsTab from '@/components/PatternsTab';
 import MathTab from '@/components/MathTab';
 import SolarTab from '@/components/SolarTab';
+const TeacherTab = dynamic(() => import('@/components/TeacherTab'), { ssr: false });
 
 const TAB_BACKGROUNDS: Record<TabId, string> = {
   phonics: 'from-sky-300 via-sky-200 to-cyan-200',
   patterns: 'from-purple-300 via-violet-200 to-fuchsia-200',
   math: 'from-orange-300 via-amber-200 to-yellow-200',
   solar: 'from-slate-900 via-indigo-950 to-slate-900',
+  teacher: 'from-emerald-300 via-green-200 to-teal-200',
 };
 
 const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string; textColor: string }> = {
@@ -20,6 +23,7 @@ const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string
   patterns: { title: 'SPOT THE PATTERN', subtitle: 'What comes next?', icon: '🔷', textColor: 'text-purple-800' },
   math: { title: 'NUMBER TIME', subtitle: 'Count, add, and explore!', icon: '🔢', textColor: 'text-orange-800' },
   solar: { title: 'SPACE EXPLORER', subtitle: 'Discover our solar system!', icon: '🪐', textColor: 'text-indigo-200' },
+  teacher: { title: 'TALK TO MIMI', subtitle: 'Your AI teacher is here!', icon: '🎓', textColor: 'text-emerald-800' },
 };
 
 export default function Home() {
@@ -64,6 +68,7 @@ export default function Home() {
             {activeTab === 'patterns' && <PatternsTab />}
             {activeTab === 'math' && <MathTab />}
             {activeTab === 'solar' && <SolarTab />}
+            {activeTab === 'teacher' && <TeacherTab />}
           </motion.div>
         </AnimatePresence>
       </main>

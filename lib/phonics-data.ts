@@ -4,6 +4,8 @@ export interface CVCWord {
   word: string;
   emoji: string;
   vowel: VowelSound;
+  consonants?: string[];     // explicit consonant list (required for digraph words)
+  digraph?: 'SH' | 'CH' | 'TH' | 'WH' | 'CK';
 }
 
 export const CVC_WORDS: CVCWord[] = [
@@ -135,6 +137,43 @@ export const CVC_WORDS: CVCWord[] = [
   { word: 'HUT', emoji: '🏚️', vowel: 'U' },
   { word: 'NUT', emoji: '🥜', vowel: 'U' },
   { word: 'BUS', emoji: '🚌', vowel: 'U' },
+
+  // ── Digraph words ────────────────────────────────────────────────
+  // SH
+  { word: 'SHIP', emoji: '🚢', vowel: 'I', consonants: ['P'], digraph: 'SH' },
+  { word: 'SHOP', emoji: '🏪', vowel: 'O', consonants: ['P'], digraph: 'SH' },
+  { word: 'SHOT', emoji: '💉', vowel: 'O', consonants: ['T'], digraph: 'SH' },
+  { word: 'SHED', emoji: '🛖', vowel: 'E', consonants: ['D'], digraph: 'SH' },
+  { word: 'SHIN', emoji: '🦵', vowel: 'I', consonants: ['N'], digraph: 'SH' },
+  { word: 'FISH', emoji: '🐟', vowel: 'I', consonants: ['F'], digraph: 'SH' },
+  { word: 'DISH', emoji: '🍽️', vowel: 'I', consonants: ['D'], digraph: 'SH' },
+  { word: 'WISH', emoji: '⭐', vowel: 'I', consonants: ['W'], digraph: 'SH' },
+  { word: 'RUSH', emoji: '💨', vowel: 'U', consonants: ['R'], digraph: 'SH' },
+  { word: 'CASH', emoji: '💰', vowel: 'A', consonants: ['C'], digraph: 'SH' },
+  // CH
+  { word: 'CHIP', emoji: '🍟', vowel: 'I', consonants: ['P'], digraph: 'CH' },
+  { word: 'CHOP', emoji: '🪓', vowel: 'O', consonants: ['P'], digraph: 'CH' },
+  { word: 'CHIN', emoji: '😊', vowel: 'I', consonants: ['N'], digraph: 'CH' },
+  { word: 'CHAT', emoji: '💬', vowel: 'A', consonants: ['T'], digraph: 'CH' },
+  { word: 'RICH', emoji: '💎', vowel: 'I', consonants: ['R'], digraph: 'CH' },
+  { word: 'MUCH', emoji: '🌊', vowel: 'U', consonants: ['M'], digraph: 'CH' },
+  // TH
+  { word: 'THIS', emoji: '👆', vowel: 'I', consonants: ['S'], digraph: 'TH' },
+  { word: 'THAT', emoji: '👉', vowel: 'A', consonants: ['T'], digraph: 'TH' },
+  { word: 'THIN', emoji: '🥢', vowel: 'I', consonants: ['N'], digraph: 'TH' },
+  { word: 'THEN', emoji: '⏭️', vowel: 'E', consonants: ['N'], digraph: 'TH' },
+  { word: 'WITH', emoji: '🤝', vowel: 'I', consonants: ['W'], digraph: 'TH' },
+  { word: 'BATH', emoji: '🛁', vowel: 'A', consonants: ['B'], digraph: 'TH' },
+  { word: 'MATH', emoji: '➕', vowel: 'A', consonants: ['M'], digraph: 'TH' },
+  // CK
+  { word: 'BACK', emoji: '🔙', vowel: 'A', consonants: ['B'], digraph: 'CK' },
+  { word: 'PACK', emoji: '🎒', vowel: 'A', consonants: ['P'], digraph: 'CK' },
+  { word: 'KICK', emoji: '⚽', vowel: 'I', consonants: ['K'], digraph: 'CK' },
+  { word: 'DUCK', emoji: '🦆', vowel: 'U', consonants: ['D'], digraph: 'CK' },
+  { word: 'ROCK', emoji: '🪨', vowel: 'O', consonants: ['R'], digraph: 'CK' },
+  { word: 'LOCK', emoji: '🔒', vowel: 'O', consonants: ['L'], digraph: 'CK' },
+  { word: 'NECK', emoji: '🦒', vowel: 'E', consonants: ['N'], digraph: 'CK' },
+  { word: 'SOCK', emoji: '🧦', vowel: 'O', consonants: ['S'], digraph: 'CK' },
 ];
 
 export interface Phonicssentence {
@@ -192,10 +231,73 @@ export const PHONICS_STORIES: PhonicsStory[] = [
     requiredVowels: ['A', 'I', 'O', 'U'],
     requiredConsonants: ['T','M','H','D','B','G','P','R','N','J','S'],
   },
+  {
+    title: 'THE BIG FAT CAT',
+    sentences: [
+      'THE BIG FAT CAT SAT ON THE MAT.',
+      'THE CAT HAD A NAP.',
+      'A RAT SAT ON THE CAT!',
+      'THE CAT DID NOT NAP.',
+      'THE FAT CAT RAN AND RAN.',
+      'THE RAT HAD FUN.',
+      'THE END!',
+    ],
+    requiredVowels: ['A', 'E', 'I', 'O', 'U'],
+    requiredConsonants: ['B','C','D','F','G','H','M','N','P','R','S','T'],
+  },
+  {
+    title: 'THE DOG AND THE BUG',
+    sentences: [
+      'A DOG SAT ON A LOG.',
+      'A BUG DID JOG TO THE LOG.',
+      'THE DOG GOT MAD.',
+      'THE BUG DID NOT STOP.',
+      'THE DOG DID HOP AND HOP.',
+      'THE BUG GOT ON THE DOG.',
+      'THE DOG AND THE BUG HAD FUN!',
+      'THE END!',
+    ],
+    requiredVowels: ['A', 'E', 'I', 'O', 'U'],
+    requiredConsonants: ['B','D','G','H','J','L','M','N','P','R','S','T'],
+  },
+  {
+    title: 'THE PIG AND THE PUP',
+    sentences: [
+      'A FAT PIG AND A PUP SAT IN THE SUN.',
+      'THE PIG HAD HAM.',
+      'THE PUP HAD A BUN.',
+      'THE PIG DID NOT LET THE PUP GET THE HAM.',
+      'THE PUP WAS SAD.',
+      'THE PIG GOT BAD.',
+      'THEN THE PUP GOT THE HAM AND THE BUN.',
+      'THE PIG AND THE PUP GOT FUN.',
+      'THE END!',
+    ],
+    requiredVowels: ['A', 'E', 'I', 'O', 'U'],
+    requiredConsonants: ['B','D','F','G','H','L','M','N','P','R','S','T','W'],
+  },
+  {
+    title: 'THE FISH AND THE SHIP',
+    sentences: [
+      'A BIG FISH SAT IN THE SEA.',
+      'A SHIP DID RUSH PAST THE FISH.',
+      'THE FISH GOT A WISH.',
+      'THE FISH SAID: LET ME ON THE SHIP!',
+      'THE SHIP DID STOP.',
+      'THE FISH GOT ON.',
+      'THE SHIP AND THE FISH HAD FUN.',
+      'THE FISH GOT HIS WISH!',
+      'THE END!',
+    ],
+    requiredVowels: ['A', 'E', 'I', 'O', 'U'],
+    requiredConsonants: ['B','D','F','G','H','L','M','N','P','R','S','T','W'],
+  },
 ];
 
 export const ALL_CONSONANTS = ['B','C','D','F','G','H','J','K','L','M','N','P','R','S','T','V','W','X','Y','Z'];
 export const ALL_VOWELS: VowelSound[] = ['A','E','I','O','U'];
+export const ALL_DIGRAPHS = ['SH', 'CH', 'TH', 'WH', 'CK'] as const;
+export type DigiraphSound = typeof ALL_DIGRAPHS[number];
 
 export function getWordConsonants(word: string): string[] {
   return word.split('').filter(l => ALL_CONSONANTS.includes(l));
@@ -203,10 +305,21 @@ export function getWordConsonants(word: string): string[] {
 
 export function filterWords(
   selectedVowels: Set<VowelSound>,
-  selectedConsonants: Set<string>
+  selectedConsonants: Set<string>,
+  selectedDigraphs: string[] = []
 ): CVCWord[] {
   return CVC_WORDS.filter(w => {
     if (!selectedVowels.has(w.vowel)) return false;
+
+    if (w.digraph) {
+      // Digraph word: require the digraph to be selected
+      if (!selectedDigraphs.includes(w.digraph)) return false;
+      // Check the explicit consonants list
+      const cons = w.consonants ?? [];
+      return cons.every(c => selectedConsonants.has(c));
+    }
+
+    // Regular CVC word
     const consonants = getWordConsonants(w.word);
     return consonants.every(c => selectedConsonants.has(c));
   });
@@ -224,3 +337,24 @@ export function filterSentences(
 
 // Re-export with type alias
 export type PhonicssentenceWithFilter = Phonicssentence;
+
+// ── Word Chains ──────────────────────────────────────────────────────
+export interface WordChain {
+  id: number;
+  chain: string[];   // sequence of words where each differs by one letter
+  emojis: string[];  // one emoji per word in the chain
+  description: string;
+}
+
+export const WORD_CHAINS: WordChain[] = [
+  { id: 1, chain: ['CAT','BAT','BAD','BED'], emojis: ['🐱','🦇','👎','🛏️'], description: 'ONE LETTER CHANGES!' },
+  { id: 2, chain: ['HOP','MOP','MAP','NAP'], emojis: ['🐰','🧹','🗺️','😴'], description: 'ONE LETTER CHANGES!' },
+  { id: 3, chain: ['PIG','BIG','BIT','SIT'], emojis: ['🐷','🔭','🔪','🪑'], description: 'ONE LETTER CHANGES!' },
+  { id: 4, chain: ['SUN','RUN','BUN','BUS'], emojis: ['☀️','🏃','🍞','🚌'], description: 'ONE LETTER CHANGES!' },
+  { id: 5, chain: ['DOG','LOG','LEG','BEG'], emojis: ['🐕','🪵','🦵','🙏'], description: 'ONE LETTER CHANGES!' },
+  { id: 6, chain: ['FAN','FIN','PIN','PAN'], emojis: ['💨','🦈','📌','🍳'], description: 'ONE LETTER CHANGES!' },
+  { id: 7, chain: ['WET','NET','NOT','NUT'], emojis: ['💧','🥅','❌','🥜'], description: 'ONE LETTER CHANGES!' },
+  { id: 8, chain: ['HIT','HAT','RAT','RAG'], emojis: ['🥊','🎩','🐀','🧹'], description: 'ONE LETTER CHANGES!' },
+  { id: 9, chain: ['MUG','BUG','BUD','BAD'], emojis: ['☕','🐛','🌱','👎'], description: 'ONE LETTER CHANGES!' },
+  { id: 10, chain: ['POT','PET','PEG','BEG'], emojis: ['🪴','🐾','📌','🙏'], description: 'ONE LETTER CHANGES!' },
+];

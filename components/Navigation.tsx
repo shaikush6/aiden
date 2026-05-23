@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { speakText } from '@/lib/speech';
 
-export type TabId = 'phonics' | 'patterns' | 'math' | 'solar';
+export type TabId = 'phonics' | 'patterns' | 'math' | 'solar' | 'teacher';
 
 interface Tab {
   id: TabId;
@@ -19,6 +19,7 @@ const TABS: Tab[] = [
   { id: 'patterns', label: 'PATTERNS', icon: '🔷', spokenName: 'Spot the Pattern!', activeColor: 'bg-purple-500 text-white', inactiveColor: 'bg-white/80 text-purple-600' },
   { id: 'math', label: 'NUMBERS', icon: '🔢', spokenName: 'Number Time!', activeColor: 'bg-orange-500 text-white', inactiveColor: 'bg-white/80 text-orange-600' },
   { id: 'solar', label: 'SPACE', icon: '🪐', spokenName: 'Space Explorer!', activeColor: 'bg-indigo-600 text-white', inactiveColor: 'bg-white/80 text-indigo-600' },
+  { id: 'teacher', label: 'TEACHER', icon: '🎓', spokenName: 'Talk to Mimi!', activeColor: 'bg-emerald-500 text-white', inactiveColor: 'bg-white/80 text-emerald-600' },
 ];
 
 interface NavigationProps {

@@ -6,10 +6,12 @@ import dynamic from 'next/dynamic';
 import {
   ALL_CONSONANTS,
   ALL_VOWELS,
+  ALL_DIGRAPHS,
   type VowelSound,
   filterWords,
   filterSentences,
   PHONICS_STORIES,
+  WORD_CHAINS,
   type CVCWord,
   type Phonicssentence,
 } from '@/lib/phonics-data';
@@ -17,7 +19,7 @@ import { speakWord, speakLetterSound, speakText } from '@/lib/speech';
 
 const ReactConfetti = dynamic(() => import('react-confetti'), { ssr: false });
 
-type Mode = 'WORDS' | 'SENTENCES' | 'STORY';
+type Mode = 'WORDS' | 'SENTENCES' | 'STORY' | 'CHAIN' | 'AI';
 
 const VOWEL_COLORS: Record<VowelSound, string> = {
   A: 'bg-red-400 text-white',
@@ -217,9 +219,290 @@ function StoryView({ story }: { story: (typeof PHONICS_STORIES)[0] }) {
   );
 }
 
+// ── Word Chain Drill ─────────────────────────────────────────────────
+function findChangedIndex(wordA: string, wordB: string): number {
+  for (let i = 0; i < Math.max(wordA.length, wordB.length); i++) {
+    if (wordA[i] !== wordB[i]) return i;
+  }
+  return -1;
+}
+
+function WordChainDrill({ onConfetti }: { onConfetti: () => void }) {
+  const [chainIdx, setChainIdx] = useState(0);
+  const [step, setStep] = useState(0);
+  const [celebrating, setCelebrating] = useState(false);
+
+  const chain = WORD_CHAINS[chainIdx % WORD_CHAINS.length];
+  const currentWord = chain.chain[step];
+  const nextWord = chain.chain[step + 1] ?? null;
+  const changedIdx = nextWord ? findChangedIndex(currentWord, nextWord) : -1;
+
+  const handleWordTap = useCallback(async () => {
+    if (celebrating) return;
+    await speakWord(currentWord);
+
+    if (step < chain.chain.length - 1) {
+      // Move to next word after short delay
+      setTimeout(() => {
+        setStep(s => s + 1);
+      }, 1200);
+    } else {
+      // End of chain — celebrate
+      setCelebrating(true);
+      onConfetti();
+      speakText('You did it! The whole chain!');
+      setTimeout(() => {
+        setCelebrating(false);
+        setChainIdx(ci => ci + 1);
+        setStep(0);
+      }, 3000);
+    }
+  }, [currentWord, step, chain.chain.length, celebrating, onConfetti]);
+
+  const handleLetterTap = useCallback((letter: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    speakLetterSound(letter);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-black text-sky-600 uppercase tracking-widest">{chain.description}</p>
+      </div>
+
+      {/* Chain name */}
+      <p className="text-xs font-black text-sky-400 uppercase tracking-wider">
+        CHAIN {(chainIdx % WORD_CHAINS.length) + 1} OF {WORD_CHAINS.length}
+      </p>
+
+      {/* Progress dots */}
+      <div className="flex gap-3">
+        {chain.chain.map((_, i) => (
+          <motion.div
+            key={i}
+            animate={i === step ? { scale: [1, 1.3, 1] } : {}}
+            transition={{ duration: 0.6, repeat: i === step ? Infinity : 0 }}
+            className={`w-4 h-4 rounded-full transition-colors ${
+              i < step ? 'bg-sky-500' : i === step ? 'bg-purple-500' : 'bg-sky-200'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Main word card — tap to speak */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${chainIdx}-${step}`}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+          whileTap={{ scale: 0.92 }}
+          onClick={handleWordTap}
+          className="bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center gap-4 cursor-pointer border-4 border-purple-200 hover:border-purple-400 transition-colors select-none"
+          style={{ minWidth: 220 }}
+        >
+          {celebrating ? (
+            <motion.div
+              animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 0.6, repeat: Infinity }}
+              className="text-6xl"
+            >
+              🎉
+            </motion.div>
+          ) : (
+            <div className="text-6xl">{chain.emojis[step]}</div>
+          )}
+
+          {/* Letters with changed letter highlighted */}
+          <div className="flex gap-2">
+            {currentWord.split('').map((letter, idx) => {
+              const isChanged = idx === changedIdx && nextWord !== null;
+              return (
+                <motion.span
+                  key={idx}
+                  whileTap={{ scale: 1.4 }}
+                  onClick={(e) => handleLetterTap(letter, e)}
+                  className={`text-5xl font-black cursor-pointer rounded-xl px-2 py-1 transition-colors ${
+                    isChanged
+                      ? 'text-rose-500 bg-rose-50 ring-2 ring-rose-300'
+                      : 'text-sky-700'
+                  }`}
+                >
+                  {letter}
+                </motion.span>
+              );
+            })}
+          </div>
+
+          {celebrating ? (
+            <p className="text-xl font-black text-purple-600">YOU DID IT! THE WHOLE CHAIN!</p>
+          ) : (
+            <p className="text-sm text-sky-400 font-bold">TAP TO HEAR!</p>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Preview of next word (what will change) */}
+      {nextWord && !celebrating && (
+        <div className="text-center">
+          <p className="text-xs text-sky-400 font-bold mb-1">NEXT WORD:</p>
+          <div className="flex gap-2 justify-center">
+            {nextWord.split('').map((letter, idx) => {
+              const isNew = idx === changedIdx;
+              return (
+                <span
+                  key={idx}
+                  className={`text-2xl font-black ${isNew ? 'text-rose-400' : 'text-sky-300'}`}
+                >
+                  {isNew ? letter : '·'}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── AI Generate mode ─────────────────────────────────────────────────
+type AIContentType = 'story' | 'sentences' | null;
+
+function AIGenerateMode({
+  selectedVowels,
+  selectedConsonants,
+}: {
+  selectedVowels: Set<VowelSound>;
+  selectedConsonants: Set<string>;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [contentType, setContentType] = useState<AIContentType>(null);
+  const [generatedText, setGeneratedText] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  const generate = useCallback(async (type: 'story' | 'sentences') => {
+    setLoading(true);
+    setContentType(type);
+    setError('');
+    setGeneratedText('');
+
+    speakText(type === 'story' ? 'Mimi is writing a story!' : 'Mimi is writing some sentences!');
+
+    try {
+      const res = await fetch('/api/generate-phonics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          vowels: Array.from(selectedVowels),
+          consonants: Array.from(selectedConsonants),
+        }),
+      });
+
+      if (!res.ok) throw new Error('Generation failed');
+      const data = await res.json() as { text: string };
+      setGeneratedText(data.text);
+    } catch {
+      setError('OOPS! COULD NOT CONNECT. TRY AGAIN!');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedVowels, selectedConsonants]);
+
+  const words = generatedText.split(/\s+/).filter(Boolean);
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      <p className="text-lg font-black text-sky-700 text-center">MIMI WRITES JUST FOR YOU! ✨</p>
+
+      <div className="flex gap-4">
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => generate('story')}
+          disabled={loading}
+          className="bg-purple-500 hover:bg-purple-600 text-white font-black text-lg py-5 px-6 rounded-2xl shadow-lg disabled:opacity-50 transition-colors"
+        >
+          🎲 SURPRISE STORY
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => generate('sentences')}
+          disabled={loading}
+          className="bg-sky-500 hover:bg-sky-600 text-white font-black text-lg py-5 px-6 rounded-2xl shadow-lg disabled:opacity-50 transition-colors"
+        >
+          📝 SURPRISE SENTENCES
+        </motion.button>
+      </div>
+
+      {loading && (
+        <div className="flex flex-col items-center gap-3 py-6">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+            className="text-5xl"
+          >
+            ✏️
+          </motion.div>
+          <motion.p
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="text-xl font-black text-purple-500"
+          >
+            MIMI IS WRITING...
+          </motion.p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border-4 border-red-200 rounded-2xl p-4 text-center">
+          <p className="text-lg font-black text-red-500">{error}</p>
+        </div>
+      )}
+
+      {!loading && generatedText && (
+        <div className="w-full flex flex-col gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-lg p-6 border-4 border-purple-200 cursor-pointer"
+            onClick={() => speakText(generatedText.toLowerCase())}
+          >
+            <p className="text-xs font-black text-purple-400 mb-3 text-center uppercase tracking-wider">
+              {contentType === 'story' ? '📖 MIMI\'S STORY — TAP A WORD TO HEAR IT!' : '📝 MIMI\'S SENTENCES — TAP A WORD TO HEAR IT!'}
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {words.map((word, i) => (
+                <motion.span
+                  key={i}
+                  whileTap={{ scale: 1.3, color: '#7c3aed' }}
+                  onClick={(e) => { e.stopPropagation(); speakWord(word.replace(/[^A-Za-z]/g, '')); }}
+                  className="text-2xl font-black text-sky-800 cursor-pointer hover:text-purple-600 transition-colors"
+                >
+                  {word}
+                </motion.span>
+              ))}
+            </div>
+            <p className="text-xs text-sky-400 font-bold text-center mt-3">TAP THE WHOLE BOX TO HEAR IT ALL!</p>
+          </motion.div>
+
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => generate(contentType ?? 'story')}
+            className="bg-green-500 hover:bg-green-600 text-white font-black text-xl py-4 px-8 rounded-2xl shadow-lg transition-colors"
+          >
+            GET ANOTHER! 🔄
+          </motion.button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PhonicsTab() {
   const [selectedVowels, setSelectedVowels] = useState<Set<VowelSound>>(new Set(ALL_VOWELS));
   const [selectedConsonants, setSelectedConsonants] = useState<Set<string>>(new Set(ALL_CONSONANTS));
+  const [selectedDigraphs, setSelectedDigraphs] = useState<string[]>([]);
   const [mode, setMode] = useState<Mode>('WORDS');
   const [showConfetti, setShowConfetti] = useState(false);
   const [storyIndex, setStoryIndex] = useState(0);
@@ -247,7 +530,13 @@ export default function PhonicsTab() {
     });
   };
 
-  const filteredWords = filterWords(selectedVowels, selectedConsonants);
+  const toggleDigraph = (d: string) => {
+    setSelectedDigraphs(prev =>
+      prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
+    );
+  };
+
+  const filteredWords = filterWords(selectedVowels, selectedConsonants, selectedDigraphs);
   const filteredSentences = filterSentences(selectedVowels, selectedConsonants);
 
   const currentStory = PHONICS_STORIES[storyIndex];
@@ -266,17 +555,23 @@ export default function PhonicsTab() {
       )}
 
       {/* Mode selector */}
-      <div className="flex gap-2 justify-center">
-        {(['WORDS', 'SENTENCES', 'STORY'] as Mode[]).map(m => (
+      <div className="flex gap-2 justify-center flex-wrap">
+        {([
+          { id: 'WORDS', label: 'WORDS' },
+          { id: 'SENTENCES', label: 'SENTENCES' },
+          { id: 'STORY', label: 'STORY' },
+          { id: 'CHAIN', label: '🔗 CHAIN' },
+          { id: 'AI', label: '✨ AI' },
+        ] as { id: Mode; label: string }[]).map(m => (
           <motion.button
-            key={m}
+            key={m.id}
             whileTap={{ scale: 0.92 }}
-            onClick={() => setMode(m)}
+            onClick={() => setMode(m.id)}
             className={`py-2 px-4 rounded-xl font-black text-base transition-all shadow ${
-              mode === m ? 'bg-sky-500 text-white scale-105 shadow-md' : 'bg-white text-sky-600'
+              mode === m.id ? 'bg-sky-500 text-white scale-105 shadow-md' : 'bg-white text-sky-600'
             }`}
           >
-            {m}
+            {m.label}
           </motion.button>
         ))}
       </div>
@@ -316,6 +611,29 @@ export default function PhonicsTab() {
               }`}
             >
               {c}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      {/* Digraph selector */}
+      <div className="bg-white/70 rounded-2xl p-3 shadow">
+        <p className="text-xs font-black text-rose-600 mb-2 text-center uppercase tracking-widest">
+          Digraphs <span className="text-rose-400 normal-case font-semibold">(optional add-ons)</span>
+        </p>
+        <div className="flex gap-2 justify-center flex-wrap">
+          {ALL_DIGRAPHS.map(d => (
+            <motion.button
+              key={d}
+              whileTap={{ scale: 0.85 }}
+              onClick={() => toggleDigraph(d)}
+              className={`px-4 h-10 rounded-xl font-black text-sm transition-all shadow ${
+                selectedDigraphs.includes(d)
+                  ? 'bg-rose-500 text-white ring-4 ring-rose-600 scale-105'
+                  : 'bg-rose-50 text-rose-400 border-2 border-rose-200'
+              }`}
+            >
+              {d}
             </motion.button>
           ))}
         </div>
@@ -371,7 +689,7 @@ export default function PhonicsTab() {
             className="flex flex-col gap-4"
           >
             {/* Story switcher */}
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center flex-wrap">
               {PHONICS_STORIES.map((s, i) => (
                 <motion.button
                   key={i}
@@ -398,6 +716,31 @@ export default function PhonicsTab() {
                 </p>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {mode === 'CHAIN' && (
+          <motion.div
+            key="chain"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <WordChainDrill onConfetti={triggerConfetti} />
+          </motion.div>
+        )}
+
+        {mode === 'AI' && (
+          <motion.div
+            key="ai"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <AIGenerateMode
+              selectedVowels={selectedVowels}
+              selectedConsonants={selectedConsonants}
+            />
           </motion.div>
         )}
       </AnimatePresence>

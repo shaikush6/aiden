@@ -3,12 +3,12 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { MATH_RIDDLES, ADD_PROBLEMS, OBJECT_EMOJIS, type MathProblem } from '@/lib/math-data';
+import { MATH_RIDDLES, ADD_PROBLEMS, OBJECT_EMOJIS, NUMBER_BONDS_TO_5, NUMBER_BONDS_TO_10, type MathProblem, type NumberBond } from '@/lib/math-data';
 import { speakText, speakNumber, speakEncouragement } from '@/lib/speech';
 
 const ReactConfetti = dynamic(() => import('react-confetti'), { ssr: false });
 
-type SubMode = 'COUNT' | 'PLACE_VALUE' | 'RIDDLES' | 'ADD' | 'NUMBER_LINE' | 'WHICH_MORE' | 'MISSING' | 'DICE';
+type SubMode = 'COUNT' | 'PLACE_VALUE' | 'RIDDLES' | 'ADD' | 'NUMBER_LINE' | 'WHICH_MORE' | 'MISSING' | 'DICE' | 'BONDS';
 
 // ── Dice roll animation ─────────────────────────────────────────────
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -873,6 +873,188 @@ function AddMode() {
   );
 }
 
+// ── Number Bonds mode ───────────────────────────────────────────────
+type BondDifficulty = 'easy' | 'hard';
+type HiddenSlot = 'total' | 'partA' | 'partB';
+
+function NumberBondsMode() {
+  const [difficulty, setDifficulty] = useState<BondDifficulty>('easy');
+  const [bondIdx, setBondIdx] = useState(0);
+  const [hiddenSlot, setHiddenSlot] = useState<HiddenSlot>('partA');
+  const [selected, setSelected] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [score, setScore] = useState(0);
+
+  const bonds: NumberBond[] = difficulty === 'easy' ? NUMBER_BONDS_TO_5 : NUMBER_BONDS_TO_10;
+  const bond = bonds[bondIdx % bonds.length];
+
+  // Generate options (3 choices)
+  const answer = hiddenSlot === 'total' ? bond.total : hiddenSlot === 'partA' ? bond.partA : bond.partB;
+  const max = difficulty === 'easy' ? 5 : 10;
+  const wrong1 = answer === 0 ? 1 : answer - 1;
+  const wrong2 = answer >= max ? answer - 2 : answer + 1;
+  const options = useMemo(
+    () => Array.from(new Set([answer, wrong1, wrong2])).sort(() => Math.random() - 0.5).slice(0, 3),
+    [answer, wrong1, wrong2]
+  );
+
+  const generateNew = useCallback(() => {
+    setBondIdx(i => i + 1);
+    // For easy: only hide a part; for hard: randomly hide any slot
+    const slots: HiddenSlot[] = difficulty === 'easy'
+      ? ['partA', 'partB']
+      : ['total', 'partA', 'partB'];
+    setHiddenSlot(slots[Math.floor(Math.random() * slots.length)]);
+    setSelected(null);
+    setFeedback(null);
+  }, [difficulty]);
+
+  // Speak on mount and when difficulty changes
+  useEffect(() => {
+    speakText(`Number bonds to ${difficulty === 'easy' ? 'five' : 'ten'}!`);
+  }, [difficulty]);
+
+  const handleSelect = (n: number) => {
+    if (selected !== null) return;
+    setSelected(n);
+    if (n === answer) {
+      setFeedback('correct');
+      setScore(s => s + 1);
+      setShowConfetti(true);
+      speakEncouragement(true);
+      speakText(`Yes! ${bond.partA} and ${bond.partB} make ${bond.total}!`);
+      setTimeout(() => { setShowConfetti(false); generateNew(); }, 2500);
+    } else {
+      setFeedback('wrong');
+      speakEncouragement(false);
+      setTimeout(() => { setSelected(null); setFeedback(null); }, 1500);
+    }
+  };
+
+  const SlotBox = ({
+    value,
+    slot,
+    color,
+  }: {
+    value: number;
+    slot: HiddenSlot;
+    color: string;
+  }) => {
+    const isHidden = slot === hiddenSlot;
+    return (
+      <motion.div
+        animate={isHidden ? { borderColor: ['#f97316', '#ea580c', '#f97316'] } : {}}
+        transition={{ duration: 1.2, repeat: isHidden ? Infinity : 0 }}
+        className={`w-20 h-20 rounded-2xl flex items-center justify-center text-5xl font-black shadow-lg border-4 ${
+          isHidden
+            ? 'border-dashed border-orange-400 bg-orange-50 text-orange-300'
+            : `${color} border-transparent`
+        }`}
+      >
+        {isHidden ? '?' : value}
+      </motion.div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
+
+      {/* Difficulty toggle */}
+      <div className="flex gap-3">
+        {(['easy', 'hard'] as BondDifficulty[]).map(d => (
+          <motion.button
+            key={d}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => { setDifficulty(d); setBondIdx(0); setSelected(null); setFeedback(null); speakText(d === 'easy' ? 'Number bonds to five!' : 'Number bonds to ten!'); }}
+            className={`py-2 px-5 rounded-xl font-black text-sm transition-all shadow ${
+              difficulty === d ? 'bg-orange-500 text-white scale-105' : 'bg-white text-orange-500'
+            }`}
+          >
+            {d === 'easy' ? 'BONDS TO 5' : 'BONDS TO 10'}
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Score */}
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">⭐</span>
+        <span className="text-2xl font-black text-orange-600">{score}</span>
+      </div>
+
+      {/* Emoji */}
+      <div className="text-5xl">{bond.emoji}</div>
+
+      {/* Bond diagram */}
+      <div className="flex flex-col items-center gap-1">
+        {/* Total at top */}
+        <SlotBox value={bond.total} slot="total" color="bg-orange-400 text-white" />
+
+        {/* Connecting lines using SVG */}
+        <svg width="160" height="40" viewBox="0 0 160 40" className="overflow-visible">
+          <line x1="80" y1="0" x2="30" y2="40" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
+          <line x1="80" y1="0" x2="130" y2="40" stroke="#f97316" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+
+        {/* Parts side by side */}
+        <div className="flex gap-8">
+          <div className="flex flex-col items-center gap-1">
+            <SlotBox value={bond.partA} slot="partA" color="bg-sky-400 text-white" />
+            <span className="text-xs font-black text-sky-500">PART A</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <SlotBox value={bond.partB} slot="partB" color="bg-purple-400 text-white" />
+            <span className="text-xs font-black text-purple-500">PART B</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Instruction */}
+      <div className="flex items-center gap-2">
+        <p className="text-xl font-black text-orange-700 text-center">
+          WHAT IS THE <span className="text-orange-400">?</span>
+        </p>
+        <button
+          onClick={() => speakText(`What is the missing number? ${bond.partA} and ${bond.partB} make ${bond.total}`)}
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm"
+        >
+          🔊
+        </button>
+      </div>
+
+      {/* Answer buttons */}
+      <div className="flex gap-4">
+        {options.map(opt => (
+          <motion.button
+            key={opt}
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.1 }}
+            onClick={() => handleSelect(opt)}
+            animate={
+              selected === opt && feedback === 'correct' ? { scale: [1, 1.3, 1] } :
+              selected === opt && feedback === 'wrong' ? { x: [0, -8, 8, -8, 0] } : {}
+            }
+            className={`w-20 h-20 rounded-2xl text-3xl font-black shadow-lg transition-colors
+              ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white' :
+                selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white' :
+                'bg-white text-orange-600 hover:bg-orange-50'}
+            `}
+          >
+            {opt}
+          </motion.button>
+        ))}
+      </div>
+
+      {feedback && (
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
+          {feedback === 'correct' ? `⭐ YES! ${bond.partA} + ${bond.partB} = ${bond.total}! ⭐` : '💪 TRY AGAIN!'}
+        </motion.p>
+      )}
+    </div>
+  );
+}
+
 // ── Mode config ────────────────────────────────────────────────────
 const SUB_MODES: { id: SubMode; label: string; icon: string }[] = [
   { id: 'COUNT', label: 'COUNT', icon: '🔢' },
@@ -883,6 +1065,7 @@ const SUB_MODES: { id: SubMode; label: string; icon: string }[] = [
   { id: 'WHICH_MORE', label: 'WHICH MORE?', icon: '🍎' },
   { id: 'MISSING', label: 'MISSING №', icon: '❓' },
   { id: 'DICE', label: 'DICE', icon: '🎲' },
+  { id: 'BONDS', label: 'NUMBER BONDS', icon: '🔗' },
 ];
 
 const MODE_NAMES: Record<SubMode, string> = {
@@ -894,6 +1077,7 @@ const MODE_NAMES: Record<SubMode, string> = {
   WHICH_MORE: 'Which is more mode!',
   MISSING: 'Missing number mode!',
   DICE: 'Dice game!',
+  BONDS: 'Number bonds!',
 };
 
 export default function MathTab() {
@@ -940,6 +1124,7 @@ export default function MathTab() {
           {subMode === 'WHICH_MORE' && <WhichMoreMode />}
           {subMode === 'MISSING' && <MissingNumberMode />}
           {subMode === 'DICE' && <DiceMode />}
+          {subMode === 'BONDS' && <NumberBondsMode />}
         </motion.div>
       </AnimatePresence>
     </div>
