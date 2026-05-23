@@ -31,12 +31,8 @@ export async function POST() {
       session: {
         type: 'realtime',
         model: 'gpt-realtime-2',
-        modalities: ['audio', 'text'],
         voice: 'ash',
         instructions: MIMI_INSTRUCTIONS,
-        input_audio_format: 'pcm16',
-        output_audio_format: 'pcm16',
-        max_response_output_tokens: 4096,
       },
     }),
   })
