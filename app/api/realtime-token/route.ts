@@ -1,24 +1,6 @@
 import { NextResponse } from 'next/server'
 
-export async function POST() {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'No API key configured' }, { status: 500 })
-  }
-
-  const res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      session: {
-        type: 'realtime',
-        model: 'gpt-realtime-2',
-        audio: {
-          output: { voice: 'ash' },
-        },
-        instructions: `You are Mimi, a cheerful and patient teacher for young children aged 3 to 5.
+const MIMI_INSTRUCTIONS = `You are Mimi, a cheerful and patient teacher for young children aged 3 to 5.
 Your student is named Aiden and he is learning to read and do math. He knows the sounds of all letters and can decode simple CVC words like "cat", "sit", "hop".
 
 Rules you must follow:
@@ -31,8 +13,23 @@ Rules you must follow:
 - If Aiden asks about a number, explain it with a fun example (3 cookies, 5 fingers)
 - Make learning feel like a magical adventure
 - Always end your response with a question to keep Aiden engaged
-- Never use scary, sad, or complicated concepts`,
-      },
+- Never use scary, sad, or complicated concepts`
+
+export async function POST() {
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json({ error: 'No API key configured' }, { status: 500 })
+  }
+
+  const res = await fetch('https://api.openai.com/v1/realtime/sessions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-realtime-preview',
+      voice: 'ash',
+      instructions: MIMI_INSTRUCTIONS,
     }),
   })
 
@@ -42,5 +39,6 @@ Rules you must follow:
   }
 
   const data = await res.json()
-  return NextResponse.json({ token: data.client_secret?.value ?? null })
+  const token = data.client_secret?.value ?? null
+  return NextResponse.json({ token })
 }
