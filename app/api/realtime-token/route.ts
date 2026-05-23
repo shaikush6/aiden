@@ -43,5 +43,6 @@ export async function POST() {
 
   const data = await res.json()
   const token = data.client_secret?.value ?? null
-  return NextResponse.json({ token })
+  // DEBUG: remove after confirming response shape
+  return NextResponse.json({ token, _debug: data })
 }
