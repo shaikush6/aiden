@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
@@ -26,6 +26,23 @@ function playTone(index: number) {
   } catch { /* ignore */ }
 }
 
+// Deterministic seeded shuffle (Fisher-Yates + LCG) — same question.id always
+// yields the same option order, so answer position is stable but not predictable.
+function seededShuffle<T>(items: T[], id: number): T[] {
+  const out = items.slice();
+  let state = (id * 2654435761) >>> 0; // seed: id * large prime, kept unsigned
+  const rand = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) & 0xffffffff;
+    state = state >>> 0;
+    return state / 4294967296;
+  };
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 // ── DRILL: NEXT / MISSING_MIDDLE — show sequence with ? slot, pick from options ──
 function QuizDrill({ question, onCorrect, onWrong }: {
   question: PatternQuestion;
@@ -34,6 +51,11 @@ function QuizDrill({ question, onCorrect, onWrong }: {
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+
+  const shuffledOptions = useMemo(
+    () => seededShuffle(question.options, question.id),
+    [question.id, question.options]
+  );
 
   const handleAnswer = useCallback((opt: string) => {
     if (selected !== null) return;
@@ -91,7 +113,7 @@ function QuizDrill({ question, onCorrect, onWrong }: {
 
       {/* Options */}
       <div className="flex gap-3 justify-center flex-wrap">
-        {question.options.map((opt) => (
+        {shuffledOptions.map((opt) => (
           <motion.button
             key={opt}
             whileTap={selected ? {} : { scale: 0.9 }}
@@ -203,6 +225,11 @@ function CountDrill({ question, onCorrect, onWrong }: {
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const target = question.countTarget ?? '';
 
+  const shuffledOptions = useMemo(
+    () => seededShuffle(question.options, question.id),
+    [question.id, question.options]
+  );
+
   const handleAnswer = (opt: string) => {
     if (selected) return;
     setSelected(opt);
@@ -253,7 +280,7 @@ function CountDrill({ question, onCorrect, onWrong }: {
       </AnimatePresence>
 
       <div className="flex gap-3 justify-center flex-wrap">
-        {question.options.map((opt) => (
+        {shuffledOptions.map((opt) => (
           <motion.button
             key={opt}
             whileTap={selected ? {} : { scale: 0.9 }}
@@ -398,9 +425,11 @@ export default function PatternsTab() {
   const handleWrong = () => setQIndex(i => i);
 
   const diffConfig: Record<Difficulty, { label: string; bg: string }> = {
-    EASY:   { label: '🟢 EASY',   bg: 'bg-green-500' },
-    MEDIUM: { label: '🟡 MEDIUM', bg: 'bg-yellow-500' },
-    HARD:   { label: '🔴 HARD',   bg: 'bg-red-500' },
+    EASY:   { label: '🌱 EASY',   bg: 'bg-green-500' },
+    MEDIUM: { label: '⭐ MEDIUM', bg: 'bg-yellow-500' },
+    HARD:   { label: '🔥 HARD',   bg: 'bg-red-500' },
+    EXPERT: { label: '💡 EXPERT', bg: 'bg-purple-600' },
+    MASTER: { label: '🏆 MASTER', bg: 'bg-gray-800' },
   };
 
   return (
@@ -422,11 +451,11 @@ export default function PatternsTab() {
       {tabMode === 'CREATE' ? <MakeYourOwnMode /> : (
         <>
           {/* Difficulty */}
-          <div className="flex gap-2 justify-center w-full max-w-sm">
-            {(['EASY', 'MEDIUM', 'HARD'] as Difficulty[]).map(d => (
+          <div className="grid grid-cols-5 gap-1 w-full max-w-sm">
+            {(['EASY', 'MEDIUM', 'HARD', 'EXPERT', 'MASTER'] as Difficulty[]).map(d => (
               <motion.button key={d} whileTap={{ scale: 0.92 }}
                 onClick={() => { setDifficulty(d); setQIndex(0); speakText(d.toLowerCase() + ' level!'); }}
-                className={`flex-1 py-2 rounded-xl font-black text-sm shadow transition-all
+                className={`py-1.5 rounded-xl font-black text-xs shadow transition-all
                   ${difficulty === d ? `${diffConfig[d].bg} text-white scale-105` : 'bg-white text-gray-600'}`}>
                 {diffConfig[d].label}
               </motion.button>

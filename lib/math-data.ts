@@ -16,6 +16,7 @@ export interface MathProblem {
   bEmojis: string;
   answer: number;
   options: number[];
+  label?: string;
 }
 
 export interface CountProblem {
@@ -254,19 +255,19 @@ export const NUMBER_BONDS_TO_10: NumberBond[] = [
 ];
 
 export const ADD_PROBLEMS: MathProblem[] = [
-  { id: 1, type: 'add', a: 1, b: 2, aEmojis: '🍎', bEmojis: '🍊', answer: 3, options: [2, 3, 4] },
-  { id: 2, type: 'add', a: 2, b: 3, aEmojis: '⭐', bEmojis: '⭐', answer: 5, options: [4, 5, 6] },
-  { id: 3, type: 'add', a: 3, b: 4, aEmojis: '🐱', bEmojis: '🐶', answer: 7, options: [6, 7, 8] },
-  { id: 4, type: 'add', a: 4, b: 3, aEmojis: '🌺', bEmojis: '🌸', answer: 7, options: [5, 7, 9] },
-  { id: 5, type: 'add', a: 5, b: 5, aEmojis: '🎈', bEmojis: '🎈', answer: 10, options: [8, 10, 12] },
-  { id: 6, type: 'add', a: 2, b: 2, aEmojis: '🐸', bEmojis: '🐸', answer: 4, options: [3, 4, 5] },
-  { id: 7, type: 'add', a: 6, b: 3, aEmojis: '🦋', bEmojis: '🦋', answer: 9, options: [8, 9, 10] },
-  { id: 8, type: 'add', a: 4, b: 4, aEmojis: '🍓', bEmojis: '🍓', answer: 8, options: [7, 8, 9] },
-  { id: 9, type: 'add', a: 7, b: 2, aEmojis: '🌟', bEmojis: '🌟', answer: 9, options: [8, 9, 11] },
-  { id: 10, type: 'add', a: 3, b: 3, aEmojis: '🐣', bEmojis: '🐣', answer: 6, options: [5, 6, 7] },
-  { id: 11, type: 'subtract', a: 5, b: 2, aEmojis: '🍎', bEmojis: '🍎', answer: 3, options: [2, 3, 4] },
-  { id: 12, type: 'subtract', a: 8, b: 3, aEmojis: '⭐', bEmojis: '⭐', answer: 5, options: [4, 5, 6] },
-  { id: 13, type: 'subtract', a: 10, b: 4, aEmojis: '🎈', bEmojis: '🎈', answer: 6, options: [5, 6, 7] },
-  { id: 14, type: 'subtract', a: 7, b: 3, aEmojis: '🌺', bEmojis: '🌺', answer: 4, options: [3, 4, 5] },
-  { id: 15, type: 'subtract', a: 9, b: 5, aEmojis: '🐱', bEmojis: '🐱', answer: 4, options: [3, 4, 6] },
+  { id: 1, type: 'add', a: 1, b: 2, aEmojis: '🍎', bEmojis: '🍎', answer: 3, options: [2, 3, 4], label: 'apples' },
+  { id: 2, type: 'add', a: 2, b: 3, aEmojis: '⭐', bEmojis: '⭐', answer: 5, options: [4, 5, 6], label: 'stars' },
+  { id: 3, type: 'add', a: 3, b: 4, aEmojis: '🐱', bEmojis: '🐱', answer: 7, options: [6, 7, 8], label: 'cats' },
+  { id: 4, type: 'add', a: 4, b: 3, aEmojis: '🌺', bEmojis: '🌺', answer: 7, options: [5, 7, 9], label: 'flowers' },
+  { id: 5, type: 'add', a: 5, b: 5, aEmojis: '🎈', bEmojis: '🎈', answer: 10, options: [8, 10, 12], label: 'balloons' },
+  { id: 6, type: 'add', a: 2, b: 2, aEmojis: '🐸', bEmojis: '🐸', answer: 4, options: [3, 4, 5], label: 'frogs' },
+  { id: 7, type: 'add', a: 6, b: 3, aEmojis: '🦋', bEmojis: '🦋', answer: 9, options: [8, 9, 10], label: 'butterflies' },
+  { id: 8, type: 'add', a: 4, b: 4, aEmojis: '🍓', bEmojis: '🍓', answer: 8, options: [7, 8, 9], label: 'strawberries' },
+  { id: 9, type: 'add', a: 7, b: 2, aEmojis: '🌟', bEmojis: '🌟', answer: 9, options: [8, 9, 11], label: 'stars' },
+  { id: 10, type: 'add', a: 3, b: 3, aEmojis: '🐣', bEmojis: '🐣', answer: 6, options: [5, 6, 7], label: 'chicks' },
+  { id: 11, type: 'subtract', a: 5, b: 2, aEmojis: '🍎', bEmojis: '🍎', answer: 3, options: [2, 3, 4], label: 'apples' },
+  { id: 12, type: 'subtract', a: 8, b: 3, aEmojis: '⭐', bEmojis: '⭐', answer: 5, options: [4, 5, 6], label: 'stars' },
+  { id: 13, type: 'subtract', a: 10, b: 4, aEmojis: '🎈', bEmojis: '🎈', answer: 6, options: [5, 6, 7], label: 'balloons' },
+  { id: 14, type: 'subtract', a: 7, b: 3, aEmojis: '🌺', bEmojis: '🌺', answer: 4, options: [3, 4, 5], label: 'flowers' },
+  { id: 15, type: 'subtract', a: 9, b: 5, aEmojis: '🐱', bEmojis: '🐱', answer: 4, options: [3, 4, 6], label: 'cats' },
 ];

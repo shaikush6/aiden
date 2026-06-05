@@ -8,131 +8,7 @@ import { speakText, speakNumber, speakEncouragement } from '@/lib/speech';
 
 const ReactConfetti = dynamic(() => import('react-confetti'), { ssr: false });
 
-type SubMode = 'COUNT' | 'PLACE_VALUE' | 'RIDDLES' | 'ADD' | 'NUMBER_LINE' | 'WHICH_MORE' | 'MISSING' | 'DICE' | 'BONDS';
-
-// ── Dice roll animation ─────────────────────────────────────────────
-const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-
-function DiceMode() {
-  const [die1, setDie1] = useState(1);
-  const [die2, setDie2] = useState(1);
-  const [rolling, setRolling] = useState(false);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [score, setScore] = useState(0);
-
-  const total = die1 + die2;
-
-  const wrong1 = total === 2 ? 3 : total - 1;
-  const wrong2 = total >= 12 ? total - 2 : total + 1;
-  const options = useMemo(
-    () => Array.from(new Set([total, wrong1, wrong2])).sort(() => Math.random() - 0.5).slice(0, 3),
-    [total, wrong1, wrong2]
-  );
-
-  const roll = () => {
-    if (rolling) return;
-    setRolling(true);
-    setSelected(null);
-    setFeedback(null);
-    let ticks = 0;
-    const interval = setInterval(() => {
-      setDie1(Math.floor(Math.random() * 6) + 1);
-      setDie2(Math.floor(Math.random() * 6) + 1);
-      ticks++;
-      if (ticks >= 8) {
-        clearInterval(interval);
-        setRolling(false);
-        speakText('How many dots in total?');
-      }
-    }, 80);
-  };
-
-  const handleSelect = (n: number) => {
-    if (selected !== null || rolling) return;
-    setSelected(n);
-    if (n === total) {
-      setFeedback('correct');
-      setScore(s => s + 1);
-      setShowConfetti(true);
-      speakEncouragement(true);
-      speakText(`Yes! ${die1} plus ${die2} equals ${total}!`);
-      setTimeout(() => { setShowConfetti(false); setFeedback(null); setSelected(null); }, 2500);
-    } else {
-      setFeedback('wrong');
-      speakEncouragement(false);
-      setTimeout(() => { setFeedback(null); setSelected(null); }, 1500);
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-center gap-6">
-      {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
-
-      <div className="flex items-center gap-2">
-        <p className="text-2xl font-black text-orange-700">HOW MANY DOTS IN TOTAL? 🎲</p>
-        <button onClick={() => speakText('How many dots in total?')} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm">🔊</button>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-2xl">⭐</span>
-        <span className="text-2xl font-black text-orange-600">{score}</span>
-      </div>
-
-      <div className="flex gap-6 items-center">
-        {[die1, die2].map((d, i) => (
-          <motion.div
-            key={i}
-            animate={rolling ? { rotate: [0, 15, -15, 10, -10, 0], scale: [1, 1.2, 0.9, 1.1, 1] } : {}}
-            transition={{ duration: 0.08, repeat: rolling ? Infinity : 0 }}
-            className="text-7xl select-none"
-          >
-            {DICE_FACES[d - 1]}
-          </motion.div>
-        ))}
-      </div>
-
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        whileHover={{ scale: 1.05 }}
-        onClick={roll}
-        disabled={rolling}
-        className="bg-orange-500 text-white font-black text-2xl py-4 px-10 rounded-2xl shadow-xl"
-      >
-        {rolling ? 'ROLLING...' : 'ROLL DICE! 🎲'}
-      </motion.button>
-
-      {!rolling && (
-        <div className="flex gap-4">
-          {options.map(opt => (
-            <motion.button
-              key={opt}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => handleSelect(opt)}
-              animate={
-                selected === opt && feedback === 'correct' ? { scale: [1, 1.3, 1] } :
-                selected === opt && feedback === 'wrong' ? { x: [0, -8, 8, -8, 0] } : {}
-              }
-              className={`w-20 h-20 rounded-2xl text-3xl font-black shadow-lg transition-colors
-                ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white' :
-                  selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white' :
-                  'bg-white text-orange-600 hover:bg-orange-50'}
-              `}
-            >
-              {opt}
-            </motion.button>
-          ))}
-        </div>
-      )}
-
-      {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
-          {feedback === 'correct' ? '⭐ AMAZING! ⭐' : '💪 TRY AGAIN!'}
-        </motion.p>
-      )}
-    </div>
-  );
-}
+type SubMode = 'COUNT' | 'PLACE_VALUE' | 'RIDDLES' | 'ADD' | 'NUMBER_LINE' | 'WHICH_MORE' | 'MISSING' | 'BONDS';
 
 // ── Number Line mode ───────────────────────────────────────────────
 function NumberLineMode() {
@@ -418,7 +294,16 @@ function MissingNumberMode() {
                 {n}
               </div>
             )}
-            {i < LENGTH - 1 && <span className="text-2xl font-black text-orange-400">,</span>}
+            {i < LENGTH - 1 && (
+              <div className="flex flex-col items-center justify-center px-0.5">
+                {step !== 1 && (
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full mb-0.5 ${step < 0 ? 'bg-rose-100 text-rose-600' : 'bg-green-100 text-green-600'}`}>
+                    {step > 0 ? `+${step}` : `${step}`}
+                  </span>
+                )}
+                <span className="text-xl font-black text-orange-400 leading-none">→</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -545,34 +430,76 @@ function CountMode() {
 }
 
 // ── Place Value sub-mode ───────────────────────────────────────────
+type PlaceColumn = 'ones' | 'tens' | 'hundreds' | 'thousands';
+
+const COLUMN_CONFIG: Record<PlaceColumn, { label: string; block: string; emoji: string; glow: string }> = {
+  ones: { label: 'ONES', block: 'bg-yellow-400', emoji: '🟡', glow: 'text-yellow-600' },
+  tens: { label: 'TENS', block: 'bg-blue-500', emoji: '🔵', glow: 'text-blue-600' },
+  hundreds: { label: 'HUNDREDS', block: 'bg-rose-400', emoji: '🔴', glow: 'text-rose-600' },
+  thousands: { label: 'THOUSANDS', block: 'bg-purple-500', emoji: '🟣', glow: 'text-purple-600' },
+};
+
+function generatePlaceNumber(): number {
+  const r = Math.random();
+  if (r < 0.3) return Math.floor(Math.random() * 9) + 1;        // 1-9
+  if (r < 0.7) return Math.floor(Math.random() * 90) + 10;      // 10-99
+  if (r < 0.9) return Math.floor(Math.random() * 900) + 100;    // 100-999
+  return Math.floor(Math.random() * 9000) + 1000;               // 1000-9999
+}
+
 function PlaceValueMode() {
-  const [number, setNumber] = useState(23);
-  const [asking, setAsking] = useState<'tens' | 'ones'>('tens');
+  const [number, setNumber] = useState(() => generatePlaceNumber());
+  const [asking, setAsking] = useState<PlaceColumn>('ones');
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const tens = Math.floor(number / 10);
-  const ones = number % 10;
-  const answer = asking === 'tens' ? tens : ones;
+  const digits: Record<PlaceColumn, number> = {
+    thousands: Math.floor(number / 1000),
+    hundreds: Math.floor((number % 1000) / 100),
+    tens: Math.floor((number % 100) / 10),
+    ones: number % 10,
+  };
+
+  // Columns relevant to the number's size (largest place that exists down to ones)
+  const visibleColumns: PlaceColumn[] = (() => {
+    const order: PlaceColumn[] = ['thousands', 'hundreds', 'tens', 'ones'];
+    if (number >= 1000) return order;
+    if (number >= 100) return ['hundreds', 'tens', 'ones'];
+    if (number >= 10) return ['tens', 'ones'];
+    return ['ones'];
+  })();
+
+  const answer = digits[asking];
+
+  const options = useMemo(() => {
+    const opts = new Set<number>([answer]);
+    // add nearby unique digits within 0-9
+    const candidates = [answer - 1, answer + 1, answer - 2, answer + 2]
+      .filter(d => d >= 0 && d <= 9);
+    for (const c of candidates) {
+      if (opts.size >= 3) break;
+      opts.add(c);
+    }
+    // fallback fill if still short
+    for (let d = 0; d <= 9 && opts.size < 3; d++) opts.add(d);
+    return Array.from(opts).slice(0, 3).sort(() => Math.random() - 0.5);
+  }, [answer]);
 
   const generateNew = useCallback(() => {
-    const n = Math.floor(Math.random() * 89) + 10;
+    const n = generatePlaceNumber();
+    const cols: PlaceColumn[] =
+      n >= 1000 ? ['thousands', 'hundreds', 'tens', 'ones'] :
+      n >= 100 ? ['hundreds', 'tens', 'ones'] :
+      n >= 10 ? ['tens', 'ones'] : ['ones'];
     setNumber(n);
-    setAsking(Math.random() > 0.5 ? 'tens' : 'ones');
+    setAsking(cols[Math.floor(Math.random() * cols.length)]);
     setSelected(null);
     setFeedback(null);
   }, []);
 
-  const wrong1 = answer === 0 ? 1 : answer - 1;
-  const wrong2 = answer + 1;
-  const options = useMemo(
-    () => Array.from(new Set([answer, wrong1, wrong2])).sort(() => Math.random() - 0.5).slice(0, 3),
-    [answer, wrong1, wrong2]
-  );
-
   useEffect(() => {
-    speakText(`How many ${asking === 'tens' ? 'tens' : 'ones'} in ${number}?`);
+    speakText(`How many ${COLUMN_CONFIG[asking].label.toLowerCase()} are in ${number}?`);
   }, [number, asking]);
 
   const handleSelect = (n: number) => {
@@ -594,53 +521,50 @@ function PlaceValueMode() {
     <div className="flex flex-col items-center gap-6">
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
 
-      <div className="text-6xl font-black text-orange-700 bg-white rounded-2xl w-28 h-28 flex items-center justify-center shadow-lg">
+      {/* Large number at top */}
+      <div className="text-6xl font-black text-orange-700 bg-white rounded-2xl min-w-28 h-28 px-6 flex items-center justify-center shadow-lg">
         {number}
       </div>
 
+      {/* Question */}
       <div className="flex items-center gap-2">
-        <p className="text-2xl font-black text-orange-700 text-center">
-          HOW MANY {asking === 'tens' ? '🔵 TENS' : '🟡 ONES'}?
+        <p className="text-xl font-black text-orange-700 text-center">
+          How many <span className={COLUMN_CONFIG[asking].glow}>{COLUMN_CONFIG[asking].label}</span> are in {number}?
         </p>
-        <button onClick={() => speakText(`How many ${asking === 'tens' ? 'tens' : 'ones'}?`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm">🔊</button>
+        <button onClick={() => speakText(`How many ${COLUMN_CONFIG[asking].label.toLowerCase()} are in ${number}?`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm flex-shrink-0">🔊</button>
       </div>
 
-      <div className="bg-white rounded-2xl p-4 shadow-lg flex gap-6 items-end">
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-xs font-black text-blue-600">TENS 🔵</p>
-          <div className="flex gap-1">
-            {Array.from({ length: tens }).map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: 1 }}
-                transition={{ delay: i * 0.05 }}
-                className="flex flex-col gap-0.5"
-              >
-                {Array.from({ length: 10 }).map((__, j) => (
-                  <div key={j} className="w-5 h-3 bg-blue-500 rounded-sm shadow-sm" />
+      {/* Column grid */}
+      <div className="bg-white rounded-2xl p-4 shadow-lg flex gap-4 items-end justify-center">
+        {visibleColumns.map(col => {
+          const cfg = COLUMN_CONFIG[col];
+          const value = digits[col];
+          const isAsked = col === asking;
+          return (
+            <motion.div
+              key={col}
+              animate={isAsked ? { boxShadow: ['0 0 0px #f97316', '0 0 16px #f97316', '0 0 0px #f97316'] } : {}}
+              transition={{ duration: 1.2, repeat: isAsked ? Infinity : 0 }}
+              className={`flex flex-col items-center gap-2 rounded-xl p-2 border-4 ${isAsked ? 'border-orange-400 bg-orange-50' : 'border-transparent'}`}
+            >
+              <p className={`text-[10px] font-black ${cfg.glow}`}>{cfg.label}</p>
+              <span className="text-lg leading-none">{cfg.emoji}</span>
+              <div className="flex flex-col-reverse gap-0.5 min-h-[80px] justify-end">
+                {Array.from({ length: value }).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: i * 0.04 }}
+                    className={`w-6 h-2.5 rounded-sm shadow-sm ${cfg.block}`}
+                  />
                 ))}
-              </motion.div>
-            ))}
-            {tens === 0 && <div className="w-5 h-3 opacity-20 bg-blue-300 rounded-sm" />}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-xs font-black text-yellow-600">ONES 🟡</p>
-          <div className="flex flex-wrap gap-1 max-w-[80px]">
-            {Array.from({ length: ones }).map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: tens * 0.05 + i * 0.04 }}
-                className="w-5 h-5 bg-yellow-400 rounded-sm shadow-sm"
-              />
-            ))}
-            {ones === 0 && <div className="w-5 h-5 opacity-20 bg-yellow-300 rounded-sm" />}
-          </div>
-        </div>
+                {value === 0 && <div className={`w-6 h-2.5 rounded-sm opacity-20 ${cfg.block}`} />}
+              </div>
+              <span className={`text-2xl font-black ${cfg.glow}`}>{value}</span>
+            </motion.div>
+          );
+        })}
       </div>
 
       <div className="flex gap-4">
@@ -698,7 +622,7 @@ function RiddlesMode() {
       setScore(s => s + 1);
       setShowConfetti(true);
       speakEncouragement(true);
-      speakText(`The answer is ${riddle.answer}!`);
+      speakText(`Yes! Great job! The answer is ${riddle.answer}!`);
       setTimeout(() => { setShowConfetti(false); setFeedback(null); setSelected(null); setIdx(i => i + 1); }, 2200);
     } else {
       setFeedback('wrong');
@@ -760,9 +684,17 @@ function RiddlesMode() {
         ))}
       </div>
 
-      {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
-          {feedback === 'correct' ? '⭐ CORRECT! ⭐' : '💪 TRY AGAIN!'}
+      {feedback === 'correct' && (
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-2">
+          <p className="text-2xl font-black text-green-500 text-center">⭐ CORRECT! The answer is {riddle.answer}! ⭐</p>
+          <div className="text-6xl font-black text-green-500 bg-green-50 rounded-2xl w-24 h-24 flex items-center justify-center shadow-lg">
+            {riddle.answer}
+          </div>
+        </motion.div>
+      )}
+      {feedback === 'wrong' && (
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-2xl font-black text-red-400">
+          💪 TRY AGAIN!
         </motion.p>
       )}
     </div>
@@ -775,6 +707,7 @@ function AddMode() {
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showAnswer, setShowAnswer] = useState(false);
 
   const problem: MathProblem = ADD_PROBLEMS[idx % ADD_PROBLEMS.length];
 
@@ -788,10 +721,11 @@ function AddMode() {
     setSelected(n);
     if (n === problem.answer) {
       setFeedback('correct');
+      setShowAnswer(true);
       setShowConfetti(true);
       speakEncouragement(true);
       speakNumber(problem.answer);
-      setTimeout(() => { setShowConfetti(false); setFeedback(null); setSelected(null); setIdx(i => i + 1); }, 2200);
+      setTimeout(() => { setShowConfetti(false); setFeedback(null); setSelected(null); setShowAnswer(false); setIdx(i => i + 1); }, 2200);
     } else {
       setFeedback('wrong');
       speakEncouragement(false);
@@ -838,7 +772,23 @@ function AddMode() {
             </div>
             <span className="text-3xl font-black text-orange-600">{problem.b}</span>
           </div>
-          <span className="text-3xl font-black text-orange-400">= ?</span>
+          {showAnswer ? (
+            <div className="flex flex-col items-center gap-2 bg-green-50 rounded-2xl p-4 w-full">
+              <div className="flex flex-wrap gap-1 justify-center max-w-[240px]">
+                {Array.from({ length: problem.answer }).map((_, i) => (
+                  <motion.span key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.05 }} className="text-3xl">
+                    {problem.aEmojis}
+                  </motion.span>
+                ))}
+              </div>
+              <span className="text-3xl font-black text-green-600">= {problem.answer}</span>
+              {problem.label && (
+                <span className="text-xl font-black text-green-500">{problem.answer} {problem.label}!</span>
+              )}
+            </div>
+          ) : (
+            <span className="text-3xl font-black text-orange-400">= ?</span>
+          )}
         </motion.div>
       </AnimatePresence>
 
@@ -1010,6 +960,27 @@ function NumberBondsMode() {
         </div>
       </div>
 
+      {/* Visual dots: partA + partB = total */}
+      <div className="flex items-center gap-2 flex-wrap justify-center bg-white rounded-2xl px-4 py-3 shadow">
+        <div className="flex gap-1 flex-wrap justify-center max-w-[90px]">
+          {Array.from({ length: bond.partA }).map((_, i) => (
+            <div key={i} className="w-5 h-5 rounded-full bg-sky-400 shadow-sm" />
+          ))}
+        </div>
+        <span className="text-xl font-black text-orange-400">+</span>
+        <div className="flex gap-1 flex-wrap justify-center max-w-[90px]">
+          {Array.from({ length: bond.partB }).map((_, i) => (
+            <div key={i} className="w-5 h-5 rounded-full bg-purple-400 shadow-sm" />
+          ))}
+        </div>
+        <span className="text-xl font-black text-orange-400">=</span>
+        <div className="flex gap-1 flex-wrap justify-center max-w-[110px]">
+          {Array.from({ length: bond.total }).map((_, i) => (
+            <div key={i} className="w-5 h-5 rounded-full bg-orange-400 shadow-sm" />
+          ))}
+        </div>
+      </div>
+
       {/* Instruction */}
       <div className="flex items-center gap-2">
         <p className="text-xl font-black text-orange-700 text-center">
@@ -1064,7 +1035,6 @@ const SUB_MODES: { id: SubMode; label: string; icon: string }[] = [
   { id: 'NUMBER_LINE', label: 'NUMBER LINE', icon: '🐸' },
   { id: 'WHICH_MORE', label: 'WHICH MORE?', icon: '🍎' },
   { id: 'MISSING', label: 'MISSING №', icon: '❓' },
-  { id: 'DICE', label: 'DICE', icon: '🎲' },
   { id: 'BONDS', label: 'NUMBER BONDS', icon: '🔗' },
 ];
 
@@ -1076,7 +1046,6 @@ const MODE_NAMES: Record<SubMode, string> = {
   NUMBER_LINE: 'Number line mode!',
   WHICH_MORE: 'Which is more mode!',
   MISSING: 'Missing number mode!',
-  DICE: 'Dice game!',
   BONDS: 'Number bonds!',
 };
 
@@ -1123,7 +1092,6 @@ export default function MathTab() {
           {subMode === 'NUMBER_LINE' && <NumberLineMode />}
           {subMode === 'WHICH_MORE' && <WhichMoreMode />}
           {subMode === 'MISSING' && <MissingNumberMode />}
-          {subMode === 'DICE' && <DiceMode />}
           {subMode === 'BONDS' && <NumberBondsMode />}
         </motion.div>
       </AnimatePresence>
