@@ -521,9 +521,22 @@ function PlaceValueMode() {
     <div className="flex flex-col items-center gap-6">
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
 
-      {/* Large number at top */}
-      <div className="text-6xl font-black text-orange-700 bg-white rounded-2xl min-w-28 h-28 px-6 flex items-center justify-center shadow-lg">
-        {number}
+      {/* Large number at top — each digit colored by its column */}
+      <div className="bg-white rounded-2xl min-w-28 h-28 px-6 flex items-center justify-center shadow-lg gap-1">
+        {String(number).split('').map((digit, i) => {
+          const allCols: PlaceColumn[] = ['thousands', 'hundreds', 'tens', 'ones'];
+          const numLen = String(number).length;
+          const col = allCols[allCols.length - numLen + i];
+          const colorMap: Record<PlaceColumn, string> = {
+            thousands: 'text-purple-600',
+            hundreds:  'text-rose-500',
+            tens:      'text-blue-600',
+            ones:      'text-yellow-500',
+          };
+          return (
+            <span key={i} className={`text-6xl font-black ${colorMap[col]}`}>{digit}</span>
+          );
+        })}
       </div>
 
       {/* Question */}
@@ -1029,7 +1042,7 @@ function NumberBondsMode() {
 // ── Mode config ────────────────────────────────────────────────────
 const SUB_MODES: { id: SubMode; label: string; icon: string }[] = [
   { id: 'COUNT', label: 'COUNT', icon: '🔢' },
-  { id: 'PLACE_VALUE', label: 'TENS & ONES', icon: '🔵🟡' },
+  { id: 'PLACE_VALUE', label: 'PLACE VALUE', icon: '🔢' },
   { id: 'RIDDLES', label: 'RIDDLES', icon: '🧩' },
   { id: 'ADD', label: 'ADD & SUBTRACT', icon: '➕' },
   { id: 'NUMBER_LINE', label: 'NUMBER LINE', icon: '🐸' },
@@ -1040,7 +1053,7 @@ const SUB_MODES: { id: SubMode; label: string; icon: string }[] = [
 
 const MODE_NAMES: Record<SubMode, string> = {
   COUNT: 'Count mode!',
-  PLACE_VALUE: 'Tens and ones mode!',
+  PLACE_VALUE: 'Place value mode!',
   RIDDLES: 'Riddles mode!',
   ADD: 'Add and subtract mode!',
   NUMBER_LINE: 'Number line mode!',
