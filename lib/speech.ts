@@ -1,6 +1,10 @@
 // OpenAI TTS — silently no-ops if API key is missing.
 // All public functions return Promise<void> that resolve when audio finishes.
 
+let voiceEnabled = true
+export function setVoiceEnabled(v: boolean) { voiceEnabled = v }
+export function getVoiceEnabled() { return voiceEnabled }
+
 const LETTER_SOUNDS: Record<string, string> = {
   A: 'aah', B: 'buh', C: 'cuh', D: 'duh', E: 'eh', F: 'fuh',
   G: 'guh', H: 'huh', I: 'ih', J: 'juh', K: 'kuh', L: 'luh',
@@ -47,6 +51,7 @@ async function fetchTTS(text: string, speed: number): Promise<string | null> {
 }
 
 async function playTTS(text: string, speed = 1.0): Promise<void> {
+  if (!voiceEnabled) return
   if (typeof window === 'undefined') return
 
   stopCurrent()
