@@ -5,18 +5,31 @@ let voiceEnabled = true
 export function setVoiceEnabled(v: boolean) { voiceEnabled = v }
 export function getVoiceEnabled() { return voiceEnabled }
 
-// IPA-informed phoneme map — single letters passed with phonics TTS instructions.
-// Pure sounds: no "buh/cuh" schwa — the TTS phonics instructions enforce pure phonemes.
+// Static phonics audio files — MIT licensed from hellodeborahuk/buzzphonics
+// https://github.com/hellodeborahuk/buzzphonics  (MIT license)
+// Synthetic phonics sounds: pure phonemes, no letter names, no schwa added.
+const STATIC_PHONICS: Record<string, string> = {
+  A: 'a',   B: 'b',   C: 'c',   D: 'd',   E: 'e',
+  F: 'f',   G: 'g',   H: 'h',   I: 'i',   J: 'j',
+  K: 'c',   // /k/ — same as hard-c sound file
+  L: 'l',   M: 'm',   N: 'n',   O: 'o',   P: 'p',
+  Q: 'qu',  R: 'r',   S: 's',   T: 't',   U: 'u',
+  V: 'v',   W: 'w',   X: 'x',   Y: 'y',   Z: 'z',
+  // Digraphs
+  SH: 'sh', CH: 'ch', TH: 'th', NG: 'ng', NG_: 'ng',
+  OO: 'oo', AI: 'ai', EE: 'ee', IGH: 'igh',
+  AR: 'ar', OR: 'or', ER: 'er', OW: 'ow',  OI: 'oi',
+  OA: 'oa', AIR: 'air', EAR: 'ear', UR: 'ur', URE: 'ure',
+  CK: 'c',  PH: 'f',   WH: 'w',   QU: 'qu',
+}
+
+// TTS fallback map (used only when static file is unavailable)
 const PHONEME_MAP: Record<string, string> = {
-  // Short vowels (the phonics sound, not the letter name)
   A: 'a', E: 'e', I: 'i', O: 'o', U: 'u',
-  // Consonants — single letter; TTS instructions prevent schwa addition
   B: 'b', C: 'k', D: 'd', F: 'f', G: 'g', H: 'h', J: 'j',
   K: 'k', L: 'l', M: 'm', N: 'n', P: 'p', Q: 'qu',
   R: 'r', S: 's', T: 't', V: 'v', W: 'w', X: 'x', Y: 'y', Z: 'z',
-  // Digraphs
-  SH: 'sh', CH: 'ch', TH: 'th', PH: 'f', WH: 'w',
-  NG: 'ng', CK: 'k', QU: 'qu',
+  SH: 'sh', CH: 'ch', TH: 'th', NG: 'ng', OO: 'oo',
 }
 
 // Blob URL cache: text -> object URL
@@ -83,14 +96,30 @@ export function speakWord(word: string): Promise<void> {
   return playTTS(word.toLowerCase(), 0.9)
 }
 
-export function speakLetterSound(letter: string): Promise<void> {
-  const key = letter.toUpperCase()
-  const phoneme = PHONEME_MAP[key] ?? letter.toLowerCase()
-  return playTTS(phoneme, 0.85, true)  // phonics=true → pure sound, no schwa
+// Play a static phonics file from /public/phonics/, falling back to TTS
+async function playPhonicsFile(filename: string): Promise<void> {
+  if (!voiceEnabled || typeof window === 'undefined') return
+  return new Promise(resolve => {
+    const audio = new Audio(`/phonics/${filename}.m4a`)
+    audio.onended = () => resolve()
+    audio.onerror = () => resolve()  // silent — TTS fallback handled by caller
+    audio.play().catch(() => resolve())
+  })
 }
 
-export function speakDigraph(digraph: string): Promise<void> {
+export async function speakLetterSound(letter: string): Promise<void> {
+  const key = letter.toUpperCase()
+  const file = STATIC_PHONICS[key]
+  if (file) return playPhonicsFile(file)
+  // Fallback: TTS with phonics instructions
+  const phoneme = PHONEME_MAP[key] ?? letter.toLowerCase()
+  return playTTS(phoneme, 0.85, true)
+}
+
+export async function speakDigraph(digraph: string): Promise<void> {
   const key = digraph.toUpperCase()
+  const file = STATIC_PHONICS[key]
+  if (file) return playPhonicsFile(file)
   const phoneme = PHONEME_MAP[key] ?? digraph.toLowerCase()
   return playTTS(phoneme, 0.85, true)
 }
