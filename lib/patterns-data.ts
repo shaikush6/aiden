@@ -1,603 +1,547 @@
+// ════════════════════════════════════════════════════════════════════════════
+// patterns-data.ts — the pattern-recognition data engine.
+//
+// Encoding conventions (see lib/pattern-categories.ts for filter metadata):
+//   Shape items:    "shape:color" | "shape:color:size"
+//                   shapes: circle square triangle diamond star heart oval pentagon
+//                   colors: red blue yellow green orange purple pink teal white
+//                   sizes:  sm md lg  (omit for default medium)
+//   Growing stacks: "stack:N:color"  — N stacked small circles (1-6)
+//   Rotation items: "arrow:up|right|down|left"
+//   Emoji items:    any emoji string without colons (e.g. "🐱", "🌟")
+//
+// IDs: 1-65 = original emoji questions, 101-162 = original shape questions,
+//      200+ = generated coverage set. All carry the full metadata interface.
+// ════════════════════════════════════════════════════════════════════════════
+
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'EXPERT' | 'MASTER';
-export type DrillType = 'NEXT' | 'MISSING_MIDDLE' | 'FIND_MISTAKE' | 'COUNT';
+
+// The smallest repeating unit structure.
+export type PatternCore =
+  | 'AB' | 'AAB' | 'ABB' | 'ABA'
+  | 'AABB' | 'ABBA' | 'ABBB' | 'AAAB' | 'AABC' | 'ABBC' | 'ABCC' | 'ABAC' | 'ABCA' | 'ABCB' | 'ABCD'
+  | 'ABCBA' | 'ABCDE' | 'AABBC' | 'ABBCC'
+  | 'growing' | 'shrinking' | 'mirror' | 'rotation' | 'matrix' | 'other';
+
+// Which attribute(s) vary across the sequence.
+export type ChangeType =
+  | 'color' | 'shape' | 'size' | 'orientation' | 'fill' | 'count' | 'position'
+  | 'color+shape' | 'color+size' | 'shape+size' | 'color+shape+size'
+  | 'rotation+color' | 'rotation+shape' | 'growing-count';
+
+// Subject/theme of the items.
+export type Theme =
+  | 'geometric' | 'animals' | 'food' | 'nature' | 'space' | 'transport' | 'household' | 'mixed';
+
+// Question drill format.
+export type DrillType = 'NEXT' | 'MISSING_MIDDLE' | 'FIND_MISTAKE' | 'COUNT' | 'MATRIX' | 'UNIT_ID';
 
 export interface PatternQuestion {
   id: number;
-  type: 'color' | 'shape' | 'emoji' | 'number' | 'size' | 'rotation' | 'mixed';
+  type: string;               // legacy field, kept for back-compat with the renderer
   drillType: DrillType;
-  sequence: string[];
-  missingIndex: number;   // index of blank / mistake / item to count
-  answer: string;
-  options: string[];      // answer choices (for NEXT/MISSING_MIDDLE/COUNT) or wrong item (FIND_MISTAKE uses options[0])
+  sequence: string[];         // items, with '?' at missingIndex for blank-style drills
+  missingIndex: number;       // index of the '?' slot (-1 for COUNT/UNIT_ID)
+  answer: string;             // the correct option
+  options: string[];          // 3-4 choices; answer is among them (FIND_MISTAKE: [wrongItem])
   difficulty: Difficulty;
-  countTarget?: string;   // for COUNT drills: which item to count
+  countTarget?: string;       // COUNT drills: which item to count
+  patternCore: PatternCore;
+  changeType: ChangeType;
+  theme: Theme;
+  unitLength?: number;        // length of the repeating unit (2 for AB, 3 for ABC...)
+  cognitiveLevel?: number;    // 1-12 Clements & Sarama learning trajectory
+  matrixCols?: 2;             // MATRIX drills: grid is always 2x2 (4 items)
+  tags?: string[];            // extra searchable tags
 }
 
 export const PATTERN_QUESTIONS: PatternQuestion[] = [
 
-  // ════════════════════════════════════════════════════════════════
-  // EASY — AB patterns, 2 alternating elements, short 4-6 item runs
-  // ════════════════════════════════════════════════════════════════
+  // ── ORIGINAL QUESTIONS (ids 1-65 emoji, 101-162 shapes) — metadata-augmented ──
+  { id: 1, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐱','🐶','🐱','?'], missingIndex: 5, answer: '🐶', options: ['🐶','🐱','🐸'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 2 },
+  { id: 2, type: 'color', drillType: 'NEXT', sequence: ['🔴','🔵','🔴','🔵','🔴','?'], missingIndex: 5, answer: '🔵', options: ['🟡','🔵','🔴'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 3, type: 'shape', drillType: 'NEXT', sequence: ['⭕','🔺','⭕','🔺','⭕','?'], missingIndex: 5, answer: '🔺', options: ['⭕','⬛','🔺'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 4, type: 'emoji', drillType: 'NEXT', sequence: ['🌟','🌙','🌟','🌙','🌟','?'], missingIndex: 5, answer: '🌙', options: ['🌙','☀️','🌟'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'nature', unitLength: 2, cognitiveLevel: 2 },
+  { id: 5, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍎','🍊','🍎','?'], missingIndex: 5, answer: '🍊', options: ['🍋','🍊','🍎'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'food', unitLength: 2, cognitiveLevel: 2 },
+  { id: 6, type: 'emoji', drillType: 'NEXT', sequence: ['🚗','✈️','🚗','✈️','🚗','?'], missingIndex: 5, answer: '✈️', options: ['🚗','🚢','✈️'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'transport', unitLength: 2, cognitiveLevel: 2 },
+  { id: 7, type: 'emoji', drillType: 'NEXT', sequence: ['🦁','🐘','🦁','🐘','🦁','?'], missingIndex: 5, answer: '🐘', options: ['🐘','🦒','🦁'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 2 },
+  { id: 8, type: 'emoji', drillType: 'NEXT', sequence: ['🍕','🍔','🍕','🍔','🍕','?'], missingIndex: 5, answer: '🍔', options: ['🍕','🍔','🌮'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'food', unitLength: 2, cognitiveLevel: 2 },
+  { id: 9, type: 'size', drillType: 'NEXT', sequence: ['🔵','🔹','🔵','🔹','🔵','?'], missingIndex: 5, answer: '🔹', options: ['🔵','🟦','🔹'], difficulty: 'EASY', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 10, type: 'emoji', drillType: 'NEXT', sequence: ['🐧','🐬','🐧','🐬','🐧','?'], missingIndex: 5, answer: '🐬', options: ['🐬','🐧','🐙'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 2 },
+  { id: 11, type: 'color', drillType: 'NEXT', sequence: ['🟠','🟣','🟠','🟣','🟠','?'], missingIndex: 5, answer: '🟣', options: ['🟠','🟣','🟢'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 12, type: 'shape', drillType: 'NEXT', sequence: ['⬛','⬜','⬛','⬜','⬛','?'], missingIndex: 5, answer: '⬜', options: ['⬛','🔺','⬜'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 13, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐶','?','🐶','🐱','🐶'], missingIndex: 2, answer: '🐱', options: ['🐱','🐶','🐸'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 3 },
+  { id: 14, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['🔴','🔵','🔴','?','🔴','🔵'], missingIndex: 3, answer: '🔵', options: ['🟡','🔵','🔴'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3 },
+  { id: 15, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🌻','🌺','🌻','🌺','?','🌺'], missingIndex: 4, answer: '🌻', options: ['🌹','🌺','🌻'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'nature', unitLength: 2, cognitiveLevel: 3 },
+  { id: 16, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🐱','🐶','🐱','🦁','🐱','🐶'], missingIndex: 3, answer: '🦁', options: ['🦁'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 3 },
+  { id: 17, type: 'color', drillType: 'FIND_MISTAKE', sequence: ['🔴','🔵','🔴','🔵','🟡','🔵'], missingIndex: 4, answer: '🟡', options: ['🟡'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3 },
+  { id: 18, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🌟','🌙','🌟','🌙','🌟','☀️'], missingIndex: 5, answer: '☀️', options: ['☀️'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'nature', unitLength: 2, cognitiveLevel: 3 },
+  { id: 19, type: 'emoji', drillType: 'COUNT', sequence: ['🔴','🔵','🔴','🔵','🔴'], missingIndex: -1, answer: '3', options: ['3','2','4'], difficulty: 'EASY', countTarget: '🔴', patternCore: 'AB', changeType: 'count', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 20, type: 'emoji', drillType: 'COUNT', sequence: ['🐱','🐶','🐱','🐶','🐶'], missingIndex: -1, answer: '2', options: ['1','2','3'], difficulty: 'EASY', countTarget: '🐱', patternCore: 'AB', changeType: 'count', theme: 'animals', unitLength: 2, cognitiveLevel: 2 },
+  { id: 21, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍋','🍎','🍊','?'], missingIndex: 5, answer: '🍋', options: ['🍋','🍎','🍊'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 3 },
+  { id: 22, type: 'color', drillType: 'NEXT', sequence: ['🔴','🟡','🔵','🔴','🟡','?'], missingIndex: 5, answer: '🔵', options: ['🟡','🔵','🔴'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3 },
+  { id: 23, type: 'shape', drillType: 'NEXT', sequence: ['🔺','⭕','⬛','🔺','⭕','?'], missingIndex: 5, answer: '⬛', options: ['🔺','⭕','⬛'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3 },
+  { id: 24, type: 'emoji', drillType: 'NEXT', sequence: ['🐮','🐷','🐔','🐮','🐷','?'], missingIndex: 5, answer: '🐔', options: ['🐔','🐮','🐷'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 3 },
+  { id: 25, type: 'rotation', drillType: 'NEXT', sequence: ['⬆️','➡️','⬇️','⬆️','➡️','?'], missingIndex: 5, answer: '⬇️', options: ['➡️','⬇️','⬆️'], difficulty: 'MEDIUM', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 26, type: 'emoji', drillType: 'NEXT', sequence: ['🌞','🌧️','🌈','🌞','🌧️','?'], missingIndex: 5, answer: '🌈', options: ['🌞','🌧️','🌈'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 3 },
+  { id: 27, type: 'emoji', drillType: 'NEXT', sequence: ['🐸','🦊','🐼','🐸','🦊','?'], missingIndex: 5, answer: '🐼', options: ['🐼','🐸','🦊'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 3 },
+  { id: 28, type: 'emoji', drillType: 'NEXT', sequence: ['🍓','🍇','🍒','🍓','🍇','?'], missingIndex: 5, answer: '🍒', options: ['🍇','🍒','🍓'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 3 },
+  { id: 29, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐸','🐱','🐶','🐸','🐱','🐶','?'], missingIndex: 8, answer: '🐸', options: ['🐱','🐶','🐸'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 4 },
+  { id: 30, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','🌙','☀️','⭐','🌙','☀️','⭐','🌙','?'], missingIndex: 8, answer: '☀️', options: ['☀️','⭐','🌙'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 4 },
+  { id: 31, type: 'color', drillType: 'NEXT', sequence: ['🟢','🟠','🟣','🟢','🟠','🟣','🟢','🟠','?'], missingIndex: 8, answer: '🟣', options: ['🟢','🟣','🟠'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 32, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🍎','🍊','🍋','🍎','?','🍋','🍎'], missingIndex: 4, answer: '🍊', options: ['🍊','🍎','🍋'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 4 },
+  { id: 33, type: 'rotation', drillType: 'MISSING_MIDDLE', sequence: ['⬆️','➡️','⬇️','⬆️','➡️','?','⬆️'], missingIndex: 5, answer: '⬇️', options: ['➡️','⬇️','⬆️'], difficulty: 'MEDIUM', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 34, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🚀','🛸','🌍','🚀','🛸','🌍','?','🛸','🌍'], missingIndex: 6, answer: '🚀', options: ['🌍','🛸','🚀'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'space', unitLength: 3, cognitiveLevel: 4 },
+  { id: 35, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🍎','🍊','🍋','🍎','🍊','🐸','🍎','🍊','🍋'], missingIndex: 5, answer: '🐸', options: ['🐸'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 4 },
+  { id: 36, type: 'rotation', drillType: 'FIND_MISTAKE', sequence: ['⬆️','➡️','⬇️','⬆️','➡️','⬅️','⬆️','➡️','⬇️'], missingIndex: 5, answer: '⬅️', options: ['⬅️'], difficulty: 'MEDIUM', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 37, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🌞','🌧️','🌈','🌞','🌧️','🌈','🌞','🐱','🌈'], missingIndex: 7, answer: '🐱', options: ['🐱'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 4 },
+  { id: 38, type: 'emoji', drillType: 'COUNT', sequence: ['🍎','🍊','🍋','🍎','🍊','🍎','🍊','🍎'], missingIndex: -1, answer: '4', options: ['4','3','5'], difficulty: 'MEDIUM', countTarget: '🍎', patternCore: 'other', changeType: 'count', theme: 'food', unitLength: 3, cognitiveLevel: 4 },
+  { id: 39, type: 'color', drillType: 'COUNT', sequence: ['🔴','🟡','🔵','🔴','🟡','🔵','🔴'], missingIndex: -1, answer: '3', options: ['2','3','4'], difficulty: 'MEDIUM', countTarget: '🔴', patternCore: 'other', changeType: 'count', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 40, type: 'emoji', drillType: 'COUNT', sequence: ['⭐','🌙','☀️','⭐','🌙','⭐','🌙','⭐'], missingIndex: -1, answer: '4', options: ['2','3','4'], difficulty: 'MEDIUM', countTarget: '⭐', patternCore: 'other', changeType: 'count', theme: 'nature', unitLength: 3, cognitiveLevel: 4 },
+  { id: 41, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐱','🐶','🐶','🐱','🐱','?'], missingIndex: 6, answer: '🐶', options: ['🐶','🐱','🐸'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 5 },
+  { id: 42, type: 'color', drillType: 'NEXT', sequence: ['🔴','🔴','🔵','🔵','🔴','🔴','?'], missingIndex: 6, answer: '🔵', options: ['🔴','🔵','🟡'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 5 },
+  { id: 43, type: 'shape', drillType: 'NEXT', sequence: ['⬛','⬛','⬜','⬜','⬛','⬛','?'], missingIndex: 6, answer: '⬜', options: ['⬛','🔺','⬜'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 5 },
+  { id: 44, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','⭐','🌙','⭐','⭐','🌙','⭐','⭐','?'], missingIndex: 8, answer: '🌙', options: ['🌙','⭐','☀️'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 5 },
+  { id: 45, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍎','🍊','🍎','🍎','🍊','🍎','🍎','?'], missingIndex: 8, answer: '🍊', options: ['🍎','🍊','🍋'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 5 },
+  { id: 46, type: 'emoji', drillType: 'NEXT', sequence: ['🦊','🦊','🐻','🦊','🦊','🐻','🦊','🦊','?'], missingIndex: 8, answer: '🐻', options: ['🦊','🐱','🐻'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 5 },
+  { id: 47, type: 'emoji', drillType: 'NEXT', sequence: ['🌻','🍀','🍀','🌻','🍀','🍀','🌻','?'], missingIndex: 7, answer: '🍀', options: ['🍀','🌻','🌹'], difficulty: 'HARD', patternCore: 'ABB', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 5 },
+  { id: 48, type: 'color', drillType: 'NEXT', sequence: ['🟢','🟡','🟡','🟢','🟡','🟡','🟢','?'], missingIndex: 7, answer: '🟡', options: ['🟢','🟡','🟣'], difficulty: 'HARD', patternCore: 'ABB', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 5 },
+  { id: 49, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐱','🐶','?','🐱','🐱','🐶','🐶'], missingIndex: 3, answer: '🐶', options: ['🐶','🐱','🐸'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 6 },
+  { id: 50, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['⭐','⭐','🌙','⭐','⭐','?','⭐','⭐','🌙'], missingIndex: 5, answer: '🌙', options: ['⭐','🌙','☀️'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 6 },
+  { id: 51, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['🔴','🔴','🔵','🔵','?','🔴','🔵','🔵'], missingIndex: 4, answer: '🔴', options: ['🔵','🟡','🔴'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 6 },
+  { id: 52, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🐱','🐱','🐶','🐶','🐱','🐸','🐶','🐶','🐱','🐱'], missingIndex: 5, answer: '🐸', options: ['🐸'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 6 },
+  { id: 53, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['⭐','⭐','🌙','⭐','⭐','🌙','⭐','☀️','🌙'], missingIndex: 7, answer: '☀️', options: ['☀️'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 6 },
+  { id: 54, type: 'color', drillType: 'FIND_MISTAKE', sequence: ['🔴','🔴','🔵','🔵','🟡','🔴','🔵','🔵','🔴','🔴'], missingIndex: 4, answer: '🟡', options: ['🟡'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 6 },
+  { id: 55, type: 'emoji', drillType: 'COUNT', sequence: ['🐱','🐱','🐶','🐶','🐱','🐱','🐶','🐶','🐱'], missingIndex: -1, answer: '5', options: ['5','4','6'], difficulty: 'HARD', countTarget: '🐱', patternCore: 'AABB', changeType: 'count', theme: 'animals', unitLength: 4, cognitiveLevel: 5 },
+  { id: 56, type: 'emoji', drillType: 'COUNT', sequence: ['⭐','⭐','🌙','⭐','⭐','🌙','⭐','⭐','🌙'], missingIndex: -1, answer: '3', options: ['2','3','4'], difficulty: 'HARD', countTarget: '🌙', patternCore: 'AAB', changeType: 'count', theme: 'nature', unitLength: 3, cognitiveLevel: 5 },
+  { id: 57, type: 'color', drillType: 'COUNT', sequence: ['🔵','🔵','🟢','🔵','🔵','🟢','🔵'], missingIndex: -1, answer: '5', options: ['3','4','5'], difficulty: 'HARD', countTarget: '🔵', patternCore: 'AAB', changeType: 'count', theme: 'geometric', unitLength: 3, cognitiveLevel: 5 },
+  { id: 58, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐸','🦊','🐱','🐶','🐸','🦊','🐱','?'], missingIndex: 9, answer: '🐶', options: ['🐶','🐱','🐸','🦊'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 7 },
+  { id: 59, type: 'rotation', drillType: 'NEXT', sequence: ['⬆️','➡️','⬇️','⬅️','⬆️','➡️','⬇️','⬅️','⬆️','?'], missingIndex: 9, answer: '➡️', options: ['⬆️','➡️','⬇️','⬅️'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 7 },
+  { id: 60, type: 'color', drillType: 'NEXT', sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','🔵','🟢','🔴','?'], missingIndex: 9, answer: '🟡', options: ['🔵','🟢','🟡','🔴'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 7 },
+  { id: 61, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍋','🍇','🍎','🍊','🍋','🍇','🍎','?'], missingIndex: 9, answer: '🍊', options: ['🍎','🍋','🍇','🍊'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 7 },
+  { id: 62, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','🌙','☀️','🌈','⭐','🌙','☀️','🌈','⭐','?'], missingIndex: 9, answer: '🌙', options: ['🌙','☀️','🌈','⭐'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'shape', theme: 'nature', unitLength: 4, cognitiveLevel: 7 },
+  { id: 63, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐶','🐸','🦊','🐱','?','🐸','🦊','🐱','🐶'], missingIndex: 5, answer: '🐶', options: ['🐸','🐶','🦊','🐱'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 8 },
+  { id: 64, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','?','🟢','🔴','🟡'], missingIndex: 6, answer: '🔵', options: ['🔴','🟢','🔵','🟡'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 65, type: 'rotation', drillType: 'MISSING_MIDDLE', sequence: ['⬆️','➡️','⬇️','⬅️','?','➡️','⬇️','⬅️','⬆️','➡️'], missingIndex: 4, answer: '⬆️', options: ['⬆️','➡️','⬇️','⬅️'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 66, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🐱','🐶','🐸','🦊','🐱','🐶','🐸','🦊','🐱','🐼','🐸','🦊'], missingIndex: 9, answer: '🐼', options: ['🐼'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 8 },
+  { id: 67, type: 'color', drillType: 'FIND_MISTAKE', sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','🔵','🟢','🔴','🟡','🟣','🟢'], missingIndex: 10, answer: '🟣', options: ['🟣'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 68, type: 'rotation', drillType: 'FIND_MISTAKE', sequence: ['⬆️','➡️','⬇️','⬅️','⬆️','➡️','⬇️','⬅️','⬆️','↗️','⬇️','⬅️'], missingIndex: 9, answer: '↗️', options: ['↗️'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 69, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🍎','🍊','🍋','🍇','🍎','🍊','🍋','🍇','🍎','🍊','🍓','🍇'], missingIndex: 10, answer: '🍓', options: ['🍓'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 8 },
+  { id: 70, type: 'emoji', drillType: 'COUNT', sequence: ['🐱','🐶','🐸','🦊','🐱','🐶','🐸','🦊','🐱','🐶'], missingIndex: -1, answer: '3', options: ['3','2','4','5'], difficulty: 'EXPERT', countTarget: '🐱', patternCore: 'ABCD', changeType: 'count', theme: 'animals', unitLength: 4, cognitiveLevel: 7 },
+  { id: 71, type: 'color', drillType: 'COUNT', sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','🔵','🟢','🔴','🟡','🔵'], missingIndex: -1, answer: '3', options: ['2','3','4','5'], difficulty: 'EXPERT', countTarget: '🔵', patternCore: 'ABCD', changeType: 'count', theme: 'geometric', unitLength: 4, cognitiveLevel: 7 },
+  { id: 72, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐱','🐶','🐶','🐸','🐸','🐱','🐱','🐶','🐶','🐸','?'], missingIndex: 11, answer: '🐸', options: ['🐸','🐱','🐶','🦊'], difficulty: 'MASTER', patternCore: 'AABB', changeType: 'shape', theme: 'animals', unitLength: 6, cognitiveLevel: 9 },
+  { id: 73, type: 'color', drillType: 'NEXT', sequence: ['🔴','🔴','🟡','🟡','🔵','🔵','🔴','🔴','🟡','🟡','🔵','?'], missingIndex: 11, answer: '🔵', options: ['🔴','🔵','🟡','🟢'], difficulty: 'MASTER', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 6, cognitiveLevel: 9 },
+  { id: 74, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','🌙','🌙','☀️','⭐','🌙','🌙','☀️','⭐','🌙','🌙','?'], missingIndex: 11, answer: '☀️', options: ['⭐','🌙','☀️','🌈'], difficulty: 'MASTER', patternCore: 'ABBC', changeType: 'shape', theme: 'nature', unitLength: 4, cognitiveLevel: 9 },
+  { id: 75, type: 'emoji', drillType: 'NEXT', sequence: ['🚗','✈️','🚢','🚂','🚗','✈️','🚢','🚂','🚗','✈️','🚢','?'], missingIndex: 11, answer: '🚂', options: ['🚗','✈️','🚢','🚂'], difficulty: 'MASTER', patternCore: 'ABCD', changeType: 'shape', theme: 'transport', unitLength: 4, cognitiveLevel: 9 },
+  { id: 76, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍋','🍇','🍓','🍎','🍊','🍋','🍇','🍓','🍎','?'], missingIndex: 11, answer: '🍊', options: ['🍊','🍋','🍇','🍓'], difficulty: 'MASTER', patternCore: 'ABCDE', changeType: 'shape', theme: 'food', unitLength: 5, cognitiveLevel: 9 },
+  { id: 77, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐱','🐶','🐶','🐸','🐸','🐱','?','🐶','🐶','🐸','🐸'], missingIndex: 7, answer: '🐱', options: ['🐶','🐱','🐸','🦊'], difficulty: 'MASTER', patternCore: 'AABB', changeType: 'shape', theme: 'animals', unitLength: 6, cognitiveLevel: 10 },
+  { id: 78, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['🔴','🟡','🔵','🟢','🟣','🔴','🟡','🔵','?','🟣','🔴','🟡'], missingIndex: 8, answer: '🟢', options: ['🔴','🟣','🟢','🟡'], difficulty: 'MASTER', patternCore: 'ABCDE', changeType: 'color', theme: 'geometric', unitLength: 5, cognitiveLevel: 10 },
+  { id: 79, type: 'rotation', drillType: 'MISSING_MIDDLE', sequence: ['⬆️','⬆️','➡️','➡️','⬇️','⬇️','?','⬆️','➡️','➡️','⬇️','⬇️'], missingIndex: 6, answer: '⬆️', options: ['⬆️','➡️','⬇️','⬅️'], difficulty: 'MASTER', patternCore: 'AABB', changeType: 'orientation', theme: 'geometric', unitLength: 6, cognitiveLevel: 10 },
+  { id: 80, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🐱','🐱','🐶','🐶','🐸','🐸','🐱','🐱','🐶','🦊','🐸','🐸','🐱','🐱'], missingIndex: 9, answer: '🦊', options: ['🦊'], difficulty: 'MASTER', patternCore: 'AABB', changeType: 'shape', theme: 'animals', unitLength: 6, cognitiveLevel: 10 },
+  { id: 81, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🚗','✈️','🚢','🚂','🚗','✈️','🚢','🚂','🚗','✈️','🚁','🚂','🚗','✈️'], missingIndex: 10, answer: '🚁', options: ['🚁'], difficulty: 'MASTER', patternCore: 'ABCD', changeType: 'shape', theme: 'transport', unitLength: 4, cognitiveLevel: 10 },
+  { id: 82, type: 'color', drillType: 'FIND_MISTAKE', sequence: ['🔴','🟡','🔵','🟢','🟣','🔴','🟡','🔵','🟢','🟣','🔴','🟠','🔵','🟢'], missingIndex: 11, answer: '🟠', options: ['🟠'], difficulty: 'MASTER', patternCore: 'ABCDE', changeType: 'color', theme: 'geometric', unitLength: 5, cognitiveLevel: 10 },
+  { id: 83, type: 'emoji', drillType: 'COUNT', sequence: ['🐱','🐶','🐸','🐱','🐶','🐱','🐸','🐱','🐶','🐱','🐸','🐱'], missingIndex: -1, answer: '6', options: ['6','4','5','7'], difficulty: 'MASTER', countTarget: '🐱', patternCore: 'other', changeType: 'count', theme: 'animals', unitLength: 3, cognitiveLevel: 9 },
+  { id: 84, type: 'color', drillType: 'COUNT', sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','🔴','🟢','🔴','🟡','🔵','🔴'], missingIndex: -1, answer: '5', options: ['4','5','6','7'], difficulty: 'MASTER', countTarget: '🔴', patternCore: 'other', changeType: 'count', theme: 'geometric', unitLength: 4, cognitiveLevel: 9 },
+  { id: 85, type: 'emoji', drillType: 'COUNT', sequence: ['⭐','🌙','☀️','⭐','🌙','⭐','☀️','⭐','🌙','⭐','☀️','⭐'], missingIndex: -1, answer: '6', options: ['4','5','6','7'], difficulty: 'MASTER', countTarget: '⭐', patternCore: 'other', changeType: 'count', theme: 'nature', unitLength: 3, cognitiveLevel: 9 },
+  { id: 101, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:blue','circle:red','circle:blue','circle:red','?'], missingIndex: 5, answer: 'circle:blue', options: ['circle:blue','circle:red','circle:yellow'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 102, type: 'color', drillType: 'NEXT', sequence: ['square:yellow','square:green','square:yellow','square:green','square:yellow','?'], missingIndex: 5, answer: 'square:green', options: ['square:yellow','square:green','square:blue'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 103, type: 'color', drillType: 'NEXT', sequence: ['triangle:red','triangle:purple','triangle:red','triangle:purple','triangle:red','?'], missingIndex: 5, answer: 'triangle:purple', options: ['triangle:red','triangle:green','triangle:purple'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 104, type: 'color', drillType: 'NEXT', sequence: ['heart:pink','heart:teal','heart:pink','heart:teal','heart:pink','?'], missingIndex: 5, answer: 'heart:teal', options: ['heart:teal','heart:pink','heart:orange'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 105, type: 'color', drillType: 'NEXT', sequence: ['star:orange','star:blue','star:orange','star:blue','star:orange','?'], missingIndex: 5, answer: 'star:blue', options: ['star:orange','star:blue','star:green'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 106, type: 'color', drillType: 'NEXT', sequence: ['diamond:green','diamond:orange','diamond:green','diamond:orange','diamond:green','?'], missingIndex: 5, answer: 'diamond:orange', options: ['diamond:green','diamond:purple','diamond:orange'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 107, type: 'shape', drillType: 'NEXT', sequence: ['circle:red','square:red','circle:red','square:red','circle:red','?'], missingIndex: 5, answer: 'square:red', options: ['square:red','circle:red','triangle:red'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 108, type: 'shape', drillType: 'NEXT', sequence: ['triangle:blue','diamond:blue','triangle:blue','diamond:blue','triangle:blue','?'], missingIndex: 5, answer: 'diamond:blue', options: ['triangle:blue','diamond:blue','circle:blue'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 109, type: 'shape', drillType: 'NEXT', sequence: ['star:purple','heart:purple','star:purple','heart:purple','star:purple','?'], missingIndex: 5, answer: 'heart:purple', options: ['star:purple','circle:purple','heart:purple'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 110, type: 'shape', drillType: 'NEXT', sequence: ['circle:green','triangle:green','circle:green','triangle:green','circle:green','?'], missingIndex: 5, answer: 'triangle:green', options: ['triangle:green','circle:green','square:green'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 111, type: 'shape', drillType: 'NEXT', sequence: ['square:orange','star:orange','square:orange','star:orange','square:orange','?'], missingIndex: 5, answer: 'star:orange', options: ['square:orange','star:orange','heart:orange'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 112, type: 'shape', drillType: 'NEXT', sequence: ['heart:teal','diamond:teal','heart:teal','diamond:teal','heart:teal','?'], missingIndex: 5, answer: 'diamond:teal', options: ['heart:teal','circle:teal','diamond:teal'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 113, type: 'color', drillType: 'NEXT', sequence: ['circle:green','circle:orange','circle:green','circle:orange','?'], missingIndex: 4, answer: 'circle:green', options: ['circle:green','circle:orange','circle:blue'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 114, type: 'color', drillType: 'NEXT', sequence: ['circle:purple','circle:yellow','circle:purple','circle:yellow','?'], missingIndex: 4, answer: 'circle:purple', options: ['circle:yellow','circle:purple','circle:red'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2 },
+  { id: 115, type: 'shape', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','square:blue','?','square:blue','circle:red','square:blue'], missingIndex: 2, answer: 'circle:red', options: ['circle:red','square:blue','triangle:red'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 3 },
+  { id: 116, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['star:yellow','star:pink','star:yellow','?','star:yellow','star:pink'], missingIndex: 3, answer: 'star:pink', options: ['star:yellow','star:pink','star:blue'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3 },
+  { id: 117, type: 'shape', drillType: 'NEXT', sequence: ['circle:red','square:blue','triangle:yellow','circle:red','square:blue','?'], missingIndex: 5, answer: 'triangle:yellow', options: ['triangle:yellow','circle:red','square:blue'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 118, type: 'shape', drillType: 'NEXT', sequence: ['heart:pink','star:orange','diamond:purple','heart:pink','star:orange','?'], missingIndex: 5, answer: 'diamond:purple', options: ['heart:pink','diamond:purple','star:orange'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 119, type: 'shape', drillType: 'NEXT', sequence: ['triangle:green','circle:orange','square:purple','triangle:green','circle:orange','?'], missingIndex: 5, answer: 'square:purple', options: ['triangle:green','circle:orange','square:purple'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 120, type: 'shape', drillType: 'NEXT', sequence: ['star:red','heart:blue','circle:yellow','star:red','heart:blue','?'], missingIndex: 5, answer: 'circle:yellow', options: ['circle:yellow','star:red','heart:blue'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 121, type: 'shape', drillType: 'NEXT', sequence: ['diamond:teal','square:pink','triangle:orange','diamond:teal','square:pink','?'], missingIndex: 5, answer: 'triangle:orange', options: ['diamond:teal','triangle:orange','square:pink'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 122, type: 'shape', drillType: 'NEXT', sequence: ['circle:red','circle:red','square:blue','square:blue','circle:red','circle:red','?'], missingIndex: 6, answer: 'square:blue', options: ['square:blue','circle:red','triangle:blue'], difficulty: 'MEDIUM', patternCore: 'AABB', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 5 },
+  { id: 123, type: 'shape', drillType: 'NEXT', sequence: ['star:yellow','star:yellow','heart:pink','heart:pink','star:yellow','?'], missingIndex: 5, answer: 'star:yellow', options: ['heart:pink','star:yellow','diamond:yellow'], difficulty: 'MEDIUM', patternCore: 'AABB', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 5 },
+  { id: 124, type: 'color', drillType: 'NEXT', sequence: ['circle:green','circle:green','circle:purple','circle:purple','circle:green','circle:green','?'], missingIndex: 6, answer: 'circle:purple', options: ['circle:green','circle:orange','circle:purple'], difficulty: 'MEDIUM', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 5 },
+  { id: 125, type: 'shape', drillType: 'NEXT', sequence: ['triangle:orange','triangle:orange','diamond:teal','diamond:teal','triangle:orange','triangle:orange','?'], missingIndex: 6, answer: 'diamond:teal', options: ['diamond:teal','triangle:orange','star:teal'], difficulty: 'MEDIUM', patternCore: 'AABB', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 5 },
+  { id: 126, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:blue','circle:yellow','circle:red','circle:blue','?'], missingIndex: 5, answer: 'circle:yellow', options: ['circle:red','circle:yellow','circle:blue'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 127, type: 'color', drillType: 'NEXT', sequence: ['circle:green','circle:orange','circle:purple','circle:green','circle:orange','?'], missingIndex: 5, answer: 'circle:purple', options: ['circle:green','circle:orange','circle:purple'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 128, type: 'shape', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','square:blue','triangle:yellow','circle:red','?','triangle:yellow','circle:red'], missingIndex: 4, answer: 'square:blue', options: ['square:blue','circle:red','triangle:yellow'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 129, type: 'shape', drillType: 'MISSING_MIDDLE', sequence: ['heart:pink','star:orange','diamond:purple','heart:pink','star:orange','?','heart:pink'], missingIndex: 5, answer: 'diamond:purple', options: ['heart:pink','diamond:purple','star:orange'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4 },
+  { id: 130, type: 'shape', drillType: 'NEXT', sequence: ['circle:blue','star:blue','circle:blue','star:blue','circle:blue','star:blue','circle:blue','?'], missingIndex: 7, answer: 'star:blue', options: ['circle:blue','square:blue','star:blue'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 3 },
+  { id: 131, type: 'size', drillType: 'NEXT', sequence: ['circle:red:lg','circle:red:sm','circle:red:lg','circle:red:sm','?'], missingIndex: 4, answer: 'circle:red:lg', options: ['circle:red:lg','circle:red:sm','square:red:lg'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5 },
+  { id: 132, type: 'size', drillType: 'NEXT', sequence: ['square:blue:lg','square:blue:sm','square:blue:lg','square:blue:sm','square:blue:lg','?'], missingIndex: 5, answer: 'square:blue:sm', options: ['square:blue:lg','square:blue:sm','circle:blue:sm'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5 },
+  { id: 133, type: 'size', drillType: 'NEXT', sequence: ['star:orange:sm','star:orange:lg','star:orange:sm','star:orange:lg','star:orange:sm','?'], missingIndex: 5, answer: 'star:orange:lg', options: ['star:orange:sm','heart:orange:lg','star:orange:lg'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5 },
+  { id: 134, type: 'size', drillType: 'NEXT', sequence: ['triangle:green:lg','triangle:green:sm','triangle:green:lg','triangle:green:sm','?'], missingIndex: 4, answer: 'triangle:green:lg', options: ['triangle:green:lg','triangle:green:sm','diamond:green:lg'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5 },
+  { id: 135, type: 'shape', drillType: 'NEXT', sequence: ['circle:red','circle:red','triangle:yellow','triangle:yellow','circle:red','circle:red','triangle:yellow','?'], missingIndex: 7, answer: 'triangle:yellow', options: ['circle:red','triangle:yellow','square:yellow'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 5 },
+  { id: 136, type: 'shape', drillType: 'NEXT', sequence: ['heart:pink','heart:pink','diamond:purple','diamond:purple','heart:pink','heart:pink','diamond:purple','?'], missingIndex: 7, answer: 'diamond:purple', options: ['heart:pink','star:purple','diamond:purple'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 5 },
+  { id: 137, type: 'shape', drillType: 'FIND_MISTAKE', sequence: ['circle:red','square:blue','circle:red','triangle:yellow','circle:red','square:blue'], missingIndex: 3, answer: 'triangle:yellow', options: ['triangle:yellow'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6 },
+  { id: 138, type: 'color', drillType: 'FIND_MISTAKE', sequence: ['circle:red','circle:blue','circle:red','circle:blue','circle:green','circle:blue'], missingIndex: 4, answer: 'circle:green', options: ['circle:green'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 6 },
+  { id: 139, type: 'shape', drillType: 'FIND_MISTAKE', sequence: ['star:orange','heart:pink','star:orange','heart:pink','star:orange','diamond:pink'], missingIndex: 5, answer: 'diamond:pink', options: ['diamond:pink'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6 },
+  { id: 140, type: 'size', drillType: 'MISSING_MIDDLE', sequence: ['circle:purple:lg','circle:purple:sm','circle:purple:lg','?','circle:purple:lg','circle:purple:sm'], missingIndex: 3, answer: 'circle:purple:sm', options: ['circle:purple:lg','circle:purple:sm','square:purple:sm'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 6 },
+  { id: 141, type: 'shape', drillType: 'COUNT', sequence: ['circle:red','square:blue','circle:red','square:blue','circle:red'], missingIndex: -1, answer: '3', options: ['3','2','4'], difficulty: 'HARD', countTarget: 'circle:red', patternCore: 'AB', changeType: 'count', theme: 'geometric', unitLength: 2, cognitiveLevel: 5 },
+  { id: 142, type: 'shape', drillType: 'COUNT', sequence: ['star:orange','heart:pink','star:orange','heart:pink','heart:pink','star:orange'], missingIndex: -1, answer: '3', options: ['2','3','4'], difficulty: 'HARD', countTarget: 'heart:pink', patternCore: 'AB', changeType: 'count', theme: 'geometric', unitLength: 2, cognitiveLevel: 5 },
+  { id: 143, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','?'], missingIndex: 7, answer: 'diamond:green', options: ['diamond:green','circle:red','square:blue','triangle:yellow'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 144, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange','heart:pink','diamond:purple','circle:teal','star:orange','heart:pink','diamond:purple','?'], missingIndex: 7, answer: 'circle:teal', options: ['star:orange','circle:teal','heart:pink','diamond:purple'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 145, type: 'mixed', drillType: 'NEXT', sequence: ['square:red','circle:blue','star:yellow','heart:green','square:red','circle:blue','star:yellow','?'], missingIndex: 7, answer: 'heart:green', options: ['square:red','circle:blue','heart:green','star:yellow'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 146, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red:lg','circle:blue:sm','circle:red:lg','circle:blue:sm','circle:red:lg','?'], missingIndex: 5, answer: 'circle:blue:sm', options: ['circle:blue:sm','circle:red:lg','circle:red:sm','circle:blue:lg'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7 },
+  { id: 147, type: 'mixed', drillType: 'NEXT', sequence: ['square:green:sm','square:orange:lg','square:green:sm','square:orange:lg','square:green:sm','?'], missingIndex: 5, answer: 'square:orange:lg', options: ['square:green:sm','square:orange:lg','square:green:lg','square:orange:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7 },
+  { id: 148, type: 'mixed', drillType: 'FIND_MISTAKE', sequence: ['circle:red','square:blue','triangle:yellow','circle:red','square:blue','triangle:yellow','circle:red','square:green','triangle:yellow'], missingIndex: 7, answer: 'square:green', options: ['square:green'], difficulty: 'EXPERT', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 8 },
+  { id: 149, type: 'mixed', drillType: 'FIND_MISTAKE', sequence: ['star:orange','heart:pink','diamond:purple','star:orange','heart:pink','diamond:purple','star:orange','heart:teal','diamond:purple'], missingIndex: 7, answer: 'heart:teal', options: ['heart:teal'], difficulty: 'EXPERT', patternCore: 'other', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 8 },
+  { id: 150, type: 'shape', drillType: 'FIND_MISTAKE', sequence: ['circle:red','circle:red','square:blue','square:blue','circle:red','triangle:red','square:blue','square:blue'], missingIndex: 5, answer: 'triangle:red', options: ['triangle:red'], difficulty: 'EXPERT', patternCore: 'AABB', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 151, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','?','triangle:yellow','diamond:green'], missingIndex: 5, answer: 'square:blue', options: ['circle:red','square:blue','triangle:yellow','diamond:green'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8 },
+  { id: 152, type: 'shape', drillType: 'COUNT', sequence: ['circle:red','square:blue','triangle:yellow','circle:red','square:blue','circle:red','triangle:yellow','circle:red'], missingIndex: -1, answer: '4', options: ['4','3','5','2'], difficulty: 'EXPERT', countTarget: 'circle:red', patternCore: 'other', changeType: 'count', theme: 'geometric', unitLength: 3, cognitiveLevel: 7 },
+  { id: 153, type: 'shape', drillType: 'COUNT', sequence: ['star:orange','heart:pink','diamond:purple','star:orange','heart:pink','star:orange','diamond:purple'], missingIndex: -1, answer: '3', options: ['2','3','4','5'], difficulty: 'EXPERT', countTarget: 'star:orange', patternCore: 'other', changeType: 'count', theme: 'geometric', unitLength: 3, cognitiveLevel: 7 },
+  { id: 154, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','star:orange','circle:red','square:blue','triangle:yellow','diamond:green','?'], missingIndex: 9, answer: 'star:orange', options: ['star:orange','circle:red','square:blue','triangle:yellow'], difficulty: 'MASTER', patternCore: 'ABCDE', changeType: 'color+shape', theme: 'geometric', unitLength: 5, cognitiveLevel: 9 },
+  { id: 155, type: 'mixed', drillType: 'NEXT', sequence: ['heart:pink','star:orange','diamond:purple','circle:teal','heart:pink','star:orange','diamond:purple','circle:teal','heart:pink','?'], missingIndex: 9, answer: 'star:orange', options: ['heart:pink','star:orange','diamond:purple','circle:teal'], difficulty: 'MASTER', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 9 },
+  { id: 156, type: 'mixed', drillType: 'NEXT', sequence: ['square:red:lg','square:red:sm','circle:blue:lg','circle:blue:sm','square:red:lg','square:red:sm','circle:blue:lg','?'], missingIndex: 7, answer: 'circle:blue:sm', options: ['square:red:lg','square:red:sm','circle:blue:sm','circle:blue:lg'], difficulty: 'MASTER', patternCore: 'AABB', changeType: 'color+shape+size', theme: 'geometric', unitLength: 4, cognitiveLevel: 10 },
+  { id: 157, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','circle:red','square:blue','square:blue','triangle:yellow','triangle:yellow','circle:red','circle:red','square:blue','square:blue','triangle:yellow','?'], missingIndex: 11, answer: 'triangle:yellow', options: ['triangle:yellow','circle:red','square:blue','diamond:yellow'], difficulty: 'MASTER', patternCore: 'AABB', changeType: 'color+shape', theme: 'geometric', unitLength: 6, cognitiveLevel: 10 },
+  { id: 158, type: 'mixed', drillType: 'FIND_MISTAKE', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:purple','triangle:yellow','diamond:green'], missingIndex: 9, answer: 'square:purple', options: ['square:purple'], difficulty: 'MASTER', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 10 },
+  { id: 159, type: 'mixed', drillType: 'FIND_MISTAKE', sequence: ['star:orange','heart:pink','diamond:purple','circle:teal','star:orange','heart:pink','diamond:purple','circle:teal','star:orange','heart:pink','pentagon:purple','circle:teal'], missingIndex: 10, answer: 'pentagon:purple', options: ['pentagon:purple'], difficulty: 'MASTER', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 10 },
+  { id: 160, type: 'mixed', drillType: 'COUNT', sequence: ['circle:red','square:blue','triangle:yellow','circle:red','diamond:green','circle:red','square:blue','circle:red','triangle:yellow','circle:red','square:blue','circle:red'], missingIndex: -1, answer: '6', options: ['6','4','5','7'], difficulty: 'MASTER', countTarget: 'circle:red', patternCore: 'other', changeType: 'count', theme: 'geometric', unitLength: 4, cognitiveLevel: 9 },
+  { id: 161, type: 'mixed', drillType: 'COUNT', sequence: ['star:orange','heart:pink','star:orange','diamond:purple','star:orange','heart:pink','star:orange','star:orange','diamond:purple','star:orange','heart:pink','star:orange'], missingIndex: -1, answer: '7', options: ['6','7','8','5'], difficulty: 'MASTER', countTarget: 'star:orange', patternCore: 'other', changeType: 'count', theme: 'geometric', unitLength: 3, cognitiveLevel: 9 },
+  { id: 162, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','?','diamond:green','circle:red','square:blue','triangle:yellow','diamond:green'], missingIndex: 6, answer: 'triangle:yellow', options: ['circle:red','square:blue','triangle:yellow','diamond:green'], difficulty: 'MASTER', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 10 },
 
-  // NEXT — answer at varied positions
-  { id: 1, difficulty: 'EASY', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🐱','🐶','🐱','🐶','🐱','?'],
-    missingIndex: 5, answer: '🐶', options: ['🐶','🐱','🐸'] },               // answer idx 0
-  { id: 2, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['🔴','🔵','🔴','🔵','🔴','?'],
-    missingIndex: 5, answer: '🔵', options: ['🟡','🔵','🔴'] },               // answer idx 1
-  { id: 3, difficulty: 'EASY', drillType: 'NEXT', type: 'shape',
-    sequence: ['⭕','🔺','⭕','🔺','⭕','?'],
-    missingIndex: 5, answer: '🔺', options: ['⭕','⬛','🔺'] },               // answer idx 2
-  { id: 4, difficulty: 'EASY', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🌟','🌙','🌟','🌙','🌟','?'],
-    missingIndex: 5, answer: '🌙', options: ['🌙','☀️','🌟'] },              // answer idx 0
-  { id: 5, difficulty: 'EASY', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🍎','🍊','🍎','🍊','🍎','?'],
-    missingIndex: 5, answer: '🍊', options: ['🍋','🍊','🍎'] },              // answer idx 1
-  { id: 6, difficulty: 'EASY', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🚗','✈️','🚗','✈️','🚗','?'],
-    missingIndex: 5, answer: '✈️', options: ['🚗','🚢','✈️'] },              // answer idx 2
-  { id: 7, difficulty: 'EASY', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🦁','🐘','🦁','🐘','🦁','?'],
-    missingIndex: 5, answer: '🐘', options: ['🐘','🦒','🦁'] },              // answer idx 0
-  { id: 8, difficulty: 'EASY', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🍕','🍔','🍕','🍔','🍕','?'],
-    missingIndex: 5, answer: '🍔', options: ['🍕','🍔','🌮'] },              // answer idx 1
-  { id: 9, difficulty: 'EASY', drillType: 'NEXT', type: 'size',
-    sequence: ['🔵','🔹','🔵','🔹','🔵','?'],
-    missingIndex: 5, answer: '🔹', options: ['🔵','🟦','🔹'] },              // answer idx 2
-  { id: 10, difficulty: 'EASY', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🐧','🐬','🐧','🐬','🐧','?'],
-    missingIndex: 5, answer: '🐬', options: ['🐬','🐧','🐙'] },             // answer idx 0
-  { id: 11, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['🟠','🟣','🟠','🟣','🟠','?'],
-    missingIndex: 5, answer: '🟣', options: ['🟠','🟣','🟢'] },             // answer idx 1
-  { id: 12, difficulty: 'EASY', drillType: 'NEXT', type: 'shape',
-    sequence: ['⬛','⬜','⬛','⬜','⬛','?'],
-    missingIndex: 5, answer: '⬜', options: ['⬛','🔺','⬜'] },              // answer idx 2
-
-  // EASY — MISSING MIDDLE
-  { id: 13, difficulty: 'EASY', drillType: 'MISSING_MIDDLE', type: 'emoji',
-    sequence: ['🐱','🐶','?','🐶','🐱','🐶'],
-    missingIndex: 2, answer: '🐱', options: ['🐱','🐶','🐸'] },             // answer idx 0
-  { id: 14, difficulty: 'EASY', drillType: 'MISSING_MIDDLE', type: 'color',
-    sequence: ['🔴','🔵','🔴','?','🔴','🔵'],
-    missingIndex: 3, answer: '🔵', options: ['🟡','🔵','🔴'] },             // answer idx 1
-  { id: 15, difficulty: 'EASY', drillType: 'MISSING_MIDDLE', type: 'emoji',
-    sequence: ['🌻','🌺','🌻','🌺','?','🌺'],
-    missingIndex: 4, answer: '🌻', options: ['🌹','🌺','🌻'] },            // answer idx 2
-
-  // EASY — FIND THE MISTAKE (short)
-  { id: 16, difficulty: 'EASY', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🐱','🐶','🐱','🦁','🐱','🐶'],
-    missingIndex: 3, answer: '🦁', options: ['🦁'] },
-  { id: 17, difficulty: 'EASY', drillType: 'FIND_MISTAKE', type: 'color',
-    sequence: ['🔴','🔵','🔴','🔵','🟡','🔵'],
-    missingIndex: 4, answer: '🟡', options: ['🟡'] },
-  { id: 18, difficulty: 'EASY', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🌟','🌙','🌟','🌙','🌟','☀️'],
-    missingIndex: 5, answer: '☀️', options: ['☀️'] },
-
-  // EASY — COUNT
-  { id: 19, difficulty: 'EASY', drillType: 'COUNT', type: 'emoji',
-    sequence: ['🔴','🔵','🔴','🔵','🔴'],
-    missingIndex: -1, answer: '3', options: ['3','2','4'], countTarget: '🔴' },  // answer idx 0
-  { id: 20, difficulty: 'EASY', drillType: 'COUNT', type: 'emoji',
-    sequence: ['🐱','🐶','🐱','🐶','🐶'],
-    missingIndex: -1, answer: '2', options: ['1','2','3'], countTarget: '🐱' },  // answer idx 1
-
-  // ════════════════════════════════════════════════════════════════
-  // MEDIUM — ABC patterns, 3 cycling elements, 6-9 items
-  // ════════════════════════════════════════════════════════════════
-
-  { id: 21, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🍎','🍊','🍋','🍎','🍊','?'],
-    missingIndex: 5, answer: '🍋', options: ['🍋','🍎','🍊'] },             // answer idx 0
-  { id: 22, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'color',
-    sequence: ['🔴','🟡','🔵','🔴','🟡','?'],
-    missingIndex: 5, answer: '🔵', options: ['🟡','🔵','🔴'] },             // answer idx 1
-  { id: 23, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['🔺','⭕','⬛','🔺','⭕','?'],
-    missingIndex: 5, answer: '⬛', options: ['🔺','⭕','⬛'] },             // answer idx 2
-  { id: 24, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🐮','🐷','🐔','🐮','🐷','?'],
-    missingIndex: 5, answer: '🐔', options: ['🐔','🐮','🐷'] },            // answer idx 0
-  { id: 25, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'rotation',
-    sequence: ['⬆️','➡️','⬇️','⬆️','➡️','?'],
-    missingIndex: 5, answer: '⬇️', options: ['➡️','⬇️','⬆️'] },           // answer idx 1
-  { id: 26, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🌞','🌧️','🌈','🌞','🌧️','?'],
-    missingIndex: 5, answer: '🌈', options: ['🌞','🌧️','🌈'] },          // answer idx 2
-  { id: 27, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🐸','🦊','🐼','🐸','🦊','?'],
-    missingIndex: 5, answer: '🐼', options: ['🐼','🐸','🦊'] },           // answer idx 0
-  { id: 28, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🍓','🍇','🍒','🍓','🍇','?'],
-    missingIndex: 5, answer: '🍒', options: ['🍇','🍒','🍓'] },           // answer idx 1
-
-  // MEDIUM — LONG (8-9 items, ABC)
-  { id: 29, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🐱','🐶','🐸','🐱','🐶','🐸','🐱','🐶','?'],
-    missingIndex: 8, answer: '🐸', options: ['🐱','🐶','🐸'] },           // answer idx 2
-  { id: 30, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'emoji',
-    sequence: ['⭐','🌙','☀️','⭐','🌙','☀️','⭐','🌙','?'],
-    missingIndex: 8, answer: '☀️', options: ['☀️','⭐','🌙'] },           // answer idx 0
-  { id: 31, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'color',
-    sequence: ['🟢','🟠','🟣','🟢','🟠','🟣','🟢','🟠','?'],
-    missingIndex: 8, answer: '🟣', options: ['🟢','🟣','🟠'] },          // answer idx 1
-
-  // MEDIUM — MISSING MIDDLE
-  { id: 32, difficulty: 'MEDIUM', drillType: 'MISSING_MIDDLE', type: 'emoji',
-    sequence: ['🍎','🍊','🍋','🍎','?','🍋','🍎'],
-    missingIndex: 4, answer: '🍊', options: ['🍊','🍎','🍋'] },          // answer idx 0
-  { id: 33, difficulty: 'MEDIUM', drillType: 'MISSING_MIDDLE', type: 'rotation',
-    sequence: ['⬆️','➡️','⬇️','⬆️','➡️','?','⬆️'],
-    missingIndex: 5, answer: '⬇️', options: ['➡️','⬇️','⬆️'] },         // answer idx 1
-  { id: 34, difficulty: 'MEDIUM', drillType: 'MISSING_MIDDLE', type: 'emoji',
-    sequence: ['🚀','🛸','🌍','🚀','🛸','🌍','?','🛸','🌍'],
-    missingIndex: 6, answer: '🚀', options: ['🌍','🛸','🚀'] },          // answer idx 2
-
-  // MEDIUM — FIND THE MISTAKE
-  { id: 35, difficulty: 'MEDIUM', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🍎','🍊','🍋','🍎','🍊','🐸','🍎','🍊','🍋'],
-    missingIndex: 5, answer: '🐸', options: ['🐸'] },
-  { id: 36, difficulty: 'MEDIUM', drillType: 'FIND_MISTAKE', type: 'rotation',
-    sequence: ['⬆️','➡️','⬇️','⬆️','➡️','⬅️','⬆️','➡️','⬇️'],
-    missingIndex: 5, answer: '⬅️', options: ['⬅️'] },
-  { id: 37, difficulty: 'MEDIUM', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🌞','🌧️','🌈','🌞','🌧️','🌈','🌞','🐱','🌈'],
-    missingIndex: 7, answer: '🐱', options: ['🐱'] },
-
-  // MEDIUM — COUNT
-  { id: 38, difficulty: 'MEDIUM', drillType: 'COUNT', type: 'emoji',
-    sequence: ['🍎','🍊','🍋','🍎','🍊','🍎','🍊','🍎'],
-    missingIndex: -1, answer: '4', options: ['4','3','5'], countTarget: '🍎' },  // answer idx 0
-  { id: 39, difficulty: 'MEDIUM', drillType: 'COUNT', type: 'color',
-    sequence: ['🔴','🟡','🔵','🔴','🟡','🔵','🔴'],
-    missingIndex: -1, answer: '3', options: ['2','3','4'], countTarget: '🔴' },  // answer idx 1
-  { id: 40, difficulty: 'MEDIUM', drillType: 'COUNT', type: 'emoji',
-    sequence: ['⭐','🌙','☀️','⭐','🌙','⭐','🌙','⭐'],
-    missingIndex: -1, answer: '4', options: ['2','3','4'], countTarget: '⭐' },  // answer idx 2
-
-  // ════════════════════════════════════════════════════════════════
-  // HARD — AABB / AAB patterns, trickier mistakes
-  // ════════════════════════════════════════════════════════════════
-
-  // AABB — NEXT
-  { id: 41, difficulty: 'HARD', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🐱','🐱','🐶','🐶','🐱','🐱','?'],
-    missingIndex: 6, answer: '🐶', options: ['🐶','🐱','🐸'] },          // answer idx 0
-  { id: 42, difficulty: 'HARD', drillType: 'NEXT', type: 'color',
-    sequence: ['🔴','🔴','🔵','🔵','🔴','🔴','?'],
-    missingIndex: 6, answer: '🔵', options: ['🔴','🔵','🟡'] },          // answer idx 1
-  { id: 43, difficulty: 'HARD', drillType: 'NEXT', type: 'shape',
-    sequence: ['⬛','⬛','⬜','⬜','⬛','⬛','?'],
-    missingIndex: 6, answer: '⬜', options: ['⬛','🔺','⬜'] },          // answer idx 2
-
-  // AAB — NEXT
-  { id: 44, difficulty: 'HARD', drillType: 'NEXT', type: 'emoji',
-    sequence: ['⭐','⭐','🌙','⭐','⭐','🌙','⭐','⭐','?'],
-    missingIndex: 8, answer: '🌙', options: ['🌙','⭐','☀️'] },         // answer idx 0
-  { id: 45, difficulty: 'HARD', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🍎','🍎','🍊','🍎','🍎','🍊','🍎','🍎','?'],
-    missingIndex: 8, answer: '🍊', options: ['🍎','🍊','🍋'] },         // answer idx 1
-  { id: 46, difficulty: 'HARD', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🦊','🦊','🐻','🦊','🦊','🐻','🦊','🦊','?'],
-    missingIndex: 8, answer: '🐻', options: ['🦊','🐱','🐻'] },         // answer idx 2
-
-  // ABB — NEXT
-  { id: 47, difficulty: 'HARD', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🌻','🍀','🍀','🌻','🍀','🍀','🌻','?'],
-    missingIndex: 7, answer: '🍀', options: ['🍀','🌻','🌹'] },         // answer idx 0
-  { id: 48, difficulty: 'HARD', drillType: 'NEXT', type: 'color',
-    sequence: ['🟢','🟡','🟡','🟢','🟡','🟡','🟢','?'],
-    missingIndex: 7, answer: '🟡', options: ['🟢','🟡','🟣'] },         // answer idx 1
-
-  // HARD — AABB MISSING MIDDLE
-  { id: 49, difficulty: 'HARD', drillType: 'MISSING_MIDDLE', type: 'emoji',
-    sequence: ['🐱','🐱','🐶','?','🐱','🐱','🐶','🐶'],
-    missingIndex: 3, answer: '🐶', options: ['🐶','🐱','🐸'] },         // answer idx 0
-  { id: 50, difficulty: 'HARD', drillType: 'MISSING_MIDDLE', type: 'emoji',
-    sequence: ['⭐','⭐','🌙','⭐','⭐','?','⭐','⭐','🌙'],
-    missingIndex: 5, answer: '🌙', options: ['⭐','🌙','☀️'] },         // answer idx 1
-  { id: 51, difficulty: 'HARD', drillType: 'MISSING_MIDDLE', type: 'color',
-    sequence: ['🔴','🔴','🔵','🔵','?','🔴','🔵','🔵'],
-    missingIndex: 4, answer: '🔴', options: ['🔵','🟡','🔴'] },         // answer idx 2
-
-  // HARD — FIND THE MISTAKE (trickier — break inside a pair)
-  { id: 52, difficulty: 'HARD', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🐱','🐱','🐶','🐶','🐱','🐸','🐶','🐶','🐱','🐱'],
-    missingIndex: 5, answer: '🐸', options: ['🐸'] },
-  { id: 53, difficulty: 'HARD', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['⭐','⭐','🌙','⭐','⭐','🌙','⭐','☀️','🌙'],
-    missingIndex: 7, answer: '☀️', options: ['☀️'] },
-  { id: 54, difficulty: 'HARD', drillType: 'FIND_MISTAKE', type: 'color',
-    sequence: ['🔴','🔴','🔵','🔵','🟡','🔴','🔵','🔵','🔴','🔴'],
-    missingIndex: 4, answer: '🟡', options: ['🟡'] },
-
-  // HARD — COUNT
-  { id: 55, difficulty: 'HARD', drillType: 'COUNT', type: 'emoji',
-    sequence: ['🐱','🐱','🐶','🐶','🐱','🐱','🐶','🐶','🐱'],
-    missingIndex: -1, answer: '5', options: ['5','4','6'], countTarget: '🐱' },  // answer idx 0
-  { id: 56, difficulty: 'HARD', drillType: 'COUNT', type: 'emoji',
-    sequence: ['⭐','⭐','🌙','⭐','⭐','🌙','⭐','⭐','🌙'],
-    missingIndex: -1, answer: '3', options: ['2','3','4'], countTarget: '🌙' },  // answer idx 1
-  { id: 57, difficulty: 'HARD', drillType: 'COUNT', type: 'color',
-    sequence: ['🔵','🔵','🟢','🔵','🔵','🟢','🔵'],
-    missingIndex: -1, answer: '5', options: ['3','4','5'], countTarget: '🔵' },  // answer idx 2
-
-  // ════════════════════════════════════════════════════════════════
-  // EXPERT — 4-element cycles, very long FIND_MISTAKE sequences
-  // ════════════════════════════════════════════════════════════════
-
-  // 4-element cycle — NEXT (4 options)
-  { id: 58, difficulty: 'EXPERT', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🐱','🐶','🐸','🦊','🐱','🐶','🐸','🦊','🐱','?'],
-    missingIndex: 9, answer: '🐶', options: ['🐶','🐱','🐸','🦊'] },     // answer idx 0
-  { id: 59, difficulty: 'EXPERT', drillType: 'NEXT', type: 'rotation',
-    sequence: ['⬆️','➡️','⬇️','⬅️','⬆️','➡️','⬇️','⬅️','⬆️','?'],
-    missingIndex: 9, answer: '➡️', options: ['⬆️','➡️','⬇️','⬅️'] },     // answer idx 1
-  { id: 60, difficulty: 'EXPERT', drillType: 'NEXT', type: 'color',
-    sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','🔵','🟢','🔴','?'],
-    missingIndex: 9, answer: '🟡', options: ['🔵','🟢','🟡','🔴'] },     // answer idx 2
-  { id: 61, difficulty: 'EXPERT', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🍎','🍊','🍋','🍇','🍎','🍊','🍋','🍇','🍎','?'],
-    missingIndex: 9, answer: '🍊', options: ['🍎','🍋','🍇','🍊'] },     // answer idx 3
-  { id: 62, difficulty: 'EXPERT', drillType: 'NEXT', type: 'emoji',
-    sequence: ['⭐','🌙','☀️','🌈','⭐','🌙','☀️','🌈','⭐','?'],
-    missingIndex: 9, answer: '🌙', options: ['🌙','☀️','🌈','⭐'] },     // answer idx 0
-
-  // EXPERT — 4-element MISSING MIDDLE (4 options)
-  { id: 63, difficulty: 'EXPERT', drillType: 'MISSING_MIDDLE', type: 'emoji',
-    sequence: ['🐱','🐶','🐸','🦊','🐱','?','🐸','🦊','🐱','🐶'],
-    missingIndex: 5, answer: '🐶', options: ['🐸','🐶','🦊','🐱'] },     // answer idx 1
-  { id: 64, difficulty: 'EXPERT', drillType: 'MISSING_MIDDLE', type: 'color',
-    sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','?','🟢','🔴','🟡'],
-    missingIndex: 6, answer: '🔵', options: ['🔴','🟢','🔵','🟡'] },     // answer idx 2
-  { id: 65, difficulty: 'EXPERT', drillType: 'MISSING_MIDDLE', type: 'rotation',
-    sequence: ['⬆️','➡️','⬇️','⬅️','?','➡️','⬇️','⬅️','⬆️','➡️'],
-    missingIndex: 4, answer: '⬆️', options: ['⬆️','➡️','⬇️','⬅️'] },     // answer idx 0
-
-  // EXPERT — very long FIND_MISTAKE
-  { id: 66, difficulty: 'EXPERT', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🐱','🐶','🐸','🦊','🐱','🐶','🐸','🦊','🐱','🐼','🐸','🦊'],
-    missingIndex: 9, answer: '🐼', options: ['🐼'] },
-  { id: 67, difficulty: 'EXPERT', drillType: 'FIND_MISTAKE', type: 'color',
-    sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','🔵','🟢','🔴','🟡','🟣','🟢'],
-    missingIndex: 10, answer: '🟣', options: ['🟣'] },
-  { id: 68, difficulty: 'EXPERT', drillType: 'FIND_MISTAKE', type: 'rotation',
-    sequence: ['⬆️','➡️','⬇️','⬅️','⬆️','➡️','⬇️','⬅️','⬆️','↗️','⬇️','⬅️'],
-    missingIndex: 9, answer: '↗️', options: ['↗️'] },
-  { id: 69, difficulty: 'EXPERT', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🍎','🍊','🍋','🍇','🍎','🍊','🍋','🍇','🍎','🍊','🍓','🍇'],
-    missingIndex: 10, answer: '🍓', options: ['🍓'] },
-
-  // EXPERT — COUNT (4 options)
-  { id: 70, difficulty: 'EXPERT', drillType: 'COUNT', type: 'emoji',
-    sequence: ['🐱','🐶','🐸','🦊','🐱','🐶','🐸','🦊','🐱','🐶'],
-    missingIndex: -1, answer: '3', options: ['3','2','4','5'], countTarget: '🐱' },  // idx 0
-  { id: 71, difficulty: 'EXPERT', drillType: 'COUNT', type: 'color',
-    sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','🔵','🟢','🔴','🟡','🔵'],
-    missingIndex: -1, answer: '3', options: ['2','3','4','5'], countTarget: '🔵' },  // idx 1
-
-  // ════════════════════════════════════════════════════════════════
-  // MASTER — complex long sequences, COUNT with 4 options
-  // ════════════════════════════════════════════════════════════════
-
-  // MASTER — long AABB cycles, NEXT
-  { id: 72, difficulty: 'MASTER', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🐱','🐱','🐶','🐶','🐸','🐸','🐱','🐱','🐶','🐶','🐸','?'],
-    missingIndex: 11, answer: '🐸', options: ['🐸','🐱','🐶','🦊'] },     // answer idx 0
-  { id: 73, difficulty: 'MASTER', drillType: 'NEXT', type: 'color',
-    sequence: ['🔴','🔴','🟡','🟡','🔵','🔵','🔴','🔴','🟡','🟡','🔵','?'],
-    missingIndex: 11, answer: '🔵', options: ['🔴','🔵','🟡','🟢'] },     // answer idx 1
-  { id: 74, difficulty: 'MASTER', drillType: 'NEXT', type: 'emoji',
-    sequence: ['⭐','🌙','🌙','☀️','⭐','🌙','🌙','☀️','⭐','🌙','🌙','?'],
-    missingIndex: 11, answer: '☀️', options: ['⭐','🌙','☀️','🌈'] },     // answer idx 2
-
-  // MASTER — long 4-element cycle, NEXT
-  { id: 75, difficulty: 'MASTER', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🚗','✈️','🚢','🚂','🚗','✈️','🚢','🚂','🚗','✈️','🚢','?'],
-    missingIndex: 11, answer: '🚂', options: ['🚗','✈️','🚢','🚂'] },     // answer idx 3
-  { id: 76, difficulty: 'MASTER', drillType: 'NEXT', type: 'emoji',
-    sequence: ['🍎','🍊','🍋','🍇','🍓','🍎','🍊','🍋','🍇','🍓','🍎','?'],
-    missingIndex: 11, answer: '🍊', options: ['🍊','🍋','🍇','🍓'] },     // answer idx 0 (5-cycle)
-
-  // MASTER — complex MISSING MIDDLE
-  { id: 77, difficulty: 'MASTER', drillType: 'MISSING_MIDDLE', type: 'emoji',
-    sequence: ['🐱','🐱','🐶','🐶','🐸','🐸','🐱','?','🐶','🐶','🐸','🐸'],
-    missingIndex: 7, answer: '🐱', options: ['🐶','🐱','🐸','🦊'] },     // answer idx 1
-  { id: 78, difficulty: 'MASTER', drillType: 'MISSING_MIDDLE', type: 'color',
-    sequence: ['🔴','🟡','🔵','🟢','🟣','🔴','🟡','🔵','?','🟣','🔴','🟡'],
-    missingIndex: 8, answer: '🟢', options: ['🔴','🟣','🟢','🟡'] },     // answer idx 2 (5-cycle)
-  { id: 79, difficulty: 'MASTER', drillType: 'MISSING_MIDDLE', type: 'rotation',
-    sequence: ['⬆️','⬆️','➡️','➡️','⬇️','⬇️','?','⬆️','➡️','➡️','⬇️','⬇️'],
-    missingIndex: 6, answer: '⬆️', options: ['⬆️','➡️','⬇️','⬅️'] },     // answer idx 0
-
-  // MASTER — extra-long FIND_MISTAKE
-  { id: 80, difficulty: 'MASTER', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🐱','🐱','🐶','🐶','🐸','🐸','🐱','🐱','🐶','🦊','🐸','🐸','🐱','🐱'],
-    missingIndex: 9, answer: '🦊', options: ['🦊'] },
-  { id: 81, difficulty: 'MASTER', drillType: 'FIND_MISTAKE', type: 'emoji',
-    sequence: ['🚗','✈️','🚢','🚂','🚗','✈️','🚢','🚂','🚗','✈️','🚁','🚂','🚗','✈️'],
-    missingIndex: 10, answer: '🚁', options: ['🚁'] },
-  { id: 82, difficulty: 'MASTER', drillType: 'FIND_MISTAKE', type: 'color',
-    sequence: ['🔴','🟡','🔵','🟢','🟣','🔴','🟡','🔵','🟢','🟣','🔴','🟠','🔵','🟢'],
-    missingIndex: 11, answer: '🟠', options: ['🟠'] },
-
-  // MASTER — COUNT with 4 options
-  { id: 83, difficulty: 'MASTER', drillType: 'COUNT', type: 'emoji',
-    sequence: ['🐱','🐶','🐸','🐱','🐶','🐱','🐸','🐱','🐶','🐱','🐸','🐱'],
-    missingIndex: -1, answer: '6', options: ['6','4','5','7'], countTarget: '🐱' },  // idx 0
-  { id: 84, difficulty: 'MASTER', drillType: 'COUNT', type: 'color',
-    sequence: ['🔴','🟡','🔵','🟢','🔴','🟡','🔴','🟢','🔴','🟡','🔵','🔴'],
-    missingIndex: -1, answer: '5', options: ['4','5','6','7'], countTarget: '🔴' },  // idx 1
-  { id: 85, difficulty: 'MASTER', drillType: 'COUNT', type: 'emoji',
-    sequence: ['⭐','🌙','☀️','⭐','🌙','⭐','☀️','⭐','🌙','⭐','☀️','⭐'],
-    missingIndex: -1, answer: '6', options: ['4','5','6','7'], countTarget: '⭐' },  // idx 2
-
-  // ════════════════════════════════════════════════════════════════
-  // ░░░ SHAPE-BASED QUESTIONS (CSS shapes via "shape:color[:size]") ░░░
-  // ════════════════════════════════════════════════════════════════
-
-  // ────────────────────────────────────────────────────────────────
-  // EASY — Type A (ABAB colour, same shape) + Type B (ABAB shape, same colour)
-  // ────────────────────────────────────────────────────────────────
-
-  // Type A — ABAB colour patterns
-  { id: 101, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['circle:red','circle:blue','circle:red','circle:blue','circle:red','?'],
-    missingIndex: 5, answer: 'circle:blue', options: ['circle:blue','circle:red','circle:yellow'] },  // idx 0
-  { id: 102, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['square:yellow','square:green','square:yellow','square:green','square:yellow','?'],
-    missingIndex: 5, answer: 'square:green', options: ['square:yellow','square:green','square:blue'] },  // idx 1
-  { id: 103, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['triangle:red','triangle:purple','triangle:red','triangle:purple','triangle:red','?'],
-    missingIndex: 5, answer: 'triangle:purple', options: ['triangle:red','triangle:green','triangle:purple'] },  // idx 2
-  { id: 104, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['heart:pink','heart:teal','heart:pink','heart:teal','heart:pink','?'],
-    missingIndex: 5, answer: 'heart:teal', options: ['heart:teal','heart:pink','heart:orange'] },  // idx 0
-  { id: 105, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['star:orange','star:blue','star:orange','star:blue','star:orange','?'],
-    missingIndex: 5, answer: 'star:blue', options: ['star:orange','star:blue','star:green'] },  // idx 1
-  { id: 106, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['diamond:green','diamond:orange','diamond:green','diamond:orange','diamond:green','?'],
-    missingIndex: 5, answer: 'diamond:orange', options: ['diamond:green','diamond:purple','diamond:orange'] },  // idx 2
-
-  // Type B — ABAB alternating shapes, same colour
-  { id: 107, difficulty: 'EASY', drillType: 'NEXT', type: 'shape',
-    sequence: ['circle:red','square:red','circle:red','square:red','circle:red','?'],
-    missingIndex: 5, answer: 'square:red', options: ['square:red','circle:red','triangle:red'] },  // idx 0
-  { id: 108, difficulty: 'EASY', drillType: 'NEXT', type: 'shape',
-    sequence: ['triangle:blue','diamond:blue','triangle:blue','diamond:blue','triangle:blue','?'],
-    missingIndex: 5, answer: 'diamond:blue', options: ['triangle:blue','diamond:blue','circle:blue'] },  // idx 1
-  { id: 109, difficulty: 'EASY', drillType: 'NEXT', type: 'shape',
-    sequence: ['star:purple','heart:purple','star:purple','heart:purple','star:purple','?'],
-    missingIndex: 5, answer: 'heart:purple', options: ['star:purple','circle:purple','heart:purple'] },  // idx 2
-  { id: 110, difficulty: 'EASY', drillType: 'NEXT', type: 'shape',
-    sequence: ['circle:green','triangle:green','circle:green','triangle:green','circle:green','?'],
-    missingIndex: 5, answer: 'triangle:green', options: ['triangle:green','circle:green','square:green'] },  // idx 0
-  { id: 111, difficulty: 'EASY', drillType: 'NEXT', type: 'shape',
-    sequence: ['square:orange','star:orange','square:orange','star:orange','square:orange','?'],
-    missingIndex: 5, answer: 'star:orange', options: ['square:orange','star:orange','heart:orange'] },  // idx 1
-  { id: 112, difficulty: 'EASY', drillType: 'NEXT', type: 'shape',
-    sequence: ['heart:teal','diamond:teal','heart:teal','diamond:teal','heart:teal','?'],
-    missingIndex: 5, answer: 'diamond:teal', options: ['heart:teal','circle:teal','diamond:teal'] },  // idx 2
-
-  // EASY — Type F colour-only rows (circles, 2 colours)
-  { id: 113, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['circle:green','circle:orange','circle:green','circle:orange','?'],
-    missingIndex: 4, answer: 'circle:green', options: ['circle:green','circle:orange','circle:blue'] },  // idx 0
-  { id: 114, difficulty: 'EASY', drillType: 'NEXT', type: 'color',
-    sequence: ['circle:purple','circle:yellow','circle:purple','circle:yellow','?'],
-    missingIndex: 4, answer: 'circle:purple', options: ['circle:yellow','circle:purple','circle:red'] },  // idx 1
-
-  // EASY — MISSING_MIDDLE with shapes
-  { id: 115, difficulty: 'EASY', drillType: 'MISSING_MIDDLE', type: 'shape',
-    sequence: ['circle:red','square:blue','?','square:blue','circle:red','square:blue'],
-    missingIndex: 2, answer: 'circle:red', options: ['circle:red','square:blue','triangle:red'] },  // idx 0
-  { id: 116, difficulty: 'EASY', drillType: 'MISSING_MIDDLE', type: 'color',
-    sequence: ['star:yellow','star:pink','star:yellow','?','star:yellow','star:pink'],
-    missingIndex: 3, answer: 'star:pink', options: ['star:yellow','star:pink','star:blue'] },  // idx 1
-
-  // ────────────────────────────────────────────────────────────────
-  // MEDIUM — Type C (AABB) + Type D (ABC cycle) + Type F (3-colour)
-  // ────────────────────────────────────────────────────────────────
-
-  // Type D — ABC 3-element cycles
-  { id: 117, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['circle:red','square:blue','triangle:yellow','circle:red','square:blue','?'],
-    missingIndex: 5, answer: 'triangle:yellow', options: ['triangle:yellow','circle:red','square:blue'] },  // idx 0
-  { id: 118, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['heart:pink','star:orange','diamond:purple','heart:pink','star:orange','?'],
-    missingIndex: 5, answer: 'diamond:purple', options: ['heart:pink','diamond:purple','star:orange'] },  // idx 1
-  { id: 119, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['triangle:green','circle:orange','square:purple','triangle:green','circle:orange','?'],
-    missingIndex: 5, answer: 'square:purple', options: ['triangle:green','circle:orange','square:purple'] },  // idx 2
-  { id: 120, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['star:red','heart:blue','circle:yellow','star:red','heart:blue','?'],
-    missingIndex: 5, answer: 'circle:yellow', options: ['circle:yellow','star:red','heart:blue'] },  // idx 0
-  { id: 121, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['diamond:teal','square:pink','triangle:orange','diamond:teal','square:pink','?'],
-    missingIndex: 5, answer: 'triangle:orange', options: ['diamond:teal','triangle:orange','square:pink'] },  // idx 1
-
-  // Type C — AABB patterns
-  { id: 122, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['circle:red','circle:red','square:blue','square:blue','circle:red','circle:red','?'],
-    missingIndex: 6, answer: 'square:blue', options: ['square:blue','circle:red','triangle:blue'] },  // idx 0
-  { id: 123, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['star:yellow','star:yellow','heart:pink','heart:pink','star:yellow','?'],
-    missingIndex: 5, answer: 'star:yellow', options: ['heart:pink','star:yellow','diamond:yellow'] },  // idx 1
-  { id: 124, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'color',
-    sequence: ['circle:green','circle:green','circle:purple','circle:purple','circle:green','circle:green','?'],
-    missingIndex: 6, answer: 'circle:purple', options: ['circle:green','circle:orange','circle:purple'] },  // idx 2
-  { id: 125, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['triangle:orange','triangle:orange','diamond:teal','diamond:teal','triangle:orange','triangle:orange','?'],
-    missingIndex: 6, answer: 'diamond:teal', options: ['diamond:teal','triangle:orange','star:teal'] },  // idx 0
-
-  // Type F — colour-only 3-colour rows
-  { id: 126, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'color',
-    sequence: ['circle:red','circle:blue','circle:yellow','circle:red','circle:blue','?'],
-    missingIndex: 5, answer: 'circle:yellow', options: ['circle:red','circle:yellow','circle:blue'] },  // idx 1
-  { id: 127, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'color',
-    sequence: ['circle:green','circle:orange','circle:purple','circle:green','circle:orange','?'],
-    missingIndex: 5, answer: 'circle:purple', options: ['circle:green','circle:orange','circle:purple'] },  // idx 2
-
-  // MEDIUM — MISSING_MIDDLE (ABC)
-  { id: 128, difficulty: 'MEDIUM', drillType: 'MISSING_MIDDLE', type: 'shape',
-    sequence: ['circle:red','square:blue','triangle:yellow','circle:red','?','triangle:yellow','circle:red'],
-    missingIndex: 4, answer: 'square:blue', options: ['square:blue','circle:red','triangle:yellow'] },  // idx 0
-  { id: 129, difficulty: 'MEDIUM', drillType: 'MISSING_MIDDLE', type: 'shape',
-    sequence: ['heart:pink','star:orange','diamond:purple','heart:pink','star:orange','?','heart:pink'],
-    missingIndex: 5, answer: 'diamond:purple', options: ['heart:pink','diamond:purple','star:orange'] },  // idx 1
-
-  // MEDIUM — Type B long alternating shapes
-  { id: 130, difficulty: 'MEDIUM', drillType: 'NEXT', type: 'shape',
-    sequence: ['circle:blue','star:blue','circle:blue','star:blue','circle:blue','star:blue','circle:blue','?'],
-    missingIndex: 7, answer: 'star:blue', options: ['circle:blue','square:blue','star:blue'] },  // idx 2
-
-  // ────────────────────────────────────────────────────────────────
-  // HARD — Type E (size progression) + long AABB + Type G (find mistake)
-  // ────────────────────────────────────────────────────────────────
-
-  // Type E — size progression
-  { id: 131, difficulty: 'HARD', drillType: 'NEXT', type: 'size',
-    sequence: ['circle:red:lg','circle:red:sm','circle:red:lg','circle:red:sm','?'],
-    missingIndex: 4, answer: 'circle:red:lg', options: ['circle:red:lg','circle:red:sm','square:red:lg'] },  // idx 0
-  { id: 132, difficulty: 'HARD', drillType: 'NEXT', type: 'size',
-    sequence: ['square:blue:lg','square:blue:sm','square:blue:lg','square:blue:sm','square:blue:lg','?'],
-    missingIndex: 5, answer: 'square:blue:sm', options: ['square:blue:lg','square:blue:sm','circle:blue:sm'] },  // idx 1
-  { id: 133, difficulty: 'HARD', drillType: 'NEXT', type: 'size',
-    sequence: ['star:orange:sm','star:orange:lg','star:orange:sm','star:orange:lg','star:orange:sm','?'],
-    missingIndex: 5, answer: 'star:orange:lg', options: ['star:orange:sm','heart:orange:lg','star:orange:lg'] },  // idx 2
-  { id: 134, difficulty: 'HARD', drillType: 'NEXT', type: 'size',
-    sequence: ['triangle:green:lg','triangle:green:sm','triangle:green:lg','triangle:green:sm','?'],
-    missingIndex: 4, answer: 'triangle:green:lg', options: ['triangle:green:lg','triangle:green:sm','diamond:green:lg'] },  // idx 0
-
-  // HARD — long AABB
-  { id: 135, difficulty: 'HARD', drillType: 'NEXT', type: 'shape',
-    sequence: ['circle:red','circle:red','triangle:yellow','triangle:yellow','circle:red','circle:red','triangle:yellow','?'],
-    missingIndex: 7, answer: 'triangle:yellow', options: ['circle:red','triangle:yellow','square:yellow'] },  // idx 1
-  { id: 136, difficulty: 'HARD', drillType: 'NEXT', type: 'shape',
-    sequence: ['heart:pink','heart:pink','diamond:purple','diamond:purple','heart:pink','heart:pink','diamond:purple','?'],
-    missingIndex: 7, answer: 'diamond:purple', options: ['heart:pink','star:purple','diamond:purple'] },  // idx 2
-
-  // Type G — FIND_MISTAKE with shapes
-  { id: 137, difficulty: 'HARD', drillType: 'FIND_MISTAKE', type: 'shape',
-    sequence: ['circle:red','square:blue','circle:red','triangle:yellow','circle:red','square:blue'],
-    missingIndex: 3, answer: 'triangle:yellow', options: ['triangle:yellow'] },
-  { id: 138, difficulty: 'HARD', drillType: 'FIND_MISTAKE', type: 'color',
-    sequence: ['circle:red','circle:blue','circle:red','circle:blue','circle:green','circle:blue'],
-    missingIndex: 4, answer: 'circle:green', options: ['circle:green'] },
-  { id: 139, difficulty: 'HARD', drillType: 'FIND_MISTAKE', type: 'shape',
-    sequence: ['star:orange','heart:pink','star:orange','heart:pink','star:orange','diamond:pink'],
-    missingIndex: 5, answer: 'diamond:pink', options: ['diamond:pink'] },
-
-  // HARD — MISSING_MIDDLE size progression
-  { id: 140, difficulty: 'HARD', drillType: 'MISSING_MIDDLE', type: 'size',
-    sequence: ['circle:purple:lg','circle:purple:sm','circle:purple:lg','?','circle:purple:lg','circle:purple:sm'],
-    missingIndex: 3, answer: 'circle:purple:sm', options: ['circle:purple:lg','circle:purple:sm','square:purple:sm'] },  // idx 1
-
-  // HARD — COUNT with shapes
-  { id: 141, difficulty: 'HARD', drillType: 'COUNT', type: 'shape',
-    sequence: ['circle:red','square:blue','circle:red','square:blue','circle:red'],
-    missingIndex: -1, answer: '3', options: ['3','2','4'], countTarget: 'circle:red' },  // idx 0
-  { id: 142, difficulty: 'HARD', drillType: 'COUNT', type: 'shape',
-    sequence: ['star:orange','heart:pink','star:orange','heart:pink','heart:pink','star:orange'],
-    missingIndex: -1, answer: '3', options: ['2','3','4'], countTarget: 'heart:pink' },  // idx 1
-
-  // ────────────────────────────────────────────────────────────────
-  // EXPERT — multi-attribute, long sequences, tricky mistakes
-  // ────────────────────────────────────────────────────────────────
-
-  // Multi-attribute (colour AND shape both change in a cycle)
-  { id: 143, difficulty: 'EXPERT', drillType: 'NEXT', type: 'mixed',
-    sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','?'],
-    missingIndex: 7, answer: 'diamond:green', options: ['diamond:green','circle:red','square:blue','triangle:yellow'] },  // idx 0
-  { id: 144, difficulty: 'EXPERT', drillType: 'NEXT', type: 'mixed',
-    sequence: ['star:orange','heart:pink','diamond:purple','circle:teal','star:orange','heart:pink','diamond:purple','?'],
-    missingIndex: 7, answer: 'circle:teal', options: ['star:orange','circle:teal','heart:pink','diamond:purple'] },  // idx 1
-  { id: 145, difficulty: 'EXPERT', drillType: 'NEXT', type: 'mixed',
-    sequence: ['square:red','circle:blue','star:yellow','heart:green','square:red','circle:blue','star:yellow','?'],
-    missingIndex: 7, answer: 'heart:green', options: ['square:red','circle:blue','heart:green','star:yellow'] },  // idx 2
-
-  // EXPERT — size + colour multi-attribute progression
-  { id: 146, difficulty: 'EXPERT', drillType: 'NEXT', type: 'mixed',
-    sequence: ['circle:red:lg','circle:blue:sm','circle:red:lg','circle:blue:sm','circle:red:lg','?'],
-    missingIndex: 5, answer: 'circle:blue:sm', options: ['circle:blue:sm','circle:red:lg','circle:red:sm','circle:blue:lg'] },  // idx 0
-  { id: 147, difficulty: 'EXPERT', drillType: 'NEXT', type: 'mixed',
-    sequence: ['square:green:sm','square:orange:lg','square:green:sm','square:orange:lg','square:green:sm','?'],
-    missingIndex: 5, answer: 'square:orange:lg', options: ['square:green:sm','square:orange:lg','square:green:lg','square:orange:sm'] },  // idx 1
-
-  // EXPERT — long tricky FIND_MISTAKE
-  { id: 148, difficulty: 'EXPERT', drillType: 'FIND_MISTAKE', type: 'mixed',
-    sequence: ['circle:red','square:blue','triangle:yellow','circle:red','square:blue','triangle:yellow','circle:red','square:green','triangle:yellow'],
-    missingIndex: 7, answer: 'square:green', options: ['square:green'] },
-  { id: 149, difficulty: 'EXPERT', drillType: 'FIND_MISTAKE', type: 'mixed',
-    sequence: ['star:orange','heart:pink','diamond:purple','star:orange','heart:pink','diamond:purple','star:orange','heart:teal','diamond:purple'],
-    missingIndex: 7, answer: 'heart:teal', options: ['heart:teal'] },
-  { id: 150, difficulty: 'EXPERT', drillType: 'FIND_MISTAKE', type: 'shape',
-    sequence: ['circle:red','circle:red','square:blue','square:blue','circle:red','triangle:red','square:blue','square:blue'],
-    missingIndex: 5, answer: 'triangle:red', options: ['triangle:red'] },
-
-  // EXPERT — MISSING_MIDDLE 4-element cycle
-  { id: 151, difficulty: 'EXPERT', drillType: 'MISSING_MIDDLE', type: 'mixed',
-    sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','?','triangle:yellow','diamond:green'],
-    missingIndex: 5, answer: 'square:blue', options: ['circle:red','square:blue','triangle:yellow','diamond:green'] },  // idx 1
-
-  // EXPERT — COUNT 4-option with shapes
-  { id: 152, difficulty: 'EXPERT', drillType: 'COUNT', type: 'shape',
-    sequence: ['circle:red','square:blue','triangle:yellow','circle:red','square:blue','circle:red','triangle:yellow','circle:red'],
-    missingIndex: -1, answer: '4', options: ['4','3','5','2'], countTarget: 'circle:red' },  // idx 0
-  { id: 153, difficulty: 'EXPERT', drillType: 'COUNT', type: 'shape',
-    sequence: ['star:orange','heart:pink','diamond:purple','star:orange','heart:pink','star:orange','diamond:purple'],
-    missingIndex: -1, answer: '3', options: ['2','3','4','5'], countTarget: 'star:orange' },  // idx 1
-
-  // ────────────────────────────────────────────────────────────────
-  // MASTER — 4-element cycles colour+shape, COUNT 4-option, extra long
-  // ────────────────────────────────────────────────────────────────
-
-  { id: 154, difficulty: 'MASTER', drillType: 'NEXT', type: 'mixed',
-    sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','star:orange','circle:red','square:blue','triangle:yellow','diamond:green','?'],
-    missingIndex: 9, answer: 'star:orange', options: ['star:orange','circle:red','square:blue','triangle:yellow'] },  // idx 0 (5-cycle)
-  { id: 155, difficulty: 'MASTER', drillType: 'NEXT', type: 'mixed',
-    sequence: ['heart:pink','star:orange','diamond:purple','circle:teal','heart:pink','star:orange','diamond:purple','circle:teal','heart:pink','?'],
-    missingIndex: 9, answer: 'star:orange', options: ['heart:pink','star:orange','diamond:purple','circle:teal'] },  // idx 1
-  { id: 156, difficulty: 'MASTER', drillType: 'NEXT', type: 'mixed',
-    sequence: ['square:red:lg','square:red:sm','circle:blue:lg','circle:blue:sm','square:red:lg','square:red:sm','circle:blue:lg','?'],
-    missingIndex: 7, answer: 'circle:blue:sm', options: ['square:red:lg','square:red:sm','circle:blue:sm','circle:blue:lg'] },  // idx 2
-
-  // MASTER — long AABB with shape+colour
-  { id: 157, difficulty: 'MASTER', drillType: 'NEXT', type: 'mixed',
-    sequence: ['circle:red','circle:red','square:blue','square:blue','triangle:yellow','triangle:yellow','circle:red','circle:red','square:blue','square:blue','triangle:yellow','?'],
-    missingIndex: 11, answer: 'triangle:yellow', options: ['triangle:yellow','circle:red','square:blue','diamond:yellow'] },  // idx 0
-
-  // MASTER — extra-long FIND_MISTAKE
-  { id: 158, difficulty: 'MASTER', drillType: 'FIND_MISTAKE', type: 'mixed',
-    sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:purple','triangle:yellow','diamond:green'],
-    missingIndex: 9, answer: 'square:purple', options: ['square:purple'] },
-  { id: 159, difficulty: 'MASTER', drillType: 'FIND_MISTAKE', type: 'mixed',
-    sequence: ['star:orange','heart:pink','diamond:purple','circle:teal','star:orange','heart:pink','diamond:purple','circle:teal','star:orange','heart:pink','pentagon:purple','circle:teal'],
-    missingIndex: 10, answer: 'pentagon:purple', options: ['pentagon:purple'] },
-
-  // MASTER — COUNT with 4 options
-  { id: 160, difficulty: 'MASTER', drillType: 'COUNT', type: 'mixed',
-    sequence: ['circle:red','square:blue','triangle:yellow','circle:red','diamond:green','circle:red','square:blue','circle:red','triangle:yellow','circle:red','square:blue','circle:red'],
-    missingIndex: -1, answer: '6', options: ['6','4','5','7'], countTarget: 'circle:red' },  // idx 0
-  { id: 161, difficulty: 'MASTER', drillType: 'COUNT', type: 'mixed',
-    sequence: ['star:orange','heart:pink','star:orange','diamond:purple','star:orange','heart:pink','star:orange','star:orange','diamond:purple','star:orange','heart:pink','star:orange'],
-    missingIndex: -1, answer: '7', options: ['6','7','8','5'], countTarget: 'star:orange' },  // idx 1
-
-  // MASTER — complex MISSING_MIDDLE 4-cycle
-  { id: 162, difficulty: 'MASTER', drillType: 'MISSING_MIDDLE', type: 'mixed',
-    sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','?','diamond:green','circle:red','square:blue','triangle:yellow','diamond:green'],
-    missingIndex: 6, answer: 'triangle:yellow', options: ['circle:red','square:blue','triangle:yellow','diamond:green'] },  // idx 2
+  // ════════════════════════════════════════════════════════════════════════
+  // ── GENERATED COVERAGE SET (ids 200+) ──
+  // Full coverage across pattern cores, change types, themes, drills, levels.
+  // ════════════════════════════════════════════════════════════════════════
+  { id: 200, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:blue','circle:red','circle:blue','circle:red','?'], missingIndex: 5, answer: 'circle:blue', options: ['circle:yellow','circle:green','circle:blue'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 201, type: 'color', drillType: 'NEXT', sequence: ['square:green','square:orange','square:green','square:orange','square:green','?'], missingIndex: 5, answer: 'square:orange', options: ['square:orange','square:red','square:blue'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 202, type: 'color', drillType: 'NEXT', sequence: ['star:yellow','star:purple','star:yellow','star:purple','star:yellow','?'], missingIndex: 5, answer: 'star:purple', options: ['star:pink','star:purple','star:teal'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 203, type: 'color', drillType: 'NEXT', sequence: ['heart:pink','heart:red','heart:pink','heart:red','heart:pink','?'], missingIndex: 5, answer: 'heart:red', options: ['heart:blue','heart:orange','heart:red'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 204, type: 'shape', drillType: 'NEXT', sequence: ['triangle:blue','square:blue','triangle:blue','square:blue','triangle:blue','?'], missingIndex: 5, answer: 'square:blue', options: ['square:blue','circle:blue','diamond:blue'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 205, type: 'shape', drillType: 'NEXT', sequence: ['circle:green','triangle:green','circle:green','triangle:green','circle:green','?'], missingIndex: 5, answer: 'triangle:green', options: ['square:green','triangle:green','star:green'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 206, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐱','🐶','🐱','?'], missingIndex: 5, answer: '🐶', options: ['🐸','🦊','🐶'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 207, type: 'emoji', drillType: 'NEXT', sequence: ['🐮','🐷','🐮','🐷','🐮','?'], missingIndex: 5, answer: '🐷', options: ['🐷','🐔','🐻'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 208, type: 'emoji', drillType: 'NEXT', sequence: ['🦁','🐘','🦁','🐘','🦁','?'], missingIndex: 5, answer: '🐘', options: ['🦒','🐘','🐼'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 209, type: 'emoji', drillType: 'NEXT', sequence: ['🐧','🐬','🐧','🐬','🐧','?'], missingIndex: 5, answer: '🐬', options: ['🐱','🐶','🐬'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 210, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍎','🍊','🍎','?'], missingIndex: 5, answer: '🍊', options: ['🍊','🍋','🍇'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'food', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 211, type: 'emoji', drillType: 'NEXT', sequence: ['🍓','🍌','🍓','🍌','🍓','?'], missingIndex: 5, answer: '🍌', options: ['🍒','🍌','🍉'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'food', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 212, type: 'emoji', drillType: 'NEXT', sequence: ['🍇','🍑','🍇','🍑','🍇','?'], missingIndex: 5, answer: '🍑', options: ['🥝','🍍','🍑'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'food', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 213, type: 'emoji', drillType: 'NEXT', sequence: ['🍉','🥕','🍉','🥕','🍉','?'], missingIndex: 5, answer: '🥕', options: ['🥕','🍎','🍊'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'food', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 214, type: 'emoji', drillType: 'NEXT', sequence: ['🍋','🍓','🍋','🍓','🍋','?'], missingIndex: 5, answer: '🍓', options: ['🍇','🍓','🍒'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'food', unitLength: 2, cognitiveLevel: 2, tags: ['ab','core'] },
+  { id: 215, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐱','🐶','🐱','🐱','🐶','🐱','🐱','?'], missingIndex: 8, answer: '🐶', options: ['🐸','🦊','🐶'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 3, tags: ['aab','core'] },
+  { id: 216, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','⭐','🌙','⭐','⭐','🌙','⭐','⭐','?'], missingIndex: 8, answer: '🌙', options: ['🌙','☀️','🌈'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 3, tags: ['aab','core'] },
+  { id: 217, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍎','🍊','🍎','🍎','🍊','🍎','🍎','?'], missingIndex: 8, answer: '🍊', options: ['🍋','🍊','🍇'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 3, tags: ['aab','core'] },
+  { id: 218, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:red','circle:blue','circle:red','circle:red','circle:blue','circle:red','circle:red','?'], missingIndex: 8, answer: 'circle:blue', options: ['circle:yellow','circle:green','circle:blue'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['aab','core'] },
+  { id: 219, type: 'shape', drillType: 'NEXT', sequence: ['star:orange','star:orange','heart:pink','star:orange','star:orange','heart:pink','star:orange','star:orange','?'], missingIndex: 8, answer: 'heart:pink', options: ['heart:pink','diamond:orange','circle:pink'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['aab','core'] },
+  { id: 220, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐱','🐶','🐱','?','🐶','🐱','🐱','🐶'], missingIndex: 4, answer: '🐱', options: ['🐶','🐱','🐸'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 4, tags: ['aab','core'] },
+  { id: 221, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['⭐','⭐','🌙','⭐','?','🌙','⭐','⭐','🌙'], missingIndex: 4, answer: '⭐', options: ['🌙','☀️','⭐'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 4, tags: ['aab','core'] },
+  { id: 222, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🍎','🍎','🍊','🍎','?','🍊','🍎','🍎','🍊'], missingIndex: 4, answer: '🍎', options: ['🍎','🍊','🍋'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 4, tags: ['aab','core'] },
+  { id: 223, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','circle:red','circle:blue','circle:red','?','circle:blue','circle:red','circle:red','circle:blue'], missingIndex: 4, answer: 'circle:red', options: ['circle:blue','circle:red','circle:yellow'], difficulty: 'MEDIUM', patternCore: 'AAB', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 4, tags: ['aab','core'] },
+  { id: 224, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🍎','🍎','🍊','🍎','🍋','🍊','🍎','🍎','🍊'], missingIndex: 4, answer: '🍋', options: ['🍋'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 5, tags: ['aab','core'] },
+  { id: 225, type: 'color', drillType: 'FIND_MISTAKE', sequence: ['circle:red','circle:red','circle:blue','circle:red','circle:yellow','circle:blue','circle:red','circle:red','circle:blue'], missingIndex: 4, answer: 'circle:yellow', options: ['circle:yellow'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 5, tags: ['aab','core'] },
+  { id: 226, type: 'shape', drillType: 'FIND_MISTAKE', sequence: ['star:orange','star:orange','heart:pink','star:orange','diamond:orange','heart:pink','star:orange','star:orange','heart:pink'], missingIndex: 4, answer: 'diamond:orange', options: ['diamond:orange'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 5, tags: ['aab','core'] },
+  { id: 227, type: 'emoji', drillType: 'NEXT', sequence: ['🌻','🍀','🍀','🌻','🍀','🍀','🌻','?'], missingIndex: 7, answer: '🍀', options: ['🌹','🌸','🍀'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 3, tags: ['abb','core'] },
+  { id: 228, type: 'color', drillType: 'NEXT', sequence: ['circle:green','circle:yellow','circle:yellow','circle:green','circle:yellow','circle:yellow','circle:green','?'], missingIndex: 7, answer: 'circle:yellow', options: ['circle:yellow','circle:red','circle:blue'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['abb','core'] },
+  { id: 229, type: 'emoji', drillType: 'NEXT', sequence: ['🐮','🐷','🐷','🐮','🐷','🐷','🐮','?'], missingIndex: 7, answer: '🐷', options: ['🐔','🐷','🐻'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 3, tags: ['abb','core'] },
+  { id: 230, type: 'shape', drillType: 'NEXT', sequence: ['triangle:red','square:blue','square:blue','triangle:red','square:blue','square:blue','triangle:red','?'], missingIndex: 7, answer: 'square:blue', options: ['circle:red','diamond:blue','square:blue'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['abb','core'] },
+  { id: 231, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍋','🍋','🍎','🍋','🍋','🍎','?'], missingIndex: 7, answer: '🍋', options: ['🍋','🍊','🍇'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 3, tags: ['abb','core'] },
+  { id: 232, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🌻','🍀','🍀','🌻','?','🍀','🌻','🍀','🍀'], missingIndex: 4, answer: '🍀', options: ['🌻','🍀','🌹'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 4, tags: ['abb','core'] },
+  { id: 233, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['circle:green','circle:yellow','circle:yellow','circle:green','?','circle:yellow','circle:green','circle:yellow','circle:yellow'], missingIndex: 4, answer: 'circle:yellow', options: ['circle:green','circle:red','circle:yellow'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 4, tags: ['abb','core'] },
+  { id: 234, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐮','🐷','🐷','🐮','?','🐷','🐮','🐷','🐷'], missingIndex: 4, answer: '🐷', options: ['🐷','🐮','🐔'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 4, tags: ['abb','core'] },
+  { id: 235, type: 'shape', drillType: 'MISSING_MIDDLE', sequence: ['triangle:red','square:blue','square:blue','triangle:red','?','square:blue','triangle:red','square:blue','square:blue'], missingIndex: 4, answer: 'square:blue', options: ['triangle:red','square:blue','circle:red'], difficulty: 'MEDIUM', patternCore: 'ABB', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4, tags: ['abb','core'] },
+  { id: 236, type: 'shape', drillType: 'FIND_MISTAKE', sequence: ['triangle:red','square:blue','square:blue','circle:red','square:blue','square:blue','triangle:red','square:blue','square:blue'], missingIndex: 3, answer: 'circle:red', options: ['circle:red'], difficulty: 'HARD', patternCore: 'ABB', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 5, tags: ['abb','core'] },
+  { id: 237, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🍎','🍋','🍋','🍊','🍋','🍋','🍎','🍋','🍋'], missingIndex: 3, answer: '🍊', options: ['🍊'], difficulty: 'HARD', patternCore: 'ABB', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 5, tags: ['abb','core'] },
+  { id: 238, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🦁','🐘','🐘','🦒','🐘','🐘','🦁','🐘','🐘'], missingIndex: 3, answer: '🦒', options: ['🦒'], difficulty: 'HARD', patternCore: 'ABB', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 5, tags: ['abb','core'] },
+  { id: 239, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐱','🐱','🐶','🐱','🐱','?'], missingIndex: 7, answer: '🐶', options: ['🐸','🦊','🐶'], difficulty: 'MEDIUM', patternCore: 'ABA', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 4, tags: ['aba','core'] },
+  { id: 240, type: 'shape', drillType: 'NEXT', sequence: ['circle:red','square:blue','circle:red','circle:red','square:blue','circle:red','circle:red','?'], missingIndex: 7, answer: 'square:blue', options: ['square:blue','triangle:red','diamond:blue'], difficulty: 'MEDIUM', patternCore: 'ABA', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 4, tags: ['aba','core'] },
+  { id: 241, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍎','🍎','🍊','🍎','🍎','?'], missingIndex: 7, answer: '🍊', options: ['🍋','🍊','🍇'], difficulty: 'MEDIUM', patternCore: 'ABA', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 4, tags: ['aba','core'] },
+  { id: 242, type: 'color', drillType: 'NEXT', sequence: ['star:yellow','star:pink','star:yellow','star:yellow','star:pink','star:yellow','star:yellow','?'], missingIndex: 7, answer: 'star:pink', options: ['star:blue','star:green','star:pink'], difficulty: 'MEDIUM', patternCore: 'ABA', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 4, tags: ['aba','core'] },
+  { id: 243, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','🌙','⭐','⭐','🌙','⭐','⭐','?'], missingIndex: 7, answer: '🌙', options: ['🌙','☀️','🌈'], difficulty: 'MEDIUM', patternCore: 'ABA', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 4, tags: ['aba','core'] },
+  { id: 244, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐶','🐱','🐱','?','🐱','🐱','🐶','🐱'], missingIndex: 4, answer: '🐶', options: ['🐸','🐶','🦊'], difficulty: 'HARD', patternCore: 'ABA', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 5, tags: ['aba','core'] },
+  { id: 245, type: 'shape', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','square:blue','circle:red','circle:red','?','circle:red','circle:red','square:blue','circle:red'], missingIndex: 4, answer: 'square:blue', options: ['triangle:red','diamond:blue','square:blue'], difficulty: 'HARD', patternCore: 'ABA', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 5, tags: ['aba','core'] },
+  { id: 246, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🍎','🍊','🍎','🍎','?','🍎','🍎','🍊','🍎'], missingIndex: 4, answer: '🍊', options: ['🍊','🍋','🍇'], difficulty: 'HARD', patternCore: 'ABA', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 5, tags: ['aba','core'] },
+  { id: 247, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['star:yellow','star:pink','star:yellow','star:yellow','?','star:yellow','star:yellow','star:pink','star:yellow'], missingIndex: 4, answer: 'star:pink', options: ['star:blue','star:pink','star:green'], difficulty: 'HARD', patternCore: 'ABA', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 5, tags: ['aba','core'] },
+  { id: 248, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['⭐','🌙','⭐','⭐','?','⭐','⭐','🌙','⭐'], missingIndex: 4, answer: '🌙', options: ['☀️','🌈','🌙'], difficulty: 'HARD', patternCore: 'ABA', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 5, tags: ['aba','core'] },
+  { id: 249, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐱','🐶','🐶','🐱','🐱','🐶','🐶','🐱','🐱','🐶','?'], missingIndex: 11, answer: '🐶', options: ['🐶','🐸','🦊'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 5, tags: ['aabb','core'] },
+  { id: 250, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:red','circle:blue','circle:blue','circle:red','circle:red','circle:blue','circle:blue','circle:red','circle:red','circle:blue','?'], missingIndex: 11, answer: 'circle:blue', options: ['circle:yellow','circle:blue','circle:green'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 5, tags: ['aabb','core'] },
+  { id: 251, type: 'color', drillType: 'NEXT', sequence: ['🔴','🔴','🔵','🔵','🔴','🔴','🔵','🔵','🔴','🔴','🔵','?'], missingIndex: 11, answer: '🔵', options: ['🟡','🟢','🔵'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 5, tags: ['aabb','core'] },
+  { id: 252, type: 'shape', drillType: 'NEXT', sequence: ['triangle:yellow','triangle:yellow','diamond:purple','diamond:purple','triangle:yellow','triangle:yellow','diamond:purple','diamond:purple','triangle:yellow','triangle:yellow','diamond:purple','?'], missingIndex: 11, answer: 'diamond:purple', options: ['diamond:purple','circle:yellow','square:purple'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 5, tags: ['aabb','core'] },
+  { id: 253, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍎','🍊','🍊','🍎','🍎','🍊','🍊','🍎','🍎','🍊','?'], missingIndex: 11, answer: '🍊', options: ['🍋','🍊','🍇'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 5, tags: ['aabb','core'] },
+  { id: 254, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐱','🐶','🐶','🐱','?','🐶','🐶'], missingIndex: 5, answer: '🐱', options: ['🐸','🦊','🐱'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 6, tags: ['aabb','core'] },
+  { id: 255, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','circle:red','circle:blue','circle:blue','circle:red','?','circle:blue','circle:blue'], missingIndex: 5, answer: 'circle:red', options: ['circle:red','circle:yellow','circle:green'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 6, tags: ['aabb','core'] },
+  { id: 256, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['🔴','🔴','🔵','🔵','🔴','?','🔵','🔵'], missingIndex: 5, answer: '🔴', options: ['🟡','🔴','🟢'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 6, tags: ['aabb','core'] },
+  { id: 257, type: 'shape', drillType: 'MISSING_MIDDLE', sequence: ['triangle:yellow','triangle:yellow','diamond:purple','diamond:purple','triangle:yellow','?','diamond:purple','diamond:purple'], missingIndex: 5, answer: 'triangle:yellow', options: ['circle:yellow','square:purple','triangle:yellow'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 6, tags: ['aabb','core'] },
+  { id: 258, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🍎','🍎','🍊','🍊','🍎','?','🍊','🍊'], missingIndex: 5, answer: '🍎', options: ['🍎','🍋','🍇'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 6, tags: ['aabb','core'] },
+  { id: 259, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:blue','circle:blue','circle:red','circle:red','circle:blue','circle:blue','circle:red','circle:red','?'], missingIndex: 9, answer: 'circle:blue', options: ['circle:yellow','circle:blue','circle:green'], difficulty: 'HARD', patternCore: 'ABBA', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 6, tags: ['abba','core'] },
+  { id: 260, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐶','🐱','🐱','🐶','🐶','🐱','🐱','?'], missingIndex: 9, answer: '🐶', options: ['🐸','🦊','🐶'], difficulty: 'HARD', patternCore: 'ABBA', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 6, tags: ['abba','core'] },
+  { id: 261, type: 'shape', drillType: 'NEXT', sequence: ['star:orange','heart:pink','heart:pink','star:orange','star:orange','heart:pink','heart:pink','star:orange','star:orange','?'], missingIndex: 9, answer: 'heart:pink', options: ['heart:pink','diamond:orange','circle:pink'], difficulty: 'HARD', patternCore: 'ABBA', changeType: 'shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 6, tags: ['abba','core'] },
+  { id: 262, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍋','🍋','🍎','🍎','🍋','🍋','🍎','🍎','?'], missingIndex: 9, answer: '🍋', options: ['🍊','🍋','🍇'], difficulty: 'HARD', patternCore: 'ABBA', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 6, tags: ['abba','core'] },
+  { id: 263, type: 'color', drillType: 'NEXT', sequence: ['square:green','square:purple','square:purple','square:green','square:green','square:purple','square:purple','square:green','square:green','?'], missingIndex: 9, answer: 'square:purple', options: ['square:red','square:teal','square:purple'], difficulty: 'HARD', patternCore: 'ABBA', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 6, tags: ['abba','core'] },
+  { id: 264, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','circle:blue','?','circle:red','circle:red','circle:blue','circle:blue','circle:red'], missingIndex: 2, answer: 'circle:blue', options: ['circle:blue','circle:yellow','circle:green'], difficulty: 'EXPERT', patternCore: 'ABBA', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abba','core'] },
+  { id: 265, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐶','?','🐱','🐱','🐶','🐶','🐱'], missingIndex: 2, answer: '🐶', options: ['🐸','🐶','🦊'], difficulty: 'EXPERT', patternCore: 'ABBA', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 7, tags: ['abba','core'] },
+  { id: 266, type: 'shape', drillType: 'MISSING_MIDDLE', sequence: ['star:orange','heart:pink','?','star:orange','star:orange','heart:pink','heart:pink','star:orange'], missingIndex: 2, answer: 'heart:pink', options: ['diamond:orange','circle:pink','heart:pink'], difficulty: 'EXPERT', patternCore: 'ABBA', changeType: 'shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abba','core'] },
+  { id: 267, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:blue','circle:blue','circle:blue','circle:red','circle:blue','circle:blue','circle:blue','circle:red','?'], missingIndex: 9, answer: 'circle:blue', options: ['circle:blue','circle:yellow','circle:green'], difficulty: 'HARD', patternCore: 'ABBB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 6, tags: ['abbb','core'] },
+  { id: 268, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐶','🐶','🐱','🐶','🐶','🐶','🐱','?'], missingIndex: 9, answer: '🐶', options: ['🐸','🐶','🦊'], difficulty: 'HARD', patternCore: 'ABBB', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 6, tags: ['abbb','core'] },
+  { id: 269, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','🌙','🌙','🌙','⭐','🌙','🌙','🌙','⭐','?'], missingIndex: 9, answer: '🌙', options: ['☀️','🌈','🌙'], difficulty: 'HARD', patternCore: 'ABBB', changeType: 'shape', theme: 'nature', unitLength: 4, cognitiveLevel: 6, tags: ['abbb','core'] },
+  { id: 270, type: 'shape', drillType: 'NEXT', sequence: ['star:orange','heart:pink','heart:pink','heart:pink','star:orange','heart:pink','heart:pink','heart:pink','star:orange','?'], missingIndex: 9, answer: 'heart:pink', options: ['heart:pink','diamond:orange','circle:pink'], difficulty: 'HARD', patternCore: 'ABBB', changeType: 'shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 6, tags: ['abbb','core'] },
+  { id: 271, type: 'color', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','circle:blue','circle:blue','circle:blue','?','circle:blue','circle:blue','circle:blue'], missingIndex: 4, answer: 'circle:red', options: ['circle:blue','circle:red','circle:yellow'], difficulty: 'EXPERT', patternCore: 'ABBB', changeType: 'color', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abbb','core'] },
+  { id: 272, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐶','🐶','🐶','?','🐶','🐶','🐶'], missingIndex: 4, answer: '🐱', options: ['🐶','🐸','🐱'], difficulty: 'EXPERT', patternCore: 'ABBB', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 7, tags: ['abbb','core'] },
+  { id: 273, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','circle:red','square:blue','triangle:yellow','circle:red','circle:red','square:blue','triangle:yellow','circle:red','circle:red','square:blue','?'], missingIndex: 11, answer: 'triangle:yellow', options: ['triangle:yellow','diamond:green','star:purple'], difficulty: 'EXPERT', patternCore: 'AABC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['aabc','core'] },
+  { id: 274, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐱','🐶','🐸','🐱','🐱','🐶','🐸','🐱','🐱','🐶','?'], missingIndex: 11, answer: '🐸', options: ['🦊','🐸','🐼'], difficulty: 'EXPERT', patternCore: 'AABC', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 7, tags: ['aabc','core'] },
+  { id: 275, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍎','🍊','🍋','🍎','🍎','🍊','🍋','🍎','🍎','🍊','?'], missingIndex: 11, answer: '🍋', options: ['🍇','🍓','🍋'], difficulty: 'EXPERT', patternCore: 'AABC', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 7, tags: ['aabc','core'] },
+  { id: 276, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange','star:orange','heart:pink','diamond:purple','star:orange','star:orange','heart:pink','diamond:purple','star:orange','star:orange','heart:pink','?'], missingIndex: 11, answer: 'diamond:purple', options: ['diamond:purple','circle:teal','square:red'], difficulty: 'EXPERT', patternCore: 'AABC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['aabc','core'] },
+  { id: 277, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','⭐','🌙','☀️','⭐','⭐','🌙','☀️','⭐','⭐','🌙','?'], missingIndex: 11, answer: '☀️', options: ['🌈','☀️','🌻'], difficulty: 'EXPERT', patternCore: 'AABC', changeType: 'shape', theme: 'nature', unitLength: 4, cognitiveLevel: 7, tags: ['aabc','core'] },
+  { id: 278, type: 'emoji', drillType: 'NEXT', sequence: ['🚗','🚗','✈️','🚢','🚗','🚗','✈️','🚢','🚗','🚗','✈️','?'], missingIndex: 11, answer: '🚢', options: ['🚂','🚁','🚢'], difficulty: 'EXPERT', patternCore: 'AABC', changeType: 'shape', theme: 'transport', unitLength: 4, cognitiveLevel: 7, tags: ['aabc','core'] },
+  { id: 279, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','square:blue','square:blue','triangle:yellow','circle:red','square:blue','square:blue','triangle:yellow','circle:red','?'], missingIndex: 9, answer: 'square:blue', options: ['square:blue','diamond:green','star:purple'], difficulty: 'EXPERT', patternCore: 'ABBC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abbc','core'] },
+  { id: 280, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐶','🐸','🐱','🐶','🐶','🐸','🐱','?'], missingIndex: 9, answer: '🐶', options: ['🦊','🐶','🐼'], difficulty: 'EXPERT', patternCore: 'ABBC', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 7, tags: ['abbc','core'] },
+  { id: 281, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍊','🍋','🍎','🍊','🍊','🍋','🍎','?'], missingIndex: 9, answer: '🍊', options: ['🍇','🍓','🍊'], difficulty: 'EXPERT', patternCore: 'ABBC', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 7, tags: ['abbc','core'] },
+  { id: 282, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange','heart:pink','heart:pink','diamond:purple','star:orange','heart:pink','heart:pink','diamond:purple','star:orange','?'], missingIndex: 9, answer: 'heart:pink', options: ['heart:pink','circle:teal','square:red'], difficulty: 'EXPERT', patternCore: 'ABBC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abbc','core'] },
+  { id: 283, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','🌙','🌙','☀️','⭐','🌙','🌙','☀️','⭐','?'], missingIndex: 9, answer: '🌙', options: ['🌈','🌙','🌻'], difficulty: 'EXPERT', patternCore: 'ABBC', changeType: 'shape', theme: 'nature', unitLength: 4, cognitiveLevel: 7, tags: ['abbc','core'] },
+  { id: 284, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','square:blue','square:blue','triangle:yellow','circle:red','?','square:blue','triangle:yellow'], missingIndex: 5, answer: 'square:blue', options: ['circle:red','triangle:yellow','square:blue'], difficulty: 'EXPERT', patternCore: 'ABBC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8, tags: ['abbc','core'] },
+  { id: 285, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐶','🐶','🐸','🐱','?','🐶','🐸'], missingIndex: 5, answer: '🐶', options: ['🐶','🐱','🐸'], difficulty: 'EXPERT', patternCore: 'ABBC', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 8, tags: ['abbc','core'] },
+  { id: 286, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🍎','🍊','🍊','🍋','🍎','?','🍊','🍋'], missingIndex: 5, answer: '🍊', options: ['🍎','🍊','🍋'], difficulty: 'EXPERT', patternCore: 'ABBC', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 8, tags: ['abbc','core'] },
+  { id: 287, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','square:blue','triangle:yellow','triangle:yellow','circle:red','square:blue','triangle:yellow','triangle:yellow','circle:red','?'], missingIndex: 9, answer: 'square:blue', options: ['diamond:green','star:purple','square:blue'], difficulty: 'EXPERT', patternCore: 'ABCC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abcc','core'] },
+  { id: 288, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐸','🐸','🐱','🐶','🐸','🐸','🐱','?'], missingIndex: 9, answer: '🐶', options: ['🐶','🦊','🐼'], difficulty: 'EXPERT', patternCore: 'ABCC', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 7, tags: ['abcc','core'] },
+  { id: 289, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍋','🍋','🍎','🍊','🍋','🍋','🍎','?'], missingIndex: 9, answer: '🍊', options: ['🍇','🍊','🍓'], difficulty: 'EXPERT', patternCore: 'ABCC', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 7, tags: ['abcc','core'] },
+  { id: 290, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange','heart:pink','diamond:purple','diamond:purple','star:orange','heart:pink','diamond:purple','diamond:purple','star:orange','?'], missingIndex: 9, answer: 'heart:pink', options: ['circle:teal','square:red','heart:pink'], difficulty: 'EXPERT', patternCore: 'ABCC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abcc','core'] },
+  { id: 291, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','🌙','☀️','☀️','⭐','🌙','☀️','☀️','⭐','?'], missingIndex: 9, answer: '🌙', options: ['🌙','🌈','🌻'], difficulty: 'EXPERT', patternCore: 'ABCC', changeType: 'shape', theme: 'nature', unitLength: 4, cognitiveLevel: 7, tags: ['abcc','core'] },
+  { id: 292, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','?','triangle:yellow','triangle:yellow','circle:red','square:blue','triangle:yellow','triangle:yellow'], missingIndex: 1, answer: 'square:blue', options: ['circle:red','square:blue','triangle:yellow'], difficulty: 'EXPERT', patternCore: 'ABCC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8, tags: ['abcc','core'] },
+  { id: 293, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','?','🐸','🐸','🐱','🐶','🐸','🐸'], missingIndex: 1, answer: '🐶', options: ['🐱','🐸','🐶'], difficulty: 'EXPERT', patternCore: 'ABCC', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 8, tags: ['abcc','core'] },
+  { id: 294, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🍎','?','🍋','🍋','🍎','🍊','🍋','🍋'], missingIndex: 1, answer: '🍊', options: ['🍊','🍎','🍋'], difficulty: 'EXPERT', patternCore: 'ABCC', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 8, tags: ['abcc','core'] },
+  { id: 295, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','square:blue','circle:red','triangle:green','circle:red','square:blue','circle:red','triangle:green','circle:red','?'], missingIndex: 9, answer: 'square:blue', options: ['diamond:purple','square:blue','star:orange'], difficulty: 'EXPERT', patternCore: 'ABAC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abac','core'] },
+  { id: 296, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐱','🐸','🐱','🐶','🐱','🐸','🐱','?'], missingIndex: 9, answer: '🐶', options: ['🦊','🐼','🐶'], difficulty: 'EXPERT', patternCore: 'ABAC', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 7, tags: ['abac','core'] },
+  { id: 297, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍎','🍋','🍎','🍊','🍎','🍋','🍎','?'], missingIndex: 9, answer: '🍊', options: ['🍊','🍇','🍓'], difficulty: 'EXPERT', patternCore: 'ABAC', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 7, tags: ['abac','core'] },
+  { id: 298, type: 'mixed', drillType: 'NEXT', sequence: ['star:yellow','heart:pink','star:yellow','diamond:teal','star:yellow','heart:pink','star:yellow','diamond:teal','star:yellow','?'], missingIndex: 9, answer: 'heart:pink', options: ['circle:red','heart:pink','square:blue'], difficulty: 'EXPERT', patternCore: 'ABAC', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['abac','core'] },
+  { id: 299, type: 'emoji', drillType: 'NEXT', sequence: ['⭐','🌙','⭐','☀️','⭐','🌙','⭐','☀️','⭐','?'], missingIndex: 9, answer: '🌙', options: ['🌈','🌻','🌙'], difficulty: 'EXPERT', patternCore: 'ABAC', changeType: 'shape', theme: 'nature', unitLength: 4, cognitiveLevel: 7, tags: ['abac','core'] },
+  { id: 300, type: 'emoji', drillType: 'NEXT', sequence: ['🚗','✈️','🚗','🚢','🚗','✈️','🚗','🚢','🚗','?'], missingIndex: 9, answer: '✈️', options: ['✈️','🚂','🚁'], difficulty: 'EXPERT', patternCore: 'ABAC', changeType: 'shape', theme: 'transport', unitLength: 4, cognitiveLevel: 7, tags: ['abac','core'] },
+  { id: 301, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','diamond:green','circle:red','?'], missingIndex: 9, answer: 'square:blue', options: ['star:purple','square:blue','heart:orange','square:yellow'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 302, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange','heart:pink','diamond:purple','circle:teal','star:orange','heart:pink','diamond:purple','circle:teal','star:orange','?'], missingIndex: 9, answer: 'heart:pink', options: ['square:red','triangle:blue','heart:pink','heart:teal'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 303, type: 'mixed', drillType: 'NEXT', sequence: ['square:red','circle:blue','star:yellow','heart:green','square:red','circle:blue','star:yellow','heart:green','square:red','?'], missingIndex: 9, answer: 'circle:blue', options: ['diamond:purple','triangle:orange','circle:yellow','circle:blue'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 304, type: 'mixed', drillType: 'NEXT', sequence: ['🔴','🔵','🟡','🟢','🔴','🔵','🟡','🟢','🔴','?'], missingIndex: 9, answer: '🔵', options: ['🔵','🟣','🟠','🟥'], difficulty: 'EASY', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 2, tags: ['abcd','core'] },
+  { id: 305, type: 'mixed', drillType: 'NEXT', sequence: ['triangle:red','square:green','circle:blue','star:orange','triangle:red','square:green','circle:blue','star:orange','triangle:red','?'], missingIndex: 9, answer: 'square:green', options: ['heart:pink','square:green','diamond:purple','square:orange'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 306, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','?','triangle:yellow','diamond:green'], missingIndex: 5, answer: 'square:blue', options: ['circle:red','triangle:yellow','square:blue','diamond:green'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 307, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['star:orange','heart:pink','diamond:purple','circle:teal','star:orange','?','diamond:purple','circle:teal'], missingIndex: 5, answer: 'heart:pink', options: ['star:orange','diamond:purple','circle:teal','heart:pink'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 308, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['square:red','circle:blue','star:yellow','heart:green','square:red','?','star:yellow','heart:green'], missingIndex: 5, answer: 'circle:blue', options: ['circle:blue','square:red','star:yellow','heart:green'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 309, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['🔴','🔵','🟡','🟢','🔴','?','🟡','🟢'], missingIndex: 5, answer: '🔵', options: ['🔴','🔵','🟡','🟢'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 310, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['triangle:red','square:green','circle:blue','star:orange','triangle:red','?','circle:blue','star:orange'], missingIndex: 5, answer: 'square:green', options: ['triangle:red','circle:blue','square:green','star:orange'], difficulty: 'MEDIUM', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['abcd','core'] },
+  { id: 311, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:red','stack:2:red','stack:3:red','?'], missingIndex: 3, answer: 'stack:4:red', options: ['stack:3:red','stack:5:red','stack:4:red'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing','stack'] },
+  { id: 312, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:blue','stack:2:blue','stack:3:blue','?'], missingIndex: 3, answer: 'stack:4:blue', options: ['stack:4:blue','stack:3:blue','stack:5:blue'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing','stack'] },
+  { id: 313, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:green','stack:2:green','stack:3:green','?'], missingIndex: 3, answer: 'stack:4:green', options: ['stack:3:green','stack:4:green','stack:5:green'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing','stack'] },
+  { id: 314, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:orange','stack:2:orange','stack:3:orange','?'], missingIndex: 3, answer: 'stack:4:orange', options: ['stack:3:orange','stack:5:orange','stack:4:orange'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing','stack'] },
+  { id: 315, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:purple','stack:2:purple','stack:3:purple','?'], missingIndex: 3, answer: 'stack:4:purple', options: ['stack:4:purple','stack:3:purple','stack:5:purple'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing','stack'] },
+  { id: 316, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:teal','stack:2:teal','stack:3:teal','?'], missingIndex: 3, answer: 'stack:4:teal', options: ['stack:3:teal','stack:4:teal','stack:5:teal'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing','stack'] },
+  { id: 317, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:pink','stack:2:pink','stack:3:pink','?'], missingIndex: 3, answer: 'stack:4:pink', options: ['stack:3:pink','stack:5:pink','stack:4:pink'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing','stack'] },
+  { id: 318, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:yellow','stack:2:yellow','stack:3:yellow','?'], missingIndex: 3, answer: 'stack:4:yellow', options: ['stack:4:yellow','stack:3:yellow','stack:5:yellow'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing','stack'] },
+  { id: 319, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:red','stack:3:red','stack:4:red','stack:5:red','?'], missingIndex: 4, answer: 'stack:6:red', options: ['stack:5:red','stack:6:red','stack:4:red'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 9, tags: ['growing','stack'] },
+  { id: 320, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:blue','stack:3:blue','stack:4:blue','stack:5:blue','?'], missingIndex: 4, answer: 'stack:6:blue', options: ['stack:5:blue','stack:4:blue','stack:6:blue'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 9, tags: ['growing','stack'] },
+  { id: 321, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:green','stack:3:green','stack:4:green','stack:5:green','?'], missingIndex: 4, answer: 'stack:6:green', options: ['stack:6:green','stack:5:green','stack:4:green'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 9, tags: ['growing','stack'] },
+  { id: 322, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:orange','stack:3:orange','stack:4:orange','stack:5:orange','?'], missingIndex: 4, answer: 'stack:6:orange', options: ['stack:5:orange','stack:6:orange','stack:4:orange'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 9, tags: ['growing','stack'] },
+  { id: 323, type: 'mixed', drillType: 'NEXT', sequence: ['stack:5:red','stack:4:red','stack:3:red','?'], missingIndex: 3, answer: 'stack:2:red', options: ['stack:3:red','stack:1:red','stack:2:red'], difficulty: 'EXPERT', patternCore: 'shrinking', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['shrinking','stack'] },
+  { id: 324, type: 'mixed', drillType: 'NEXT', sequence: ['stack:5:blue','stack:4:blue','stack:3:blue','?'], missingIndex: 3, answer: 'stack:2:blue', options: ['stack:2:blue','stack:3:blue','stack:1:blue'], difficulty: 'EXPERT', patternCore: 'shrinking', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['shrinking','stack'] },
+  { id: 325, type: 'mixed', drillType: 'NEXT', sequence: ['stack:5:green','stack:4:green','stack:3:green','?'], missingIndex: 3, answer: 'stack:2:green', options: ['stack:3:green','stack:2:green','stack:1:green'], difficulty: 'EXPERT', patternCore: 'shrinking', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['shrinking','stack'] },
+  { id: 326, type: 'mixed', drillType: 'NEXT', sequence: ['stack:5:orange','stack:4:orange','stack:3:orange','?'], missingIndex: 3, answer: 'stack:2:orange', options: ['stack:3:orange','stack:1:orange','stack:2:orange'], difficulty: 'EXPERT', patternCore: 'shrinking', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['shrinking','stack'] },
+  { id: 327, type: 'mixed', drillType: 'NEXT', sequence: ['stack:5:purple','stack:4:purple','stack:3:purple','?'], missingIndex: 3, answer: 'stack:2:purple', options: ['stack:2:purple','stack:3:purple','stack:1:purple'], difficulty: 'EXPERT', patternCore: 'shrinking', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['shrinking','stack'] },
+  { id: 328, type: 'mixed', drillType: 'NEXT', sequence: ['stack:5:teal','stack:4:teal','stack:3:teal','?'], missingIndex: 3, answer: 'stack:2:teal', options: ['stack:3:teal','stack:2:teal','stack:1:teal'], difficulty: 'EXPERT', patternCore: 'shrinking', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['shrinking','stack'] },
+  { id: 329, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['circle:red','square:blue','triangle:green','?','square:blue','circle:red'], missingIndex: 3, answer: 'triangle:green', options: ['diamond:purple','star:orange','triangle:green'], difficulty: 'MASTER', patternCore: 'mirror', changeType: 'color+shape', theme: 'geometric', cognitiveLevel: 11, tags: ['mirror','symmetry'] },
+  { id: 330, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐱','🐶','🐸','?','🐶','🐱'], missingIndex: 3, answer: '🐸', options: ['🐸','🦊','🐼'], difficulty: 'MASTER', patternCore: 'mirror', changeType: 'shape', theme: 'animals', cognitiveLevel: 11, tags: ['mirror','symmetry'] },
+  { id: 331, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🍎','🍊','🍋','?','🍊','🍎'], missingIndex: 3, answer: '🍋', options: ['🍇','🍋','🍓'], difficulty: 'MASTER', patternCore: 'mirror', changeType: 'shape', theme: 'food', cognitiveLevel: 11, tags: ['mirror','symmetry'] },
+  { id: 332, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['star:yellow','heart:pink','diamond:teal','?','heart:pink','star:yellow'], missingIndex: 3, answer: 'diamond:teal', options: ['circle:red','square:blue','diamond:teal'], difficulty: 'MASTER', patternCore: 'mirror', changeType: 'color+shape', theme: 'geometric', cognitiveLevel: 11, tags: ['mirror','symmetry'] },
+  { id: 333, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['⭐','🌙','☀️','?','🌙','⭐'], missingIndex: 3, answer: '☀️', options: ['☀️','🌈','🌻'], difficulty: 'MASTER', patternCore: 'mirror', changeType: 'shape', theme: 'nature', cognitiveLevel: 11, tags: ['mirror','symmetry'] },
+  { id: 334, type: 'mixed', drillType: 'MISSING_MIDDLE', sequence: ['circle:orange','square:teal','triangle:pink','?','square:teal','circle:orange'], missingIndex: 3, answer: 'triangle:pink', options: ['star:red','triangle:pink','heart:blue'], difficulty: 'MASTER', patternCore: 'mirror', changeType: 'color+shape', theme: 'geometric', cognitiveLevel: 11, tags: ['mirror','symmetry'] },
+  { id: 335, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🚗','✈️','🚢','?','✈️','🚗'], missingIndex: 3, answer: '🚢', options: ['🚂','🚁','🚢'], difficulty: 'MASTER', patternCore: 'mirror', changeType: 'shape', theme: 'transport', cognitiveLevel: 11, tags: ['mirror','symmetry'] },
+  { id: 336, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐮','🐷','🐔','?','🐷','🐮'], missingIndex: 3, answer: '🐔', options: ['🐔','🐻','🦒'], difficulty: 'MASTER', patternCore: 'mirror', changeType: 'shape', theme: 'animals', cognitiveLevel: 11, tags: ['mirror','symmetry'] },
+  { id: 337, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','?'], missingIndex: 9, answer: 'arrow:right', options: ['arrow:down','arrow:right','arrow:left','arrow:up'], difficulty: 'MEDIUM', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['rotation','arrow'] },
+  { id: 338, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','?'], missingIndex: 10, answer: 'arrow:left', options: ['arrow:up','arrow:right','arrow:left','arrow:down'], difficulty: 'MEDIUM', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['rotation','arrow'] },
+  { id: 339, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','?'], missingIndex: 11, answer: 'arrow:right', options: ['arrow:down','arrow:left','arrow:up','arrow:right'], difficulty: 'MEDIUM', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 4, tags: ['rotation','arrow'] },
+  { id: 340, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','?'], missingIndex: 9, answer: 'arrow:up', options: ['arrow:up','arrow:right','arrow:down','arrow:left'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['rotation','arrow'] },
+  { id: 341, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','?'], missingIndex: 10, answer: 'arrow:down', options: ['arrow:left','arrow:down','arrow:up','arrow:right'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['rotation','arrow'] },
+  { id: 342, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','?'], missingIndex: 11, answer: 'arrow:up', options: ['arrow:right','arrow:down','arrow:up','arrow:left'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['rotation','arrow'] },
+  { id: 343, type: 'rotation', drillType: 'MISSING_MIDDLE', sequence: ['arrow:up','arrow:right','arrow:down','arrow:left','?','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left'], missingIndex: 4, answer: 'arrow:up', options: ['arrow:right','arrow:down','arrow:left','arrow:up'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['rotation','arrow'] },
+  { id: 344, type: 'rotation', drillType: 'MISSING_MIDDLE', sequence: ['arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','?','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left'], missingIndex: 5, answer: 'arrow:right', options: ['arrow:right','arrow:down','arrow:left','arrow:up'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['rotation','arrow'] },
+  { id: 345, type: 'rotation', drillType: 'MISSING_MIDDLE', sequence: ['arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','?','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left'], missingIndex: 6, answer: 'arrow:down', options: ['arrow:left','arrow:down','arrow:up','arrow:right'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['rotation','arrow'] },
+  { id: 346, type: 'rotation', drillType: 'MISSING_MIDDLE', sequence: ['arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','?','arrow:up','arrow:right','arrow:down','arrow:left'], missingIndex: 7, answer: 'arrow:left', options: ['arrow:up','arrow:right','arrow:left','arrow:down'], difficulty: 'EXPERT', patternCore: 'rotation', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['rotation','arrow'] },
+  { id: 347, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:green','circle:purple','circle:red','circle:green','circle:purple','circle:red','?'], missingIndex: 7, answer: 'circle:green', options: ['circle:pink','circle:teal','circle:green'], difficulty: 'EASY', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 2, tags: ['color-only'] },
+  { id: 348, type: 'color', drillType: 'NEXT', sequence: ['square:blue','square:orange','square:blue','square:orange','square:blue','square:orange','square:blue','?'], missingIndex: 7, answer: 'square:orange', options: ['square:orange','square:teal','square:red'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['color-only'] },
+  { id: 349, type: 'color', drillType: 'NEXT', sequence: ['star:yellow','star:purple','star:teal','star:yellow','star:purple','star:teal','star:yellow','?'], missingIndex: 7, answer: 'star:purple', options: ['star:red','star:purple','star:blue'], difficulty: 'EASY', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 2, tags: ['color-only'] },
+  { id: 350, type: 'color', drillType: 'NEXT', sequence: ['heart:green','heart:pink','heart:green','heart:pink','heart:green','heart:pink','heart:green','?'], missingIndex: 7, answer: 'heart:pink', options: ['heart:blue','heart:yellow','heart:pink'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['color-only'] },
+  { id: 351, type: 'color', drillType: 'NEXT', sequence: ['diamond:orange','diamond:teal','diamond:blue','diamond:orange','diamond:teal','diamond:blue','diamond:orange','?'], missingIndex: 7, answer: 'diamond:teal', options: ['diamond:teal','diamond:yellow','diamond:green'], difficulty: 'EASY', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 2, tags: ['color-only'] },
+  { id: 352, type: 'color', drillType: 'NEXT', sequence: ['triangle:purple','triangle:red','triangle:purple','triangle:red','triangle:purple','triangle:red','triangle:purple','?'], missingIndex: 7, answer: 'triangle:red', options: ['triangle:green','triangle:red','triangle:orange'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['color-only'] },
+  { id: 353, type: 'color', drillType: 'NEXT', sequence: ['pentagon:pink','pentagon:blue','pentagon:green','pentagon:pink','pentagon:blue','pentagon:green','pentagon:pink','?'], missingIndex: 7, answer: 'pentagon:blue', options: ['pentagon:orange','pentagon:purple','pentagon:blue'], difficulty: 'EASY', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 2, tags: ['color-only'] },
+  { id: 354, type: 'color', drillType: 'NEXT', sequence: ['oval:teal','oval:yellow','oval:teal','oval:yellow','oval:teal','oval:yellow','oval:teal','?'], missingIndex: 7, answer: 'oval:yellow', options: ['oval:yellow','oval:purple','oval:pink'], difficulty: 'EASY', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['color-only'] },
+  { id: 355, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:green','circle:purple','circle:red','circle:green','circle:purple','circle:red','?'], missingIndex: 7, answer: 'circle:green', options: ['circle:pink','circle:green','circle:teal'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 356, type: 'color', drillType: 'NEXT', sequence: ['square:blue','square:orange','square:blue','square:orange','square:blue','square:orange','square:blue','?'], missingIndex: 7, answer: 'square:orange', options: ['square:teal','square:red','square:orange'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 357, type: 'color', drillType: 'NEXT', sequence: ['star:yellow','star:purple','star:teal','star:yellow','star:purple','star:teal','star:yellow','?'], missingIndex: 7, answer: 'star:purple', options: ['star:purple','star:red','star:blue'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 358, type: 'color', drillType: 'NEXT', sequence: ['heart:green','heart:pink','heart:green','heart:pink','heart:green','heart:pink','heart:green','?'], missingIndex: 7, answer: 'heart:pink', options: ['heart:blue','heart:pink','heart:yellow'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 359, type: 'color', drillType: 'NEXT', sequence: ['diamond:orange','diamond:teal','diamond:blue','diamond:orange','diamond:teal','diamond:blue','diamond:orange','?'], missingIndex: 7, answer: 'diamond:teal', options: ['diamond:yellow','diamond:green','diamond:teal'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 360, type: 'color', drillType: 'NEXT', sequence: ['triangle:purple','triangle:red','triangle:purple','triangle:red','triangle:purple','triangle:red','triangle:purple','?'], missingIndex: 7, answer: 'triangle:red', options: ['triangle:red','triangle:green','triangle:orange'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 361, type: 'color', drillType: 'NEXT', sequence: ['pentagon:pink','pentagon:blue','pentagon:green','pentagon:pink','pentagon:blue','pentagon:green','pentagon:pink','?'], missingIndex: 7, answer: 'pentagon:blue', options: ['pentagon:orange','pentagon:blue','pentagon:purple'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 362, type: 'color', drillType: 'NEXT', sequence: ['oval:teal','oval:yellow','oval:teal','oval:yellow','oval:teal','oval:yellow','oval:teal','?'], missingIndex: 7, answer: 'oval:yellow', options: ['oval:purple','oval:pink','oval:yellow'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 363, type: 'color', drillType: 'NEXT', sequence: ['circle:red','circle:green','circle:purple','circle:red','circle:green','circle:purple','circle:red','?'], missingIndex: 7, answer: 'circle:green', options: ['circle:green','circle:pink','circle:teal'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 364, type: 'color', drillType: 'NEXT', sequence: ['square:blue','square:orange','square:blue','square:orange','square:blue','square:orange','square:blue','?'], missingIndex: 7, answer: 'square:orange', options: ['square:teal','square:orange','square:red'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 365, type: 'color', drillType: 'NEXT', sequence: ['star:yellow','star:purple','star:teal','star:yellow','star:purple','star:teal','star:yellow','?'], missingIndex: 7, answer: 'star:purple', options: ['star:red','star:blue','star:purple'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 366, type: 'color', drillType: 'NEXT', sequence: ['heart:green','heart:pink','heart:green','heart:pink','heart:green','heart:pink','heart:green','?'], missingIndex: 7, answer: 'heart:pink', options: ['heart:pink','heart:blue','heart:yellow'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['color-only'] },
+  { id: 367, type: 'shape', drillType: 'NEXT', sequence: ['circle:red','triangle:red','circle:red','triangle:red','circle:red','triangle:red','circle:red','?'], missingIndex: 7, answer: 'triangle:red', options: ['heart:red','triangle:red','pentagon:red'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['shape-only'] },
+  { id: 368, type: 'shape', drillType: 'NEXT', sequence: ['square:blue','diamond:blue','heart:blue','square:blue','diamond:blue','heart:blue','square:blue','?'], missingIndex: 7, answer: 'diamond:blue', options: ['pentagon:blue','oval:blue','diamond:blue'], difficulty: 'EASY', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 2, tags: ['shape-only'] },
+  { id: 369, type: 'shape', drillType: 'NEXT', sequence: ['triangle:yellow','star:yellow','triangle:yellow','star:yellow','triangle:yellow','star:yellow','triangle:yellow','?'], missingIndex: 7, answer: 'star:yellow', options: ['star:yellow','oval:yellow','circle:yellow'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['shape-only'] },
+  { id: 370, type: 'shape', drillType: 'NEXT', sequence: ['diamond:green','heart:green','oval:green','diamond:green','heart:green','oval:green','diamond:green','?'], missingIndex: 7, answer: 'heart:green', options: ['circle:green','heart:green','square:green'], difficulty: 'EASY', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 2, tags: ['shape-only'] },
+  { id: 371, type: 'shape', drillType: 'NEXT', sequence: ['star:orange','pentagon:orange','star:orange','pentagon:orange','star:orange','pentagon:orange','star:orange','?'], missingIndex: 7, answer: 'pentagon:orange', options: ['square:orange','triangle:orange','pentagon:orange'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['shape-only'] },
+  { id: 372, type: 'shape', drillType: 'NEXT', sequence: ['heart:purple','oval:purple','square:purple','heart:purple','oval:purple','square:purple','heart:purple','?'], missingIndex: 7, answer: 'oval:purple', options: ['oval:purple','triangle:purple','diamond:purple'], difficulty: 'EASY', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 2, tags: ['shape-only'] },
+  { id: 373, type: 'shape', drillType: 'NEXT', sequence: ['pentagon:pink','circle:pink','pentagon:pink','circle:pink','pentagon:pink','circle:pink','pentagon:pink','?'], missingIndex: 7, answer: 'circle:pink', options: ['diamond:pink','circle:pink','star:pink'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 2, tags: ['shape-only'] },
+  { id: 374, type: 'shape', drillType: 'NEXT', sequence: ['oval:teal','square:teal','diamond:teal','oval:teal','square:teal','diamond:teal','oval:teal','?'], missingIndex: 7, answer: 'square:teal', options: ['star:teal','heart:teal','square:teal'], difficulty: 'EASY', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 2, tags: ['shape-only'] },
+  { id: 375, type: 'shape', drillType: 'NEXT', sequence: ['circle:red','triangle:red','circle:red','triangle:red','circle:red','triangle:red','circle:red','?'], missingIndex: 7, answer: 'triangle:red', options: ['triangle:red','heart:red','pentagon:red'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 376, type: 'shape', drillType: 'NEXT', sequence: ['square:blue','diamond:blue','heart:blue','square:blue','diamond:blue','heart:blue','square:blue','?'], missingIndex: 7, answer: 'diamond:blue', options: ['pentagon:blue','diamond:blue','oval:blue'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 377, type: 'shape', drillType: 'NEXT', sequence: ['triangle:yellow','star:yellow','triangle:yellow','star:yellow','triangle:yellow','star:yellow','triangle:yellow','?'], missingIndex: 7, answer: 'star:yellow', options: ['oval:yellow','circle:yellow','star:yellow'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 378, type: 'shape', drillType: 'NEXT', sequence: ['diamond:green','heart:green','oval:green','diamond:green','heart:green','oval:green','diamond:green','?'], missingIndex: 7, answer: 'heart:green', options: ['heart:green','circle:green','square:green'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 379, type: 'shape', drillType: 'NEXT', sequence: ['star:orange','pentagon:orange','star:orange','pentagon:orange','star:orange','pentagon:orange','star:orange','?'], missingIndex: 7, answer: 'pentagon:orange', options: ['square:orange','pentagon:orange','triangle:orange'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 380, type: 'shape', drillType: 'NEXT', sequence: ['heart:purple','oval:purple','square:purple','heart:purple','oval:purple','square:purple','heart:purple','?'], missingIndex: 7, answer: 'oval:purple', options: ['triangle:purple','diamond:purple','oval:purple'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 381, type: 'shape', drillType: 'NEXT', sequence: ['pentagon:pink','circle:pink','pentagon:pink','circle:pink','pentagon:pink','circle:pink','pentagon:pink','?'], missingIndex: 7, answer: 'circle:pink', options: ['circle:pink','diamond:pink','star:pink'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 382, type: 'shape', drillType: 'NEXT', sequence: ['oval:teal','square:teal','diamond:teal','oval:teal','square:teal','diamond:teal','oval:teal','?'], missingIndex: 7, answer: 'square:teal', options: ['star:teal','square:teal','heart:teal'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 383, type: 'shape', drillType: 'NEXT', sequence: ['circle:red','triangle:red','circle:red','triangle:red','circle:red','triangle:red','circle:red','?'], missingIndex: 7, answer: 'triangle:red', options: ['heart:red','pentagon:red','triangle:red'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 384, type: 'shape', drillType: 'NEXT', sequence: ['square:blue','diamond:blue','heart:blue','square:blue','diamond:blue','heart:blue','square:blue','?'], missingIndex: 7, answer: 'diamond:blue', options: ['diamond:blue','pentagon:blue','oval:blue'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 385, type: 'shape', drillType: 'NEXT', sequence: ['triangle:yellow','star:yellow','triangle:yellow','star:yellow','triangle:yellow','star:yellow','triangle:yellow','?'], missingIndex: 7, answer: 'star:yellow', options: ['oval:yellow','star:yellow','circle:yellow'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 386, type: 'shape', drillType: 'NEXT', sequence: ['diamond:green','heart:green','oval:green','diamond:green','heart:green','oval:green','diamond:green','?'], missingIndex: 7, answer: 'heart:green', options: ['circle:green','square:green','heart:green'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 3, tags: ['shape-only'] },
+  { id: 387, type: 'size', drillType: 'NEXT', sequence: ['circle:red:lg','circle:red:sm','circle:red:lg','circle:red:sm','circle:red:lg','circle:red:sm','circle:red:lg','?'], missingIndex: 7, answer: 'circle:red:sm', options: ['circle:red:sm','circle:red:lg','circle:red:md'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 388, type: 'size', drillType: 'NEXT', sequence: ['square:blue:lg','square:blue:sm','square:blue:lg','square:blue:sm','square:blue:lg','square:blue:sm','square:blue:lg','?'], missingIndex: 7, answer: 'square:blue:sm', options: ['square:blue:lg','square:blue:sm','square:blue:md'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 389, type: 'size', drillType: 'NEXT', sequence: ['triangle:yellow:lg','triangle:yellow:sm','triangle:yellow:lg','triangle:yellow:sm','triangle:yellow:lg','triangle:yellow:sm','triangle:yellow:lg','?'], missingIndex: 7, answer: 'triangle:yellow:sm', options: ['triangle:yellow:lg','triangle:yellow:md','triangle:yellow:sm'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 390, type: 'size', drillType: 'NEXT', sequence: ['diamond:green:lg','diamond:green:sm','diamond:green:lg','diamond:green:sm','diamond:green:lg','diamond:green:sm','diamond:green:lg','?'], missingIndex: 7, answer: 'diamond:green:sm', options: ['diamond:green:sm','diamond:green:lg','diamond:green:md'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 391, type: 'size', drillType: 'NEXT', sequence: ['star:orange:lg','star:orange:sm','star:orange:lg','star:orange:sm','star:orange:lg','star:orange:sm','star:orange:lg','?'], missingIndex: 7, answer: 'star:orange:sm', options: ['star:orange:lg','star:orange:sm','star:orange:md'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 392, type: 'size', drillType: 'NEXT', sequence: ['heart:purple:lg','heart:purple:sm','heart:purple:lg','heart:purple:sm','heart:purple:lg','heart:purple:sm','heart:purple:lg','?'], missingIndex: 7, answer: 'heart:purple:sm', options: ['heart:purple:lg','heart:purple:md','heart:purple:sm'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 393, type: 'size', drillType: 'NEXT', sequence: ['pentagon:pink:lg','pentagon:pink:sm','pentagon:pink:lg','pentagon:pink:sm','pentagon:pink:lg','pentagon:pink:sm','pentagon:pink:lg','?'], missingIndex: 7, answer: 'pentagon:pink:sm', options: ['pentagon:pink:sm','pentagon:pink:lg','pentagon:pink:md'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 394, type: 'size', drillType: 'NEXT', sequence: ['oval:teal:lg','oval:teal:sm','oval:teal:lg','oval:teal:sm','oval:teal:lg','oval:teal:sm','oval:teal:lg','?'], missingIndex: 7, answer: 'oval:teal:sm', options: ['oval:teal:lg','oval:teal:sm','oval:teal:md'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 395, type: 'size', drillType: 'NEXT', sequence: ['circle:red:lg','circle:red:sm','circle:red:lg','circle:red:sm','circle:red:lg','circle:red:sm','circle:red:lg','?'], missingIndex: 7, answer: 'circle:red:sm', options: ['circle:red:lg','circle:red:md','circle:red:sm'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 396, type: 'size', drillType: 'NEXT', sequence: ['square:blue:lg','square:blue:sm','square:blue:lg','square:blue:sm','square:blue:lg','square:blue:sm','square:blue:lg','?'], missingIndex: 7, answer: 'square:blue:sm', options: ['square:blue:sm','square:blue:lg','square:blue:md'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 397, type: 'size', drillType: 'NEXT', sequence: ['triangle:yellow:lg','triangle:yellow:sm','triangle:yellow:lg','triangle:yellow:sm','triangle:yellow:lg','triangle:yellow:sm','triangle:yellow:lg','?'], missingIndex: 7, answer: 'triangle:yellow:sm', options: ['triangle:yellow:lg','triangle:yellow:sm','triangle:yellow:md'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 398, type: 'size', drillType: 'NEXT', sequence: ['diamond:green:lg','diamond:green:sm','diamond:green:lg','diamond:green:sm','diamond:green:lg','diamond:green:sm','diamond:green:lg','?'], missingIndex: 7, answer: 'diamond:green:sm', options: ['diamond:green:lg','diamond:green:md','diamond:green:sm'], difficulty: 'HARD', patternCore: 'AB', changeType: 'size', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['size-only'] },
+  { id: 399, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:up','arrow:down','arrow:up','arrow:down','arrow:up','arrow:down','arrow:up','?'], missingIndex: 7, answer: 'arrow:down', options: ['arrow:down','arrow:right','arrow:left'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'orientation', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['orientation','arrow'] },
+  { id: 400, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:right','arrow:down','arrow:left','arrow:right','arrow:down','arrow:left','arrow:right','?'], missingIndex: 7, answer: 'arrow:down', options: ['arrow:up','arrow:down','arrow:left'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'orientation', theme: 'geometric', unitLength: 3, cognitiveLevel: 4, tags: ['orientation','arrow'] },
+  { id: 401, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:down','arrow:up','arrow:down','arrow:up','arrow:down','arrow:up','arrow:down','?'], missingIndex: 7, answer: 'arrow:up', options: ['arrow:left','arrow:right','arrow:up'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'orientation', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['orientation','arrow'] },
+  { id: 402, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:left','arrow:up','arrow:right','arrow:left','arrow:up','arrow:right','arrow:left','?'], missingIndex: 7, answer: 'arrow:up', options: ['arrow:up','arrow:down','arrow:right'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'orientation', theme: 'geometric', unitLength: 3, cognitiveLevel: 4, tags: ['orientation','arrow'] },
+  { id: 403, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:up','arrow:down','arrow:up','arrow:down','arrow:up','arrow:down','arrow:up','?'], missingIndex: 7, answer: 'arrow:down', options: ['arrow:right','arrow:down','arrow:left'], difficulty: 'HARD', patternCore: 'AB', changeType: 'orientation', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['orientation','arrow'] },
+  { id: 404, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:right','arrow:down','arrow:left','arrow:right','arrow:down','arrow:left','arrow:right','?'], missingIndex: 7, answer: 'arrow:down', options: ['arrow:up','arrow:left','arrow:down'], difficulty: 'HARD', patternCore: 'other', changeType: 'orientation', theme: 'geometric', unitLength: 3, cognitiveLevel: 5, tags: ['orientation','arrow'] },
+  { id: 405, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:down','arrow:up','arrow:down','arrow:up','arrow:down','arrow:up','arrow:down','?'], missingIndex: 7, answer: 'arrow:up', options: ['arrow:up','arrow:left','arrow:right'], difficulty: 'HARD', patternCore: 'AB', changeType: 'orientation', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['orientation','arrow'] },
+  { id: 406, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:left','arrow:up','arrow:right','arrow:left','arrow:up','arrow:right','arrow:left','?'], missingIndex: 7, answer: 'arrow:up', options: ['arrow:down','arrow:up','arrow:right'], difficulty: 'HARD', patternCore: 'other', changeType: 'orientation', theme: 'geometric', unitLength: 3, cognitiveLevel: 5, tags: ['orientation','arrow'] },
+  { id: 407, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:up','arrow:down','arrow:up','arrow:down','arrow:up','arrow:down','arrow:up','?'], missingIndex: 7, answer: 'arrow:down', options: ['arrow:right','arrow:left','arrow:down'], difficulty: 'HARD', patternCore: 'AB', changeType: 'orientation', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['orientation','arrow'] },
+  { id: 408, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:right','arrow:down','arrow:left','arrow:right','arrow:down','arrow:left','arrow:right','?'], missingIndex: 7, answer: 'arrow:down', options: ['arrow:down','arrow:up','arrow:left'], difficulty: 'HARD', patternCore: 'other', changeType: 'orientation', theme: 'geometric', unitLength: 3, cognitiveLevel: 5, tags: ['orientation','arrow'] },
+  { id: 409, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','circle:white','circle:red','circle:white','circle:red','circle:white','circle:red','?'], missingIndex: 7, answer: 'circle:white', options: ['circle:red','circle:white','circle:blue'], difficulty: 'HARD', patternCore: 'AB', changeType: 'fill', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['fill','outline'] },
+  { id: 410, type: 'mixed', drillType: 'NEXT', sequence: ['square:blue','square:white','square:blue','square:white','square:blue','square:white','square:blue','?'], missingIndex: 7, answer: 'square:white', options: ['square:blue','square:red','square:white'], difficulty: 'HARD', patternCore: 'AB', changeType: 'fill', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['fill','outline'] },
+  { id: 411, type: 'mixed', drillType: 'NEXT', sequence: ['triangle:yellow','triangle:white','triangle:yellow','triangle:white','triangle:yellow','triangle:white','triangle:yellow','?'], missingIndex: 7, answer: 'triangle:white', options: ['triangle:white','triangle:yellow','triangle:red'], difficulty: 'HARD', patternCore: 'AB', changeType: 'fill', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['fill','outline'] },
+  { id: 412, type: 'mixed', drillType: 'NEXT', sequence: ['diamond:green','diamond:white','diamond:green','diamond:white','diamond:green','diamond:white','diamond:green','?'], missingIndex: 7, answer: 'diamond:white', options: ['diamond:green','diamond:white','diamond:red'], difficulty: 'HARD', patternCore: 'AB', changeType: 'fill', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['fill','outline'] },
+  { id: 413, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange','star:white','star:orange','star:white','star:orange','star:white','star:orange','?'], missingIndex: 7, answer: 'star:white', options: ['star:orange','star:red','star:white'], difficulty: 'HARD', patternCore: 'AB', changeType: 'fill', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['fill','outline'] },
+  { id: 414, type: 'mixed', drillType: 'NEXT', sequence: ['heart:purple','heart:white','heart:purple','heart:white','heart:purple','heart:white','heart:purple','?'], missingIndex: 7, answer: 'heart:white', options: ['heart:white','heart:purple','heart:red'], difficulty: 'HARD', patternCore: 'AB', changeType: 'fill', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['fill','outline'] },
+  { id: 415, type: 'mixed', drillType: 'NEXT', sequence: ['pentagon:pink','pentagon:white','pentagon:pink','pentagon:white','pentagon:pink','pentagon:white','pentagon:pink','?'], missingIndex: 7, answer: 'pentagon:white', options: ['pentagon:pink','pentagon:white','pentagon:red'], difficulty: 'HARD', patternCore: 'AB', changeType: 'fill', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['fill','outline'] },
+  { id: 416, type: 'mixed', drillType: 'NEXT', sequence: ['oval:teal','oval:white','oval:teal','oval:white','oval:teal','oval:white','oval:teal','?'], missingIndex: 7, answer: 'oval:white', options: ['oval:teal','oval:red','oval:white'], difficulty: 'HARD', patternCore: 'AB', changeType: 'fill', theme: 'geometric', unitLength: 2, cognitiveLevel: 5, tags: ['fill','outline'] },
+  { id: 417, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','diamond:orange','circle:red','diamond:orange','circle:red','diamond:orange','circle:red','?'], missingIndex: 7, answer: 'diamond:orange', options: ['diamond:orange','heart:yellow','diamond:red'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 418, type: 'mixed', drillType: 'NEXT', sequence: ['square:blue','star:purple','square:blue','star:purple','square:blue','star:purple','square:blue','?'], missingIndex: 7, answer: 'star:purple', options: ['pentagon:green','star:purple','star:blue'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 419, type: 'mixed', drillType: 'NEXT', sequence: ['triangle:yellow','heart:pink','triangle:yellow','heart:pink','triangle:yellow','heart:pink','triangle:yellow','?'], missingIndex: 7, answer: 'heart:pink', options: ['oval:orange','heart:yellow','heart:pink'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 420, type: 'mixed', drillType: 'NEXT', sequence: ['diamond:green','pentagon:teal','diamond:green','pentagon:teal','diamond:green','pentagon:teal','diamond:green','?'], missingIndex: 7, answer: 'pentagon:teal', options: ['pentagon:teal','circle:purple','pentagon:green'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 421, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange','oval:red','star:orange','oval:red','star:orange','oval:red','star:orange','?'], missingIndex: 7, answer: 'oval:red', options: ['square:pink','oval:red','oval:orange'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 422, type: 'mixed', drillType: 'NEXT', sequence: ['heart:purple','circle:blue','heart:purple','circle:blue','heart:purple','circle:blue','heart:purple','?'], missingIndex: 7, answer: 'circle:blue', options: ['triangle:teal','circle:purple','circle:blue'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 423, type: 'mixed', drillType: 'NEXT', sequence: ['pentagon:pink','square:yellow','pentagon:pink','square:yellow','pentagon:pink','square:yellow','pentagon:pink','?'], missingIndex: 7, answer: 'square:yellow', options: ['square:yellow','diamond:red','square:pink'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 424, type: 'mixed', drillType: 'NEXT', sequence: ['oval:teal','triangle:green','oval:teal','triangle:green','oval:teal','triangle:green','oval:teal','?'], missingIndex: 7, answer: 'triangle:green', options: ['star:blue','triangle:green','triangle:teal'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 425, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','diamond:orange','circle:red','diamond:orange','circle:red','diamond:orange','circle:red','?'], missingIndex: 7, answer: 'diamond:orange', options: ['heart:yellow','diamond:red','diamond:orange'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 426, type: 'mixed', drillType: 'NEXT', sequence: ['square:blue','star:purple','square:blue','star:purple','square:blue','star:purple','square:blue','?'], missingIndex: 7, answer: 'star:purple', options: ['star:purple','pentagon:green','star:blue'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 4, tags: ['color+shape','multi-attribute'] },
+  { id: 427, type: 'mixed', drillType: 'NEXT', sequence: ['triangle:yellow','heart:pink','triangle:yellow','heart:pink','triangle:yellow','heart:pink','triangle:yellow','?'], missingIndex: 7, answer: 'heart:pink', options: ['oval:orange','heart:pink','heart:yellow'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 428, type: 'mixed', drillType: 'NEXT', sequence: ['diamond:green','pentagon:teal','diamond:green','pentagon:teal','diamond:green','pentagon:teal','diamond:green','?'], missingIndex: 7, answer: 'pentagon:teal', options: ['circle:purple','pentagon:green','pentagon:teal'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 429, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange','oval:red','star:orange','oval:red','star:orange','oval:red','star:orange','?'], missingIndex: 7, answer: 'oval:red', options: ['oval:red','square:pink','oval:orange'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 430, type: 'mixed', drillType: 'NEXT', sequence: ['heart:purple','circle:blue','heart:purple','circle:blue','heart:purple','circle:blue','heart:purple','?'], missingIndex: 7, answer: 'circle:blue', options: ['triangle:teal','circle:blue','circle:purple'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 431, type: 'mixed', drillType: 'NEXT', sequence: ['pentagon:pink','square:yellow','pentagon:pink','square:yellow','pentagon:pink','square:yellow','pentagon:pink','?'], missingIndex: 7, answer: 'square:yellow', options: ['diamond:red','square:pink','square:yellow'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 432, type: 'mixed', drillType: 'NEXT', sequence: ['oval:teal','triangle:green','oval:teal','triangle:green','oval:teal','triangle:green','oval:teal','?'], missingIndex: 7, answer: 'triangle:green', options: ['triangle:green','star:blue','triangle:teal'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 433, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','diamond:orange','circle:red','diamond:orange','circle:red','diamond:orange','circle:red','?'], missingIndex: 7, answer: 'diamond:orange', options: ['heart:yellow','diamond:orange','diamond:red'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 434, type: 'mixed', drillType: 'NEXT', sequence: ['square:blue','star:purple','square:blue','star:purple','square:blue','star:purple','square:blue','?'], missingIndex: 7, answer: 'star:purple', options: ['pentagon:green','star:blue','star:purple'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 435, type: 'mixed', drillType: 'NEXT', sequence: ['triangle:yellow','heart:pink','triangle:yellow','heart:pink','triangle:yellow','heart:pink','triangle:yellow','?'], missingIndex: 7, answer: 'heart:pink', options: ['heart:pink','oval:orange','heart:yellow'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 436, type: 'mixed', drillType: 'NEXT', sequence: ['diamond:green','pentagon:teal','diamond:green','pentagon:teal','diamond:green','pentagon:teal','diamond:green','?'], missingIndex: 7, answer: 'pentagon:teal', options: ['circle:purple','pentagon:teal','pentagon:green'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'geometric', unitLength: 2, cognitiveLevel: 6, tags: ['color+shape','multi-attribute'] },
+  { id: 437, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red:lg','circle:orange:sm','circle:red:lg','circle:orange:sm','circle:red:lg','circle:orange:sm','circle:red:lg','?'], missingIndex: 7, answer: 'circle:orange:sm', options: ['circle:red:sm','circle:orange:sm','circle:orange:lg','circle:purple:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 438, type: 'mixed', drillType: 'NEXT', sequence: ['square:blue:lg','square:purple:sm','square:blue:lg','square:purple:sm','square:blue:lg','square:purple:sm','square:blue:lg','?'], missingIndex: 7, answer: 'square:purple:sm', options: ['square:blue:sm','square:purple:lg','square:purple:sm','square:pink:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 439, type: 'mixed', drillType: 'NEXT', sequence: ['triangle:yellow:lg','triangle:pink:sm','triangle:yellow:lg','triangle:pink:sm','triangle:yellow:lg','triangle:pink:sm','triangle:yellow:lg','?'], missingIndex: 7, answer: 'triangle:pink:sm', options: ['triangle:yellow:sm','triangle:pink:lg','triangle:teal:sm','triangle:pink:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 440, type: 'mixed', drillType: 'NEXT', sequence: ['diamond:green:lg','diamond:teal:sm','diamond:green:lg','diamond:teal:sm','diamond:green:lg','diamond:teal:sm','diamond:green:lg','?'], missingIndex: 7, answer: 'diamond:teal:sm', options: ['diamond:teal:sm','diamond:green:sm','diamond:teal:lg','diamond:red:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 441, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange:lg','star:red:sm','star:orange:lg','star:red:sm','star:orange:lg','star:red:sm','star:orange:lg','?'], missingIndex: 7, answer: 'star:red:sm', options: ['star:orange:sm','star:red:sm','star:red:lg','star:blue:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 442, type: 'mixed', drillType: 'NEXT', sequence: ['heart:purple:lg','heart:blue:sm','heart:purple:lg','heart:blue:sm','heart:purple:lg','heart:blue:sm','heart:purple:lg','?'], missingIndex: 7, answer: 'heart:blue:sm', options: ['heart:purple:sm','heart:blue:lg','heart:blue:sm','heart:yellow:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 443, type: 'mixed', drillType: 'NEXT', sequence: ['pentagon:pink:lg','pentagon:yellow:sm','pentagon:pink:lg','pentagon:yellow:sm','pentagon:pink:lg','pentagon:yellow:sm','pentagon:pink:lg','?'], missingIndex: 7, answer: 'pentagon:yellow:sm', options: ['pentagon:pink:sm','pentagon:yellow:lg','pentagon:green:sm','pentagon:yellow:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 444, type: 'mixed', drillType: 'NEXT', sequence: ['oval:teal:lg','oval:green:sm','oval:teal:lg','oval:green:sm','oval:teal:lg','oval:green:sm','oval:teal:lg','?'], missingIndex: 7, answer: 'oval:green:sm', options: ['oval:green:sm','oval:teal:sm','oval:green:lg','oval:orange:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 445, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red:lg','circle:orange:sm','circle:red:lg','circle:orange:sm','circle:red:lg','circle:orange:sm','circle:red:lg','?'], missingIndex: 7, answer: 'circle:orange:sm', options: ['circle:red:sm','circle:orange:sm','circle:orange:lg','circle:purple:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 446, type: 'mixed', drillType: 'NEXT', sequence: ['square:blue:lg','square:purple:sm','square:blue:lg','square:purple:sm','square:blue:lg','square:purple:sm','square:blue:lg','?'], missingIndex: 7, answer: 'square:purple:sm', options: ['square:blue:sm','square:purple:lg','square:purple:sm','square:pink:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['color+size','multi-attribute'] },
+  { id: 447, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red:lg','diamond:red:sm','circle:red:lg','diamond:red:sm','circle:red:lg','diamond:red:sm','circle:red:lg','?'], missingIndex: 7, answer: 'diamond:red:sm', options: ['circle:red:sm','diamond:red:lg','diamond:blue:sm','diamond:red:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 448, type: 'mixed', drillType: 'NEXT', sequence: ['square:blue:lg','star:blue:sm','square:blue:lg','star:blue:sm','square:blue:lg','star:blue:sm','square:blue:lg','?'], missingIndex: 7, answer: 'star:blue:sm', options: ['star:blue:sm','square:blue:sm','star:blue:lg','star:yellow:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 449, type: 'mixed', drillType: 'NEXT', sequence: ['triangle:yellow:lg','heart:yellow:sm','triangle:yellow:lg','heart:yellow:sm','triangle:yellow:lg','heart:yellow:sm','triangle:yellow:lg','?'], missingIndex: 7, answer: 'heart:yellow:sm', options: ['triangle:yellow:sm','heart:yellow:sm','heart:yellow:lg','heart:green:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 450, type: 'mixed', drillType: 'NEXT', sequence: ['diamond:green:lg','pentagon:green:sm','diamond:green:lg','pentagon:green:sm','diamond:green:lg','pentagon:green:sm','diamond:green:lg','?'], missingIndex: 7, answer: 'pentagon:green:sm', options: ['diamond:green:sm','pentagon:green:lg','pentagon:green:sm','pentagon:orange:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 451, type: 'mixed', drillType: 'NEXT', sequence: ['star:orange:lg','oval:orange:sm','star:orange:lg','oval:orange:sm','star:orange:lg','oval:orange:sm','star:orange:lg','?'], missingIndex: 7, answer: 'oval:orange:sm', options: ['star:orange:sm','oval:orange:lg','oval:purple:sm','oval:orange:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 452, type: 'mixed', drillType: 'NEXT', sequence: ['heart:purple:lg','circle:purple:sm','heart:purple:lg','circle:purple:sm','heart:purple:lg','circle:purple:sm','heart:purple:lg','?'], missingIndex: 7, answer: 'circle:purple:sm', options: ['circle:purple:sm','heart:purple:sm','circle:purple:lg','circle:pink:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 453, type: 'mixed', drillType: 'NEXT', sequence: ['pentagon:pink:lg','square:pink:sm','pentagon:pink:lg','square:pink:sm','pentagon:pink:lg','square:pink:sm','pentagon:pink:lg','?'], missingIndex: 7, answer: 'square:pink:sm', options: ['pentagon:pink:sm','square:pink:sm','square:pink:lg','square:teal:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 454, type: 'mixed', drillType: 'NEXT', sequence: ['oval:teal:lg','triangle:teal:sm','oval:teal:lg','triangle:teal:sm','oval:teal:lg','triangle:teal:sm','oval:teal:lg','?'], missingIndex: 7, answer: 'triangle:teal:sm', options: ['oval:teal:sm','triangle:teal:lg','triangle:teal:sm','triangle:red:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 455, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red:lg','diamond:red:sm','circle:red:lg','diamond:red:sm','circle:red:lg','diamond:red:sm','circle:red:lg','?'], missingIndex: 7, answer: 'diamond:red:sm', options: ['circle:red:sm','diamond:red:lg','diamond:blue:sm','diamond:red:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 456, type: 'mixed', drillType: 'NEXT', sequence: ['square:blue:lg','star:blue:sm','square:blue:lg','star:blue:sm','square:blue:lg','star:blue:sm','square:blue:lg','?'], missingIndex: 7, answer: 'star:blue:sm', options: ['star:blue:sm','square:blue:sm','star:blue:lg','star:yellow:sm'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape+size', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['shape+size','multi-attribute'] },
+  { id: 457, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:red','stack:2:red','stack:3:red','stack:4:red','?'], missingIndex: 4, answer: 'stack:5:red', options: ['stack:4:red','stack:5:red','stack:6:red'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 458, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:blue','stack:3:blue','stack:4:blue','stack:5:blue','?'], missingIndex: 4, answer: 'stack:6:blue', options: ['stack:5:blue','stack:4:blue','stack:6:blue'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 459, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:green','stack:2:green','stack:3:green','stack:4:green','?'], missingIndex: 4, answer: 'stack:5:green', options: ['stack:5:green','stack:4:green','stack:6:green'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 460, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:orange','stack:3:orange','stack:4:orange','stack:5:orange','?'], missingIndex: 4, answer: 'stack:6:orange', options: ['stack:5:orange','stack:6:orange','stack:4:orange'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 461, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:purple','stack:2:purple','stack:3:purple','stack:4:purple','?'], missingIndex: 4, answer: 'stack:5:purple', options: ['stack:4:purple','stack:6:purple','stack:5:purple'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 462, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:teal','stack:3:teal','stack:4:teal','stack:5:teal','?'], missingIndex: 4, answer: 'stack:6:teal', options: ['stack:6:teal','stack:5:teal','stack:4:teal'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 463, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:pink','stack:2:pink','stack:3:pink','stack:4:pink','?'], missingIndex: 4, answer: 'stack:5:pink', options: ['stack:4:pink','stack:5:pink','stack:6:pink'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 464, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:yellow','stack:3:yellow','stack:4:yellow','stack:5:yellow','?'], missingIndex: 4, answer: 'stack:6:yellow', options: ['stack:5:yellow','stack:4:yellow','stack:6:yellow'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 465, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:red','stack:2:red','stack:3:red','stack:4:red','?'], missingIndex: 4, answer: 'stack:5:red', options: ['stack:5:red','stack:4:red','stack:6:red'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 466, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:blue','stack:3:blue','stack:4:blue','stack:5:blue','?'], missingIndex: 4, answer: 'stack:6:blue', options: ['stack:5:blue','stack:6:blue','stack:4:blue'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 467, type: 'mixed', drillType: 'NEXT', sequence: ['stack:1:green','stack:2:green','stack:3:green','stack:4:green','?'], missingIndex: 4, answer: 'stack:5:green', options: ['stack:4:green','stack:6:green','stack:5:green'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 468, type: 'mixed', drillType: 'NEXT', sequence: ['stack:2:orange','stack:3:orange','stack:4:orange','stack:5:orange','?'], missingIndex: 4, answer: 'stack:6:orange', options: ['stack:6:orange','stack:5:orange','stack:4:orange'], difficulty: 'EXPERT', patternCore: 'growing', changeType: 'growing-count', theme: 'geometric', cognitiveLevel: 8, tags: ['growing-count','stack'] },
+  { id: 469, type: 'mixed', drillType: 'MATRIX', sequence: ['circle:red','circle:blue','square:red','?'], missingIndex: 3, answer: 'square:blue', options: ['square:red','square:blue','circle:blue','circle:red'], difficulty: 'MEDIUM', patternCore: 'matrix', changeType: 'color', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','color-rule'] },
+  { id: 470, type: 'mixed', drillType: 'MATRIX', sequence: ['star:yellow','star:purple','heart:yellow','?'], missingIndex: 3, answer: 'heart:purple', options: ['heart:yellow','star:purple','heart:purple','star:yellow'], difficulty: 'MEDIUM', patternCore: 'matrix', changeType: 'color', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','color-rule'] },
+  { id: 471, type: 'mixed', drillType: 'MATRIX', sequence: ['triangle:green','triangle:orange','diamond:green','?'], missingIndex: 3, answer: 'diamond:orange', options: ['diamond:green','triangle:orange','triangle:green','diamond:orange'], difficulty: 'HARD', patternCore: 'matrix', changeType: 'color', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','color-rule'] },
+  { id: 472, type: 'mixed', drillType: 'MATRIX', sequence: ['circle:pink','circle:teal','star:pink','?'], missingIndex: 3, answer: 'star:teal', options: ['star:teal','star:pink','circle:teal','circle:pink'], difficulty: 'HARD', patternCore: 'matrix', changeType: 'color', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','color-rule'] },
+  { id: 473, type: 'mixed', drillType: 'MATRIX', sequence: ['square:blue','square:red','triangle:blue','?'], missingIndex: 3, answer: 'triangle:red', options: ['triangle:blue','triangle:red','square:red','square:blue'], difficulty: 'EXPERT', patternCore: 'matrix', changeType: 'color', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','color-rule'] },
+  { id: 474, type: 'mixed', drillType: 'MATRIX', sequence: ['circle:red','square:red','circle:blue','?'], missingIndex: 3, answer: 'square:blue', options: ['circle:blue','square:red','square:blue','circle:red'], difficulty: 'MEDIUM', patternCore: 'matrix', changeType: 'shape', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','shape-rule'] },
+  { id: 475, type: 'mixed', drillType: 'MATRIX', sequence: ['star:yellow','heart:yellow','star:green','?'], missingIndex: 3, answer: 'heart:green', options: ['star:green','heart:yellow','star:yellow','heart:green'], difficulty: 'MEDIUM', patternCore: 'matrix', changeType: 'shape', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','shape-rule'] },
+  { id: 476, type: 'mixed', drillType: 'MATRIX', sequence: ['triangle:purple','diamond:purple','triangle:orange','?'], missingIndex: 3, answer: 'diamond:orange', options: ['diamond:orange','triangle:orange','diamond:purple','triangle:purple'], difficulty: 'HARD', patternCore: 'matrix', changeType: 'shape', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','shape-rule'] },
+  { id: 477, type: 'mixed', drillType: 'MATRIX', sequence: ['circle:teal','triangle:teal','circle:pink','?'], missingIndex: 3, answer: 'triangle:pink', options: ['circle:pink','triangle:pink','triangle:teal','circle:teal'], difficulty: 'HARD', patternCore: 'matrix', changeType: 'shape', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','shape-rule'] },
+  { id: 478, type: 'mixed', drillType: 'MATRIX', sequence: ['square:blue','star:blue','square:red','?'], missingIndex: 3, answer: 'star:red', options: ['square:red','star:blue','star:red','square:blue'], difficulty: 'EXPERT', patternCore: 'matrix', changeType: 'shape', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','shape-rule'] },
+  { id: 479, type: 'mixed', drillType: 'MATRIX', sequence: ['circle:red:lg','square:red:lg','circle:red:sm','?'], missingIndex: 3, answer: 'square:red:sm', options: ['circle:red:sm','square:red:lg','circle:red:lg','square:red:sm'], difficulty: 'HARD', patternCore: 'matrix', changeType: 'shape+size', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','size-rule'] },
+  { id: 480, type: 'mixed', drillType: 'MATRIX', sequence: ['star:blue:lg','heart:blue:lg','star:blue:sm','?'], missingIndex: 3, answer: 'heart:blue:sm', options: ['heart:blue:sm','star:blue:sm','heart:blue:lg','star:blue:lg'], difficulty: 'HARD', patternCore: 'matrix', changeType: 'shape+size', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','size-rule'] },
+  { id: 481, type: 'mixed', drillType: 'MATRIX', sequence: ['triangle:green:lg','diamond:green:lg','triangle:green:sm','?'], missingIndex: 3, answer: 'diamond:green:sm', options: ['triangle:green:sm','diamond:green:sm','diamond:green:lg','triangle:green:lg'], difficulty: 'EXPERT', patternCore: 'matrix', changeType: 'shape+size', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','size-rule'] },
+  { id: 482, type: 'mixed', drillType: 'MATRIX', sequence: ['circle:purple:lg','star:purple:lg','circle:purple:sm','?'], missingIndex: 3, answer: 'star:purple:sm', options: ['circle:purple:sm','star:purple:lg','star:purple:sm','circle:purple:lg'], difficulty: 'EXPERT', patternCore: 'matrix', changeType: 'shape+size', theme: 'geometric', cognitiveLevel: 11, matrixCols: 2, tags: ['matrix','size-rule'] },
+  { id: 483, type: 'mixed', drillType: 'MATRIX', sequence: ['square:orange:lg','triangle:orange:lg','square:orange:sm','?'], missingIndex: 3, answer: 'triangle:orange:sm', options: ['square:orange:sm','triangle:orange:lg','square:orange:lg','triangle:orange:sm'], difficulty: 'MASTER', patternCore: 'matrix', changeType: 'shape+size', theme: 'geometric', cognitiveLevel: 12, matrixCols: 2, tags: ['matrix','size-rule'] },
+  { id: 484, type: 'mixed', drillType: 'MATRIX', sequence: ['circle:red:lg','circle:blue:sm','square:red:lg','?'], missingIndex: 3, answer: 'square:blue:sm', options: ['square:blue:sm','square:red:sm','circle:blue:sm','square:blue:lg'], difficulty: 'EXPERT', patternCore: 'matrix', changeType: 'color+shape+size', theme: 'geometric', cognitiveLevel: 12, matrixCols: 2, tags: ['matrix','mixed-rule'] },
+  { id: 485, type: 'mixed', drillType: 'MATRIX', sequence: ['star:yellow:lg','star:purple:sm','heart:yellow:lg','?'], missingIndex: 3, answer: 'heart:purple:sm', options: ['heart:yellow:sm','heart:purple:sm','star:purple:sm','heart:purple:lg'], difficulty: 'EXPERT', patternCore: 'matrix', changeType: 'color+shape+size', theme: 'geometric', cognitiveLevel: 12, matrixCols: 2, tags: ['matrix','mixed-rule'] },
+  { id: 486, type: 'mixed', drillType: 'MATRIX', sequence: ['triangle:green:lg','triangle:orange:sm','diamond:green:lg','?'], missingIndex: 3, answer: 'diamond:orange:sm', options: ['diamond:green:sm','triangle:orange:sm','diamond:orange:sm','diamond:orange:lg'], difficulty: 'MASTER', patternCore: 'matrix', changeType: 'color+shape+size', theme: 'geometric', cognitiveLevel: 12, matrixCols: 2, tags: ['matrix','mixed-rule'] },
+  { id: 487, type: 'mixed', drillType: 'MATRIX', sequence: ['circle:pink:lg','circle:teal:sm','star:pink:lg','?'], missingIndex: 3, answer: 'star:teal:sm', options: ['star:pink:sm','circle:teal:sm','star:teal:lg','star:teal:sm'], difficulty: 'MASTER', patternCore: 'matrix', changeType: 'color+shape+size', theme: 'geometric', cognitiveLevel: 12, matrixCols: 2, tags: ['matrix','mixed-rule'] },
+  { id: 488, type: 'mixed', drillType: 'MATRIX', sequence: ['square:blue:lg','square:red:sm','triangle:blue:lg','?'], missingIndex: 3, answer: 'triangle:red:sm', options: ['triangle:red:sm','triangle:blue:sm','square:red:sm','triangle:red:lg'], difficulty: 'MASTER', patternCore: 'matrix', changeType: 'color+shape+size', theme: 'geometric', cognitiveLevel: 12, matrixCols: 2, tags: ['matrix','mixed-rule'] },
+  { id: 489, type: 'mixed', drillType: 'UNIT_ID', sequence: ['circle:red','circle:blue','circle:red','circle:blue','circle:red','circle:blue'], missingIndex: -1, answer: 'circle:red,circle:blue', options: ['circle:red,circle:blue','circle:red,circle:blue,circle:red','circle:blue,circle:red'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 490, type: 'mixed', drillType: 'UNIT_ID', sequence: ['🐱','🐶','🐱','🐶','🐱','🐶'], missingIndex: -1, answer: '🐱,🐶', options: ['🐱,🐶,🐱','🐱,🐶','🐶,🐱'], difficulty: 'HARD', patternCore: 'AB', changeType: 'shape', theme: 'animals', unitLength: 2, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 491, type: 'mixed', drillType: 'UNIT_ID', sequence: ['circle:red','circle:red','square:blue','circle:red','circle:red','square:blue'], missingIndex: -1, answer: 'circle:red,circle:red,square:blue', options: ['circle:red,circle:red,square:blue,circle:red','square:blue,circle:red,circle:red','circle:red,circle:red,square:blue'], difficulty: 'HARD', patternCore: 'AAB', changeType: 'color+shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 492, type: 'mixed', drillType: 'UNIT_ID', sequence: ['🍎','🍊','🍋','🍎','🍊','🍋'], missingIndex: -1, answer: '🍎,🍊,🍋', options: ['🍎,🍊,🍋','🍎,🍊,🍋,🍎','🍋,🍎,🍊'], difficulty: 'HARD', patternCore: 'other', changeType: 'shape', theme: 'food', unitLength: 3, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 493, type: 'mixed', drillType: 'UNIT_ID', sequence: ['star:yellow','heart:pink','heart:pink','star:yellow','heart:pink','heart:pink'], missingIndex: -1, answer: 'star:yellow,heart:pink,heart:pink', options: ['star:yellow,heart:pink,heart:pink,star:yellow','star:yellow,heart:pink,heart:pink','heart:pink,star:yellow,heart:pink'], difficulty: 'HARD', patternCore: 'ABB', changeType: 'shape', theme: 'geometric', unitLength: 3, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 494, type: 'mixed', drillType: 'UNIT_ID', sequence: ['⭐','🌙','⭐','🌙','⭐','🌙'], missingIndex: -1, answer: '⭐,🌙', options: ['⭐,🌙,⭐','🌙,⭐','⭐,🌙'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'shape', theme: 'nature', unitLength: 2, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 495, type: 'mixed', drillType: 'UNIT_ID', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','diamond:green'], missingIndex: -1, answer: 'circle:red,square:blue,triangle:yellow,diamond:green', options: ['circle:red,square:blue,triangle:yellow,diamond:green','circle:red,square:blue,triangle:yellow,diamond:green,circle:red','diamond:green,circle:red,square:blue,triangle:yellow'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 496, type: 'mixed', drillType: 'UNIT_ID', sequence: ['🐮','🐮','🐷','🐮','🐮','🐷'], missingIndex: -1, answer: '🐮,🐮,🐷', options: ['🐮,🐮,🐷,🐮','🐮,🐮,🐷','🐷,🐮,🐮'], difficulty: 'EXPERT', patternCore: 'AAB', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 497, type: 'mixed', drillType: 'UNIT_ID', sequence: ['circle:green','circle:orange','circle:green','circle:orange','circle:green','circle:orange'], missingIndex: -1, answer: 'circle:green,circle:orange', options: ['circle:green,circle:orange,circle:green','circle:orange,circle:green','circle:green,circle:orange'], difficulty: 'EXPERT', patternCore: 'AB', changeType: 'color', theme: 'geometric', unitLength: 2, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 498, type: 'mixed', drillType: 'UNIT_ID', sequence: ['🚗','✈️','🚢','🚗','✈️','🚢'], missingIndex: -1, answer: '🚗,✈️,🚢', options: ['🚗,✈️,🚢','🚗,✈️,🚢,🚗','🚢,🚗,✈️'], difficulty: 'EXPERT', patternCore: 'other', changeType: 'shape', theme: 'transport', unitLength: 3, cognitiveLevel: 7, tags: ['unit-id','core-finding'] },
+  { id: 499, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','diamond:green','circle:red','square:blue','triangle:yellow','?'], missingIndex: 15, answer: 'diamond:green', options: ['circle:red','star:purple','heart:orange','diamond:green'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8, tags: ['cyclic','circular','wrap'] },
+  { id: 500, type: 'emoji', drillType: 'NEXT', sequence: ['🐱','🐶','🐸','🦊','🐱','🐶','🐸','🦊','🐱','🐶','🐸','🦊','🐱','🐶','🐸','?'], missingIndex: 15, answer: '🦊', options: ['🦊','🐱','🐼','🐻'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'shape', theme: 'animals', unitLength: 4, cognitiveLevel: 8, tags: ['cyclic','circular','wrap'] },
+  { id: 501, type: 'rotation', drillType: 'NEXT', sequence: ['arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','arrow:left','arrow:up','arrow:right','arrow:down','?'], missingIndex: 15, answer: 'arrow:left', options: ['arrow:up','arrow:left','arrow:right','arrow:down'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'orientation', theme: 'geometric', unitLength: 4, cognitiveLevel: 8, tags: ['cyclic','circular','wrap'] },
+  { id: 502, type: 'emoji', drillType: 'NEXT', sequence: ['🍎','🍊','🍋','🍇','🍎','🍊','🍋','🍇','🍎','🍊','🍋','🍇','🍎','🍊','🍋','?'], missingIndex: 15, answer: '🍇', options: ['🍎','🍓','🍇','🍒'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'shape', theme: 'food', unitLength: 4, cognitiveLevel: 8, tags: ['cyclic','circular','wrap'] },
+  { id: 503, type: 'mixed', drillType: 'NEXT', sequence: ['star:red','heart:blue','diamond:green','circle:orange','star:red','heart:blue','diamond:green','circle:orange','star:red','heart:blue','diamond:green','circle:orange','star:red','heart:blue','diamond:green','?'], missingIndex: 15, answer: 'circle:orange', options: ['star:red','square:purple','triangle:teal','circle:orange'], difficulty: 'EXPERT', patternCore: 'ABCD', changeType: 'color+shape', theme: 'geometric', unitLength: 4, cognitiveLevel: 8, tags: ['cyclic','circular','wrap'] },
+  { id: 504, type: 'emoji', drillType: 'NEXT', sequence: ['🚀','🛸','🚀','🛸','🚀','🛸','🚀','?'], missingIndex: 7, answer: '🛸', options: ['🛸','🌍','🪐'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'space', unitLength: 2, cognitiveLevel: 2, tags: ['space'] },
+  { id: 505, type: 'emoji', drillType: 'NEXT', sequence: ['🌍','🪐','☄️','🌍','🪐','☄️','🌍','?'], missingIndex: 7, answer: '🪐', options: ['🚀','🪐','🌠'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'space', unitLength: 3, cognitiveLevel: 3, tags: ['space'] },
+  { id: 506, type: 'emoji', drillType: 'NEXT', sequence: ['🚀','🌠','🚀','🌠','🚀','🌠','🚀','?'], missingIndex: 7, answer: '🌠', options: ['🛸','🪐','🌠'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'space', unitLength: 2, cognitiveLevel: 2, tags: ['space'] },
+  { id: 507, type: 'emoji', drillType: 'NEXT', sequence: ['🪑','🛏️','🪑','🛏️','🪑','🛏️','🪑','?'], missingIndex: 7, answer: '🛏️', options: ['🛏️','🚪','🪟'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'household', unitLength: 2, cognitiveLevel: 2, tags: ['household'] },
+  { id: 508, type: 'emoji', drillType: 'NEXT', sequence: ['🚪','🪟','🕰️','🚪','🪟','🕰️','🚪','?'], missingIndex: 7, answer: '🪟', options: ['🛋️','🪟','🪑'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'household', unitLength: 3, cognitiveLevel: 3, tags: ['household'] },
+  { id: 509, type: 'emoji', drillType: 'NEXT', sequence: ['🛋️','🕰️','🛋️','🕰️','🛋️','🕰️','🛋️','?'], missingIndex: 7, answer: '🕰️', options: ['🪑','🛏️','🕰️'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'household', unitLength: 2, cognitiveLevel: 2, tags: ['household'] },
+  { id: 510, type: 'emoji', drillType: 'NEXT', sequence: ['🌻','🌺','🌻','🌺','🌻','🌺','🌻','?'], missingIndex: 7, answer: '🌺', options: ['🌺','🌹','🌸'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'nature', unitLength: 2, cognitiveLevel: 2, tags: ['nature'] },
+  { id: 511, type: 'emoji', drillType: 'NEXT', sequence: ['🌲','❄️','🌲','❄️','🌲','❄️','🌲','?'], missingIndex: 7, answer: '❄️', options: ['🌷','❄️','🍀'], difficulty: 'EASY', patternCore: 'AB', changeType: 'shape', theme: 'nature', unitLength: 2, cognitiveLevel: 2, tags: ['nature'] },
+  { id: 512, type: 'emoji', drillType: 'NEXT', sequence: ['🌟','🌙','☀️','🌟','🌙','☀️','🌟','?'], missingIndex: 7, answer: '🌙', options: ['🌈','⭐','🌙'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 3, tags: ['nature'] },
+  { id: 513, type: 'emoji', drillType: 'NEXT', sequence: ['🌸','🌷','🌹','🌸','🌷','🌹','🌸','?'], missingIndex: 7, answer: '🌷', options: ['🌷','🌺','🌻'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'nature', unitLength: 3, cognitiveLevel: 3, tags: ['nature'] },
+  { id: 514, type: 'emoji', drillType: 'COUNT', sequence: ['🍎','🍊','🍎','🍊','🍎','🍎','🍊','🍎'], missingIndex: -1, answer: '5', options: ['4','5','6'], difficulty: 'MEDIUM', countTarget: '🍎', patternCore: 'AB', changeType: 'count', theme: 'food', cognitiveLevel: 3, tags: ['food','count'] },
+  { id: 515, type: 'emoji', drillType: 'COUNT', sequence: ['🍓','🍌','🍓','🍌','🍌','🍓'], missingIndex: -1, answer: '3', options: ['2','4','3'], difficulty: 'MEDIUM', countTarget: '🍓', patternCore: 'AB', changeType: 'count', theme: 'food', cognitiveLevel: 3, tags: ['food','count'] },
+  { id: 516, type: 'emoji', drillType: 'COUNT', sequence: ['🍇','🍒','🍇','🍒','🍇','🍒','🍇'], missingIndex: -1, answer: '3', options: ['3','4','2'], difficulty: 'MEDIUM', countTarget: '🍒', patternCore: 'AB', changeType: 'count', theme: 'food', cognitiveLevel: 3, tags: ['food','count'] },
+  { id: 517, type: 'emoji', drillType: 'COUNT', sequence: ['🐱','🐶','🐸','🐱','🐶','🐱','🐸','🐱'], missingIndex: -1, answer: '4', options: ['3','4','5'], difficulty: 'MEDIUM', countTarget: '🐱', patternCore: 'other', changeType: 'count', theme: 'animals', cognitiveLevel: 3, tags: ['animals','count'] },
+  { id: 518, type: 'emoji', drillType: 'MISSING_MIDDLE', sequence: ['🐮','🐷','🐔','🐮','?','🐔','🐮','🐷','🐔'], missingIndex: 4, answer: '🐷', options: ['🐮','🐔','🐷'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'animals', unitLength: 3, cognitiveLevel: 4, tags: ['animals'] },
+  { id: 519, type: 'emoji', drillType: 'NEXT', sequence: ['🚗','🚗','✈️','✈️','🚗','🚗','✈️','✈️','🚗','🚗','✈️','?'], missingIndex: 11, answer: '✈️', options: ['✈️','🚂','🚢'], difficulty: 'HARD', patternCore: 'AABB', changeType: 'shape', theme: 'transport', unitLength: 4, cognitiveLevel: 5, tags: ['transport'] },
+  { id: 520, type: 'emoji', drillType: 'FIND_MISTAKE', sequence: ['🚗','✈️','🚢','🚗','🚁','🚢','🚗','✈️','🚢'], missingIndex: 4, answer: '🚁', options: ['🚁'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'shape', theme: 'transport', unitLength: 3, cognitiveLevel: 5, tags: ['transport'] },
+  { id: 521, type: 'mixed', drillType: 'NEXT', sequence: ['circle:red','🍎','circle:red','🍎','circle:red','🍎','circle:red','?'], missingIndex: 7, answer: '🍎', options: ['square:blue','🍊','🍎'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'mixed', unitLength: 2, cognitiveLevel: 4, tags: ['mixed-theme'] },
+  { id: 522, type: 'mixed', drillType: 'NEXT', sequence: ['⭐','star:yellow','⭐','star:yellow','⭐','star:yellow','⭐','?'], missingIndex: 7, answer: 'star:yellow', options: ['star:yellow','🌙','heart:pink'], difficulty: 'MEDIUM', patternCore: 'AB', changeType: 'color+shape', theme: 'mixed', unitLength: 2, cognitiveLevel: 4, tags: ['mixed-theme'] },
+  { id: 523, type: 'mixed', drillType: 'NEXT', sequence: ['triangle:green','🐸','circle:blue','triangle:green','🐸','circle:blue','triangle:green','?'], missingIndex: 7, answer: '🐸', options: ['🐱','🐸','square:red'], difficulty: 'MEDIUM', patternCore: 'other', changeType: 'color+shape', theme: 'mixed', unitLength: 3, cognitiveLevel: 4, tags: ['mixed-theme'] },
+  { id: 524, type: 'mixed', drillType: 'NEXT', sequence: ['🚗','square:orange','✈️','🚗','square:orange','✈️','🚗','?'], missingIndex: 7, answer: 'square:orange', options: ['circle:teal','🚢','square:orange'], difficulty: 'HARD', patternCore: 'other', changeType: 'color+shape', theme: 'mixed', unitLength: 3, cognitiveLevel: 6, tags: ['mixed-theme'] },
+  { id: 525, type: 'mixed', drillType: 'NEXT', sequence: ['heart:red','🌹','heart:red','🌹','heart:red','🌹','heart:red','?'], missingIndex: 7, answer: '🌹', options: ['🌹','diamond:pink','🌻'], difficulty: 'HARD', patternCore: 'AB', changeType: 'color+shape', theme: 'mixed', unitLength: 2, cognitiveLevel: 6, tags: ['mixed-theme'] },
+  { id: 526, type: 'mixed', drillType: 'NEXT', sequence: ['🍋','circle:yellow','🍇','🍋','circle:yellow','🍇','🍋','?'], missingIndex: 7, answer: 'circle:yellow', options: ['star:purple','circle:yellow','🍊'], difficulty: 'HARD', patternCore: 'other', changeType: 'color+shape', theme: 'mixed', unitLength: 3, cognitiveLevel: 6, tags: ['mixed-theme'] },
 ];
 
 export const PATTERN_EMOJIS_POOL = [
-  '🔴','🔵','🟡','🟢','🟠','🟣',
-  '⭕','🔺','⬛','⬜','💎',
-  '🐱','🐶','🐸','🦊','🦁','🐘',
-  '🍎','🍊','🍋','🌟','🌙','☀️',
+  '🔴', '🔵', '🟡', '🟢', '🟠', '🟣',
+  '⭕', '🔺', '⬛', '⬜', '💎',
+  '🐱', '🐶', '🐸', '🦊', '🦁', '🐘',
+  '🍎', '🍊', '🍋', '🌟', '🌙', '☀️',
 ];
