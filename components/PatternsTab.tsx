@@ -43,6 +43,43 @@ function seededShuffle<T>(items: T[], id: number): T[] {
   return out;
 }
 
+// ── ShapeDisplay — renders "shape:color[:size]" as a CSS shape, or emoji text ──
+function ShapeDisplay({ item, size = 'md' }: { item: string; size?: 'sm' | 'md' | 'lg' }) {
+  if (!item.includes(':')) {
+    return <span className="text-3xl leading-none select-none">{item}</span>;
+  }
+  const parts = item.split(':');
+  const shape = parts[0];
+  const color = parts[1];
+  const sz = (parts[2] as 'sm' | 'md' | 'lg') || size;
+
+  const dim = sz === 'sm' ? 'w-7 h-7' : sz === 'lg' ? 'w-14 h-14' : 'w-10 h-10';
+  const fontSize = sz === 'sm' ? 'text-xl' : sz === 'lg' ? 'text-4xl' : 'text-3xl';
+
+  const FILL: Record<string, string> = {
+    red: 'bg-red-500', blue: 'bg-blue-500', yellow: 'bg-yellow-400',
+    green: 'bg-green-500', orange: 'bg-orange-500', purple: 'bg-purple-500',
+    pink: 'bg-pink-400', teal: 'bg-teal-500', white: 'bg-white border-2 border-gray-400',
+  };
+  const TEXT_COLOR: Record<string, string> = {
+    red: 'text-red-500', blue: 'text-blue-500', yellow: 'text-yellow-400',
+    green: 'text-green-500', orange: 'text-orange-500', purple: 'text-purple-500',
+    pink: 'text-pink-400', teal: 'text-teal-500',
+  };
+  const fill = FILL[color] || 'bg-gray-400';
+  const textCol = TEXT_COLOR[color] || 'text-gray-500';
+
+  if (shape === 'circle') return <div className={dim + ' ' + fill + ' rounded-full shadow-sm'} />;
+  if (shape === 'square') return <div className={dim + ' ' + fill + ' rounded-sm shadow-sm'} />;
+  if (shape === 'oval') return <div className={'h-8 w-12 ' + fill + ' rounded-full shadow-sm'} />;
+  if (shape === 'diamond') return <div className={'relative ' + dim + ' flex items-center justify-center'}><div className={'w-3/4 h-3/4 ' + fill + ' rotate-45 shadow-sm'} /></div>;
+  if (shape === 'triangle') return <div className={'flex items-center justify-center ' + dim}><span className={fontSize + ' ' + textCol + ' leading-none'} style={{ lineHeight: 1 }}>▲</span></div>;
+  if (shape === 'star') return <div className={'flex items-center justify-center ' + dim}><span className={fontSize + ' ' + textCol + ' leading-none'} style={{ lineHeight: 1 }}>★</span></div>;
+  if (shape === 'heart') return <div className={'flex items-center justify-center ' + dim}><span className={fontSize + ' ' + textCol + ' leading-none'} style={{ lineHeight: 1 }}>♥</span></div>;
+  if (shape === 'pentagon') return <div className={'flex items-center justify-center ' + dim}><span className={fontSize + ' ' + textCol + ' leading-none'} style={{ lineHeight: 1 }}>⬠</span></div>;
+  return <div className={dim + ' ' + fill + ' rounded-sm shadow-sm'} />;
+}
+
 // ── DRILL: NEXT / MISSING_MIDDLE — show sequence with ? slot, pick from options ──
 function QuizDrill({ question, onCorrect, onWrong }: {
   question: PatternQuestion;
@@ -93,7 +130,7 @@ function QuizDrill({ question, onCorrect, onWrong }: {
             >
               {item === '?' ? (
                 <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>?</motion.span>
-              ) : item}
+              ) : <ShapeDisplay item={item} />}
             </motion.div>
           ))}
         </div>
@@ -134,7 +171,7 @@ function QuizDrill({ question, onCorrect, onWrong }: {
                 : 'bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-100'}
               ${selected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >
-            {opt}
+            <ShapeDisplay item={opt} />
           </motion.button>
         ))}
       </div>
@@ -195,7 +232,7 @@ function FindMistakeDrill({ question, onCorrect, onWrong }: {
                   : tapped === idx && feedback === 'wrong' ? 'bg-red-300'
                   : 'bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-slate-700'}`}
             >
-              {item}
+              <ShapeDisplay item={item} />
             </motion.button>
           ))}
         </div>
@@ -248,7 +285,7 @@ function CountDrill({ question, onCorrect, onWrong }: {
     <div className="flex flex-col items-center gap-5 w-full">
       <div className="flex items-center gap-2 flex-wrap justify-center">
         <p className="text-xl font-black text-purple-600 text-center">
-          HOW MANY <span className="text-3xl">{target}</span> CAN YOU SEE? 👀
+          HOW MANY <span className="inline-flex align-middle"><ShapeDisplay item={target} /></span> CAN YOU SEE? 👀
         </p>
         <button onClick={() => speakText(`How many ${target} can you count?`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-purple-100 text-sm flex-shrink-0">🔊</button>
       </div>
@@ -264,7 +301,7 @@ function CountDrill({ question, onCorrect, onWrong }: {
               className={`min-w-[48px] h-12 rounded-xl flex items-center justify-center text-2xl px-2
                 ${item === target ? 'bg-purple-100 dark:bg-slate-700 ring-2 ring-purple-400' : 'bg-white dark:bg-slate-800'} shadow`}
             >
-              {item}
+              <ShapeDisplay item={item} />
             </motion.div>
           ))}
         </div>
@@ -307,7 +344,11 @@ function MakeYourOwnMode() {
   const [slots, setSlots] = useState<(string | null)[]>(Array(SLOT_COUNT).fill(null));
   const [result, setResult] = useState<'pattern' | 'no-pattern' | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
-  const OPTIONS = PATTERN_EMOJIS_POOL.slice(0, 6);
+  const OPTIONS = [
+    'circle:red', 'circle:blue', 'square:yellow', 'triangle:green', 'star:orange', 'heart:pink',
+    'diamond:purple', 'circle:teal',
+    ...PATTERN_EMOJIS_POOL.slice(0, 4),
+  ];
 
   const handleSlotFill = (emoji: string) => {
     const firstEmpty = slots.findIndex(s => s === null);
@@ -351,7 +392,7 @@ function MakeYourOwnMode() {
             transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
             className={`w-12 h-12 rounded-xl border-4 flex items-center justify-center text-2xl
               ${s ? 'bg-purple-50 dark:bg-slate-700 border-purple-400' : 'border-dashed border-purple-200 bg-purple-50/50 dark:bg-slate-700/50'}`}
-          >{s ?? ''}</motion.div>
+          >{s ? <ShapeDisplay item={s} /> : ''}</motion.div>
         ))}
       </div>
       <div className="flex gap-3 justify-center flex-wrap">
@@ -359,7 +400,7 @@ function MakeYourOwnMode() {
           <motion.button key={emoji} whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.15 }}
             onClick={() => handleSlotFill(emoji)}
             className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-lg text-3xl flex items-center justify-center cursor-pointer">
-            {emoji}
+            <ShapeDisplay item={emoji} size="lg" />
           </motion.button>
         ))}
       </div>
