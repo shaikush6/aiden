@@ -136,6 +136,11 @@ export const PATTERN_CORE_LABELS: Record<
     example: '⬆️➡️⬇️⬅️',
     description: 'Items turn step by step, cycling through directions.',
   },
+  ABC: {
+    label: 'ABC',
+    example: '🔴🔵🟡🔴🔵🟡',
+    description: 'Three different items cycle in order — the classic three-element pattern.',
+  },
   matrix: {
     label: 'Matrix',
     example: '🔴🔵 / 🟥🟦',
@@ -234,7 +239,7 @@ export const FILTER_GROUPS: FilterGroup[] = [
     label: 'Pattern Structure',
     key: 'patternCore',
     options: [
-      'AB', 'AAB', 'ABB', 'ABA', 'AABB', 'ABBA', 'ABBB', 'AAAB',
+      'AB', 'ABC', 'AAB', 'ABB', 'ABA', 'AABB', 'ABBA', 'ABBB', 'AAAB',
       'AABC', 'ABBC', 'ABCC', 'ABAC', 'ABCA', 'ABCB', 'ABCD',
       'ABCBA', 'ABCDE', 'AABBC', 'ABBCC',
       'growing', 'shrinking', 'mirror', 'rotation', 'matrix', 'other',
