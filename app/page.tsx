@@ -13,12 +13,12 @@ import { setVoiceEnabled } from '@/lib/speech';
 const TeacherTab = dynamic(() => import('@/components/TeacherTab'), { ssr: false });
 
 const TAB_BACKGROUNDS: Record<TabId, string> = {
-  phonics:  'from-sky-300 via-sky-200 to-cyan-200',
-  patterns: 'from-purple-300 via-violet-200 to-fuchsia-200',
-  math:     'from-orange-300 via-amber-200 to-yellow-200',
+  phonics:  'from-sky-300 via-sky-200 to-cyan-200 dark:from-sky-950 dark:via-slate-900 dark:to-slate-950',
+  patterns: 'from-purple-300 via-violet-200 to-fuchsia-200 dark:from-violet-950 dark:via-slate-900 dark:to-slate-950',
+  math:     'from-orange-300 via-amber-200 to-yellow-200 dark:from-orange-950 dark:via-slate-900 dark:to-slate-950',
   solar:    'from-slate-900 via-indigo-950 to-slate-900',
-  teacher:  'from-emerald-300 via-green-200 to-teal-200',
-  hebrew:   'from-blue-400 via-blue-200 to-sky-100',
+  teacher:  'from-emerald-300 via-green-200 to-teal-200 dark:from-emerald-950 dark:via-slate-900 dark:to-slate-950',
+  hebrew:   'from-blue-400 via-blue-200 to-sky-100 dark:from-blue-950 dark:via-slate-900 dark:to-slate-950',
 };
 
 const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string; textColor: string }> = {
@@ -33,10 +33,20 @@ const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>('phonics');
   const [voiceOn, setVoiceOn] = useState(true);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('aiden-voice');
     if (stored === 'false') { setVoiceOn(false); setVoiceEnabled(false); }
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('aiden-dark');
+    if (stored === 'true') {
+      setIsDark(true);
+      document.documentElement.classList.add('dark');
+    }
+    return () => {};
   }, []);
 
   const toggleVoice = () => {
@@ -44,6 +54,13 @@ export default function Home() {
     setVoiceOn(next);
     setVoiceEnabled(next);
     localStorage.setItem('aiden-voice', String(next));
+  };
+
+  const toggleDark = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('aiden-dark', String(next));
   };
 
   const header = TAB_HEADERS[activeTab];
@@ -57,19 +74,24 @@ export default function Home() {
           <h1 className={`text-4xl font-black leading-none ${header.textColor} drop-shadow`}>
             {header.icon} {header.title}
           </h1>
-          <p className={`text-sm font-bold mt-0.5 ${activeTab === 'solar' ? 'text-indigo-300' : 'text-gray-500'}`}>
+          <p className={`text-sm font-bold mt-0.5 dark:text-slate-400 ${activeTab === 'solar' ? 'text-indigo-300' : 'text-gray-500'}`}>
             {header.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {/* Voice toggle */}
           <motion.button whileTap={{ scale: 0.88 }} onClick={toggleVoice}
-            className="bg-white/80 rounded-2xl w-12 h-12 flex items-center justify-center shadow text-2xl">
+            className="bg-white/80 dark:bg-slate-700 rounded-2xl w-12 h-12 flex items-center justify-center shadow text-2xl">
             {voiceOn ? '🔊' : '🔇'}
           </motion.button>
+          {/* Dark mode toggle */}
+          <motion.button whileTap={{ scale: 0.88 }} onClick={toggleDark}
+            className="bg-white/80 dark:bg-slate-700 rounded-2xl w-12 h-12 flex items-center justify-center shadow text-2xl">
+            {isDark ? '☀️' : '🌙'}
+          </motion.button>
           {/* Aiden badge */}
-          <div className="bg-white/80 rounded-2xl px-3 py-2 shadow text-center">
-            <p className="text-xs font-black text-gray-400 leading-none">FOR</p>
+          <div className="bg-white/80 dark:bg-slate-700 rounded-2xl px-3 py-2 shadow text-center">
+            <p className="text-xs font-black text-gray-400 dark:text-slate-400 leading-none">FOR</p>
             <p className="text-xl font-black text-indigo-600 leading-none">AIDEN</p>
           </div>
         </div>

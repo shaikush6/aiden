@@ -15,12 +15,12 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { id: 'phonics', label: 'READ', icon: '🔤', spokenName: 'Read with me!', activeColor: 'bg-sky-500 text-white', inactiveColor: 'bg-white/80 text-sky-600' },
-  { id: 'patterns', label: 'PATTERNS', icon: '🔷', spokenName: 'Spot the Pattern!', activeColor: 'bg-purple-500 text-white', inactiveColor: 'bg-white/80 text-purple-600' },
-  { id: 'math', label: 'NUMBERS', icon: '🔢', spokenName: 'Number Time!', activeColor: 'bg-orange-500 text-white', inactiveColor: 'bg-white/80 text-orange-600' },
-  { id: 'solar', label: 'SPACE', icon: '🪐', spokenName: 'Space Explorer!', activeColor: 'bg-indigo-600 text-white', inactiveColor: 'bg-white/80 text-indigo-600' },
-  { id: 'teacher', label: 'TEACHER', icon: '🎓', spokenName: 'Talk to Mimi!', activeColor: 'bg-emerald-500 text-white', inactiveColor: 'bg-white/80 text-emerald-600' },
-  { id: 'hebrew',  label: 'עברית',   icon: '🇮🇱', spokenName: 'עברית!',        activeColor: 'bg-blue-600 text-white',   inactiveColor: 'bg-white/80 text-blue-600' },
+  { id: 'phonics', label: 'READ', icon: '🔤', spokenName: 'Read with me!', activeColor: 'bg-sky-500 text-white', inactiveColor: 'bg-white/80 text-sky-600 dark:bg-slate-700/60 dark:text-sky-400' },
+  { id: 'patterns', label: 'PATTERNS', icon: '🔷', spokenName: 'Spot the Pattern!', activeColor: 'bg-purple-500 text-white', inactiveColor: 'bg-white/80 text-purple-600 dark:bg-slate-700/60 dark:text-purple-400' },
+  { id: 'math', label: 'NUMBERS', icon: '🔢', spokenName: 'Number Time!', activeColor: 'bg-orange-500 text-white', inactiveColor: 'bg-white/80 text-orange-600 dark:bg-slate-700/60 dark:text-orange-400' },
+  { id: 'solar', label: 'SPACE', icon: '🪐', spokenName: 'Space Explorer!', activeColor: 'bg-indigo-600 text-white', inactiveColor: 'bg-white/80 text-indigo-600 dark:bg-slate-700/60 dark:text-indigo-400' },
+  { id: 'teacher', label: 'TEACHER', icon: '🎓', spokenName: 'Talk to Mimi!', activeColor: 'bg-emerald-500 text-white', inactiveColor: 'bg-white/80 text-emerald-600 dark:bg-slate-700/60 dark:text-emerald-400' },
+  { id: 'hebrew',  label: 'עברית',   icon: '🇮🇱', spokenName: 'עברית!',        activeColor: 'bg-blue-600 text-white',   inactiveColor: 'bg-white/80 text-blue-600 dark:bg-slate-700/60 dark:text-blue-400' },
 ];
 
 interface NavigationProps {
@@ -35,7 +35,7 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
   };
 
   return (
-    <nav className="flex gap-2 p-3 bg-white/30 backdrop-blur-sm rounded-2xl shadow-lg mx-4 mt-4">
+    <nav className="flex gap-2 p-3 bg-white/30 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-lg mx-4 mt-4">
       {TABS.map(tab => (
         <motion.button
           key={tab.id}

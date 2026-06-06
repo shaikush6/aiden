@@ -79,7 +79,7 @@ function QuizDrill({ question, onCorrect, onWrong }: {
   return (
     <div className="flex flex-col items-center gap-5 w-full">
       {/* Sequence — wraps for long ones */}
-      <div className="bg-white/80 rounded-3xl shadow-xl p-5 w-full">
+      <div className="bg-white/80 dark:bg-slate-700 rounded-3xl shadow-xl p-5 w-full">
         <div className="flex flex-wrap gap-2 justify-center">
           {displaySeq.map((item, idx) => (
             <motion.div
@@ -89,7 +89,7 @@ function QuizDrill({ question, onCorrect, onWrong }: {
               transition={{ delay: idx * 0.05 }}
               onClick={() => playTone(idx)}
               className={`min-w-[48px] h-12 sm:h-14 rounded-xl flex items-center justify-center text-2xl cursor-pointer select-none shadow
-                ${item === '?' ? 'border-4 border-dashed border-purple-400 bg-purple-50 text-purple-400 font-black text-xl' : 'bg-white'}`}
+                ${item === '?' ? 'border-4 border-dashed border-purple-400 bg-purple-50 dark:bg-slate-800 text-purple-400 dark:text-purple-400 font-black text-xl' : 'bg-white dark:bg-slate-800'}`}
             >
               {item === '?' ? (
                 <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>?</motion.span>
@@ -131,7 +131,7 @@ function QuizDrill({ question, onCorrect, onWrong }: {
               transition-colors select-none
               ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white'
                 : selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white'
-                : 'bg-white hover:bg-purple-50 text-gray-700'}
+                : 'bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-100'}
               ${selected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >
             {opt}
@@ -173,7 +173,7 @@ function FindMistakeDrill({ question, onCorrect, onWrong }: {
         <button onClick={() => speakText('Tap the one that does not belong in the pattern!')} className="w-7 h-7 flex items-center justify-center rounded-full bg-red-100 text-sm flex-shrink-0">🔊</button>
       </div>
 
-      <div className="bg-white/80 rounded-3xl shadow-xl p-5 w-full">
+      <div className="bg-white/80 dark:bg-slate-700 rounded-3xl shadow-xl p-5 w-full">
         <div className="flex flex-wrap gap-2 justify-center">
           {question.sequence.map((item, idx) => (
             <motion.button
@@ -193,7 +193,7 @@ function FindMistakeDrill({ question, onCorrect, onWrong }: {
                 transition-colors select-none cursor-pointer
                 ${tapped === idx && feedback === 'correct' ? 'bg-green-400'
                   : tapped === idx && feedback === 'wrong' ? 'bg-red-300'
-                  : 'bg-white hover:bg-red-50'}`}
+                  : 'bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-slate-700'}`}
             >
               {item}
             </motion.button>
@@ -253,7 +253,7 @@ function CountDrill({ question, onCorrect, onWrong }: {
         <button onClick={() => speakText(`How many ${target} can you count?`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-purple-100 text-sm flex-shrink-0">🔊</button>
       </div>
 
-      <div className="bg-white/80 rounded-3xl shadow-xl p-5 w-full">
+      <div className="bg-white/80 dark:bg-slate-700 rounded-3xl shadow-xl p-5 w-full">
         <div className="flex flex-wrap gap-2 justify-center">
           {question.sequence.map((item, idx) => (
             <motion.div
@@ -262,7 +262,7 @@ function CountDrill({ question, onCorrect, onWrong }: {
               animate={{ scale: 1 }}
               transition={{ delay: idx * 0.06, type: 'spring' }}
               className={`min-w-[48px] h-12 rounded-xl flex items-center justify-center text-2xl px-2
-                ${item === target ? 'bg-purple-100 ring-2 ring-purple-400' : 'bg-white'} shadow`}
+                ${item === target ? 'bg-purple-100 dark:bg-slate-700 ring-2 ring-purple-400' : 'bg-white dark:bg-slate-800'} shadow`}
             >
               {item}
             </motion.div>
@@ -290,7 +290,7 @@ function CountDrill({ question, onCorrect, onWrong }: {
             className={`w-16 h-16 rounded-2xl text-2xl font-black shadow-lg
               ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white'
                 : selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white'
-                : 'bg-white text-purple-700 hover:bg-purple-50'}
+                : 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-slate-700'}
               ${selected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >
             {opt}
@@ -341,16 +341,16 @@ function MakeYourOwnMode() {
     <div className="flex flex-col items-center gap-5">
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={200} style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none' }} />}
       <div className="flex items-center gap-2">
-        <p className="text-xl font-black text-purple-700">MAKE YOUR PATTERN!</p>
+        <p className="text-xl font-black text-purple-700 dark:text-purple-300">MAKE YOUR PATTERN!</p>
         <button onClick={() => speakText('Make your own pattern! Tap the shapes to fill the slots.')} className="w-7 h-7 flex items-center justify-center rounded-full bg-purple-100 text-sm">🔊</button>
       </div>
-      <div className="flex flex-wrap gap-2 justify-center bg-white rounded-2xl p-4 shadow-lg w-full max-w-sm">
+      <div className="flex flex-wrap gap-2 justify-center bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg w-full max-w-sm">
         {slots.map((s, i) => (
           <motion.div key={i}
             animate={s ? {} : { borderColor: ['#c4b5fd','#7c3aed','#c4b5fd'] }}
             transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
             className={`w-12 h-12 rounded-xl border-4 flex items-center justify-center text-2xl
-              ${s ? 'bg-purple-50 border-purple-400' : 'border-dashed border-purple-200 bg-purple-50/50'}`}
+              ${s ? 'bg-purple-50 dark:bg-slate-700 border-purple-400' : 'border-dashed border-purple-200 bg-purple-50/50 dark:bg-slate-700/50'}`}
           >{s ?? ''}</motion.div>
         ))}
       </div>
@@ -358,7 +358,7 @@ function MakeYourOwnMode() {
         {OPTIONS.map(emoji => (
           <motion.button key={emoji} whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.15 }}
             onClick={() => handleSlotFill(emoji)}
-            className="w-14 h-14 rounded-2xl bg-white shadow-lg text-3xl flex items-center justify-center cursor-pointer">
+            className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-lg text-3xl flex items-center justify-center cursor-pointer">
             {emoji}
           </motion.button>
         ))}
@@ -375,7 +375,7 @@ function MakeYourOwnMode() {
           CHECK IT! 🔍
         </motion.button>
         <motion.button whileTap={{ scale: 0.92 }} onClick={() => { setSlots(Array(SLOT_COUNT).fill(null)); setResult(null); }}
-          className="bg-white text-purple-500 font-black text-lg py-3 px-6 rounded-xl shadow border-2 border-purple-200">
+          className="bg-white dark:bg-slate-700 text-purple-500 dark:text-purple-400 font-black text-lg py-3 px-6 rounded-xl shadow border-2 border-purple-200">
           RESET 🔄
         </motion.button>
       </div>
@@ -442,7 +442,7 @@ export default function PatternsTab() {
           <motion.button key={m} whileTap={{ scale: 0.92 }}
             onClick={() => { setTabMode(m); speakText(m === 'QUIZ' ? 'Quiz time!' : 'Create your own pattern!'); }}
             className={`flex-1 py-3 rounded-xl font-black text-base shadow transition-all
-              ${tabMode === m ? 'bg-purple-500 text-white scale-105' : 'bg-white text-purple-600'}`}>
+              ${tabMode === m ? 'bg-purple-500 text-white scale-105' : 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400'}`}>
             {m === 'QUIZ' ? '🎯 QUIZ' : '🎨 CREATE'}
           </motion.button>
         ))}
@@ -456,7 +456,7 @@ export default function PatternsTab() {
               <motion.button key={d} whileTap={{ scale: 0.92 }}
                 onClick={() => { setDifficulty(d); setQIndex(0); speakText(d.toLowerCase() + ' level!'); }}
                 className={`py-1.5 rounded-xl font-black text-xs shadow transition-all
-                  ${difficulty === d ? `${diffConfig[d].bg} text-white scale-105` : 'bg-white text-gray-600'}`}>
+                  ${difficulty === d ? `${diffConfig[d].bg} text-white scale-105` : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-gray-300'}`}>
                 {diffConfig[d].label}
               </motion.button>
             ))}
@@ -464,19 +464,19 @@ export default function PatternsTab() {
 
           {/* Score + counter */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white rounded-2xl px-5 py-2 shadow">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl px-5 py-2 shadow">
               <span className="text-2xl">⭐</span>
-              <span className="text-2xl font-black text-purple-600">{score}</span>
+              <span className="text-2xl font-black text-purple-600 dark:text-purple-300">{score}</span>
             </div>
-            <p className="text-purple-400 font-black text-sm">
+            <p className="text-purple-400 dark:text-purple-400 font-black text-sm">
               Q {(qIndex % pool.length) + 1}/{pool.length}
             </p>
           </div>
 
           {/* Drill type banner */}
-          <div className="flex items-center gap-2 bg-purple-100 rounded-2xl px-5 py-2 shadow-sm w-full max-w-sm justify-center">
+          <div className="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 rounded-2xl px-5 py-2 shadow-sm w-full max-w-sm justify-center">
             <span className="text-xl">{drillInfo.emoji}</span>
-            <span className="text-purple-700 font-black text-base">{drillInfo.label}</span>
+            <span className="text-purple-700 dark:text-purple-300 font-black text-base">{drillInfo.label}</span>
             <button onClick={() => speakText(drillInfo.prompt)} className="w-7 h-7 flex items-center justify-center rounded-full bg-purple-200 text-sm ml-1">🔊</button>
           </div>
 
@@ -497,7 +497,7 @@ export default function PatternsTab() {
 
           <motion.button whileTap={{ scale: 0.92 }}
             onClick={() => setQIndex(i => i + 1)}
-            className="text-purple-400 font-black text-sm underline mt-1">
+            className="text-purple-400 dark:text-purple-400 font-black text-sm underline mt-1">
             SKIP THIS ONE →
           </motion.button>
         </>

@@ -123,7 +123,7 @@ export default function TeacherTab() {
         className="relative"
       >
         <div className={`w-36 h-36 rounded-full flex items-center justify-center text-7xl shadow-2xl border-4 transition-colors
-          ${connState === 'connected' ? 'bg-emerald-100 border-emerald-400' : 'bg-white border-gray-200'}`}>
+          ${connState === 'connected' ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-600'}`}>
           🎓
         </div>
         {/* Speaking pulse rings */}
@@ -159,7 +159,7 @@ export default function TeacherTab() {
       {/* Error message */}
       {errorMsg && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-red-100 text-red-600 rounded-2xl px-5 py-3 text-sm font-bold text-center max-w-xs">
+          className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-2xl px-5 py-3 text-sm font-bold text-center max-w-xs">
           ⚠️ {errorMsg}
         </motion.div>
       )}
@@ -184,7 +184,7 @@ export default function TeacherTab() {
 
       {/* Instruction for parent */}
       {connState === 'idle' && (
-        <p className="text-gray-400 text-xs text-center max-w-xs">
+        <p className="text-gray-400 dark:text-slate-500 text-xs text-center max-w-xs">
           Tap the button and start talking! Mimi will listen and talk back. Your browser may ask for microphone permission.
         </p>
       )}
@@ -198,8 +198,8 @@ export default function TeacherTab() {
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 className={`rounded-2xl px-4 py-3 text-sm font-bold shadow
                   ${msg.role === 'user'
-                    ? 'bg-white text-gray-700 self-end ml-8'
-                    : 'bg-emerald-100 text-emerald-800 self-start mr-8'}`}>
+                    ? 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 self-end ml-8'
+                    : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 self-start mr-8'}`}>
                 {msg.role === 'mimi' && <span className="text-lg mr-1">🎓</span>}
                 {msg.text}
                 {msg.role === 'user' && <span className="text-lg ml-1">👦</span>}
@@ -215,7 +215,7 @@ export default function TeacherTab() {
           <p className="text-emerald-600 font-black text-sm text-center mb-2">ASK MIMI ABOUT:</p>
           <div className="flex flex-wrap gap-2 justify-center">
             {['THE LETTER S', 'THE SUN', 'HOW TO COUNT', 'THE WORD CAT', 'PLANETS'].map(topic => (
-              <div key={topic} className="bg-white rounded-xl px-3 py-1 text-xs font-black text-emerald-600 shadow">
+              <div key={topic} className="bg-white dark:bg-slate-700/60 rounded-xl px-3 py-1 text-xs font-black text-emerald-600 shadow">
                 {topic}
               </div>
             ))}

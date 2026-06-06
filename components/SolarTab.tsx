@@ -102,7 +102,7 @@ function PlanetInfoPanel({ planet, onClose }: { planet: Planet; onClose: () => v
           <motion.button
             whileTap={{ scale: 0.92 }}
             onClick={onClose}
-            className="py-4 px-5 bg-white/20 rounded-xl font-black text-white text-lg min-w-[56px]"
+            className="py-4 px-5 bg-white/20 dark:bg-slate-800/40 rounded-xl font-black text-white text-lg min-w-[56px]"
           >
             ✕
           </motion.button>
@@ -158,11 +158,11 @@ function GameHeader({ onBack, score, label }: { onBack: () => void; score: numbe
       <motion.button
         whileTap={{ scale: 0.92 }}
         onClick={onBack}
-        className="bg-white/20 text-white font-black py-2 px-4 rounded-xl text-base"
+        className="bg-white/20 dark:bg-slate-800/40 text-white font-black py-2 px-4 rounded-xl text-base"
       >
         ← BACK
       </motion.button>
-      <div className="bg-white/10 text-white font-black py-2 px-4 rounded-xl text-base">
+      <div className="bg-white/10 dark:bg-slate-800/40 text-white font-black py-2 px-4 rounded-xl text-base">
         ⭐ {score}{label ? ` ${label}` : ''}
       </div>
     </div>
@@ -275,7 +275,7 @@ function PlanetOrderGame({ onBack }: { onBack: () => void }) {
           <motion.button
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            className="bg-white/20 text-white font-black text-xl py-4 px-6 rounded-2xl"
+            className="bg-white/20 dark:bg-slate-800/40 text-white font-black text-xl py-4 px-6 rounded-2xl"
           >
             ← BACK
           </motion.button>
@@ -463,7 +463,7 @@ function PlanetSizeGame({ onBack }: { onBack: () => void }) {
           <motion.button
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            className="bg-white/20 text-white font-black text-xl py-4 px-6 rounded-2xl"
+            className="bg-white/20 dark:bg-slate-800/40 text-white font-black text-xl py-4 px-6 rounded-2xl"
           >
             ← BACK
           </motion.button>
@@ -698,7 +698,7 @@ function PlanetBlasterGame({ onBack }: { onBack: () => void }) {
           <motion.button
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            className="bg-white/20 text-white font-black text-xl py-4 px-6 rounded-2xl"
+            className="bg-white/20 dark:bg-slate-800/40 text-white font-black text-xl py-4 px-6 rounded-2xl"
           >
             ← BACK
           </motion.button>
@@ -711,10 +711,10 @@ function PlanetBlasterGame({ onBack }: { onBack: () => void }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <div className="bg-white/10 text-white font-black py-2 px-4 rounded-xl text-base">
+        <div className="bg-white/10 dark:bg-slate-800/40 text-white font-black py-2 px-4 rounded-xl text-base">
           ⭐ {score}
         </div>
-        <div className="bg-white/10 text-white font-black py-2 px-4 rounded-xl text-base">
+        <div className="bg-white/10 dark:bg-slate-800/40 text-white font-black py-2 px-4 rounded-xl text-base">
           ⏱️ {timeLeft}s
         </div>
       </div>
@@ -776,7 +776,7 @@ function PlanetBlasterGame({ onBack }: { onBack: () => void }) {
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => { clearTimers(); onBack(); }}
-          className="bg-white/20 text-white font-black py-2 px-5 rounded-xl text-base"
+          className="bg-white/20 dark:bg-slate-800/40 text-white font-black py-2 px-5 rounded-xl text-base"
         >
           ← BACK
         </motion.button>

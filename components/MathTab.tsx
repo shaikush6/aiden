@@ -65,16 +65,16 @@ function NumberLineMode() {
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
 
       <div className="flex items-center gap-2">
-        <p className="text-xl font-black text-orange-700 text-center">
+        <p className="text-xl font-black text-orange-700 dark:text-orange-400 text-center">
           {mode === 'where'
             ? `WHERE IS THE FROG? 🐸 FIND ${targetPos}!`
             : `JUMP ${jumpBy} STEPS FROM ${jumpFrom}! 🐸`}
         </p>
-        <button onClick={() => speakText(mode === 'where' ? `Where is the frog? Find number ${targetPos}` : `Jump ${jumpBy} steps from ${jumpFrom}`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm flex-shrink-0">🔊</button>
+        <button onClick={() => speakText(mode === 'where' ? `Where is the frog? Find number ${targetPos}` : `Jump ${jumpBy} steps from ${jumpFrom}`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20 text-sm flex-shrink-0">🔊</button>
       </div>
 
       {/* Number line */}
-      <div className="bg-white rounded-2xl p-4 shadow-lg w-full max-w-sm overflow-x-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg w-full max-w-sm overflow-x-auto">
         <div className="flex gap-1 min-w-max justify-center">
           {Array.from({ length: 21 }, (_, i) => i).map(n => {
             const isFrog = mode === 'jump' && n === jumpFrom;
@@ -88,8 +88,8 @@ function NumberLineMode() {
                 className={`w-11 h-11 rounded-lg font-black text-sm flex flex-col items-center justify-center flex-shrink-0 transition-colors
                   ${isTarget ? 'bg-green-400 text-white' :
                     isSelected && feedback === 'wrong' ? 'bg-red-300 text-white' :
-                    isFrog ? 'bg-orange-200 text-orange-700' :
-                    'bg-orange-50 text-orange-600 hover:bg-orange-200'}
+                    isFrog ? 'bg-orange-200 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
+                    'bg-orange-50 dark:bg-slate-800 text-orange-600 dark:text-orange-400 hover:bg-orange-200 dark:hover:bg-slate-700'}
                 `}
               >
                 {isFrog && <span className="text-base leading-none">🐸</span>}
@@ -101,7 +101,7 @@ function NumberLineMode() {
       </div>
 
       {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
           {feedback === 'correct' ? '⭐ YES! ⭐' : '💪 TRY AGAIN!'}
         </motion.p>
       )}
@@ -165,12 +165,12 @@ function WhichMoreMode() {
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
 
       <div className="flex items-center gap-2">
-        <p className="text-2xl font-black text-orange-700">WHICH IS MORE? 🤔</p>
-        <button onClick={() => speakText('Which group has more?')} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm">🔊</button>
+        <p className="text-2xl font-black text-orange-700 dark:text-orange-400">WHICH IS MORE? 🤔</p>
+        <button onClick={() => speakText('Which group has more?')} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20 text-sm">🔊</button>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-2xl">⭐</span>
-        <span className="text-2xl font-black text-orange-600">{score}</span>
+        <span className="text-2xl font-black text-orange-600 dark:text-orange-400">{score}</span>
       </div>
 
       <div className="flex gap-6">
@@ -185,7 +185,7 @@ function WhichMoreMode() {
               whileHover={{ scale: 1.04 }}
               onClick={() => handleSelect(side)}
               animate={isWrong ? { x: [0, -8, 8, -8, 0] } : {}}
-              className={`flex flex-col items-center gap-2 bg-white rounded-2xl p-4 shadow-lg border-4 transition-colors min-w-[140px]
+              className={`flex flex-col items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg border-4 transition-colors min-w-[140px]
                 ${isCorrect ? 'border-green-400' : isWrong ? 'border-red-300' : 'border-transparent hover:border-orange-300'}
               `}
             >
@@ -196,14 +196,14 @@ function WhichMoreMode() {
                   </motion.span>
                 ))}
               </div>
-              <span className="text-3xl font-black text-orange-600">{count}</span>
+              <span className="text-3xl font-black text-orange-600 dark:text-orange-400">{count}</span>
             </motion.button>
           );
         })}
       </div>
 
       {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
           {feedback === 'correct' ? '⭐ CORRECT! ⭐' : '💪 TRY AGAIN!'}
         </motion.p>
       )}
@@ -270,34 +270,34 @@ function MissingNumberMode() {
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
 
       <div className="flex items-center gap-2">
-        <p className="text-2xl font-black text-orange-700">WHAT IS THE MISSING NUMBER? 🔢</p>
-        <button onClick={() => speakText('What is the missing number?')} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm">🔊</button>
+        <p className="text-2xl font-black text-orange-700 dark:text-orange-400">WHAT IS THE MISSING NUMBER? 🔢</p>
+        <button onClick={() => speakText('What is the missing number?')} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20 text-sm">🔊</button>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-2xl">⭐</span>
-        <span className="text-2xl font-black text-orange-600">{score}</span>
+        <span className="text-2xl font-black text-orange-600 dark:text-orange-400">{score}</span>
       </div>
 
-      <div className="flex gap-2 items-center bg-white rounded-2xl p-4 shadow-lg flex-wrap justify-center">
+      <div className="flex gap-2 items-center bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg flex-wrap justify-center">
         {sequence.map((n, i) => (
           <div key={i} className="flex items-center gap-2">
             {i === gapIdx ? (
               <motion.div
                 animate={{ borderColor: ['#f97316', '#ea580c', '#f97316'] }}
                 transition={{ duration: 1.2, repeat: Infinity }}
-                className="w-14 h-14 rounded-xl border-4 border-dashed border-orange-400 flex items-center justify-center text-2xl font-black text-orange-400 bg-orange-50"
+                className="w-14 h-14 rounded-xl border-4 border-dashed border-orange-400 flex items-center justify-center text-2xl font-black text-orange-400 bg-orange-50 dark:bg-slate-800"
               >
                 ?
               </motion.div>
             ) : (
-              <div className="w-14 h-14 rounded-xl bg-orange-100 flex items-center justify-center text-2xl font-black text-orange-700">
+              <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-2xl font-black text-orange-700 dark:text-orange-400">
                 {n}
               </div>
             )}
             {i < LENGTH - 1 && (
               <div className="flex flex-col items-center justify-center px-0.5">
                 {step !== 1 && (
-                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full mb-0.5 ${step < 0 ? 'bg-rose-100 text-rose-600' : 'bg-green-100 text-green-600'}`}>
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full mb-0.5 ${step < 0 ? 'bg-rose-100 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400' : 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'}`}>
                     {step > 0 ? `+${step}` : `${step}`}
                   </span>
                 )}
@@ -321,7 +321,7 @@ function MissingNumberMode() {
             className={`w-20 h-20 rounded-2xl text-3xl font-black shadow-lg transition-colors
               ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white' :
                 selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white' :
-                'bg-white text-orange-600 hover:bg-orange-50'}
+                'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-600'}
             `}
           >
             {opt}
@@ -330,7 +330,7 @@ function MissingNumberMode() {
       </div>
 
       {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
           {feedback === 'correct' ? '⭐ YES! ⭐' : '💪 TRY AGAIN!'}
         </motion.p>
       )}
@@ -387,10 +387,10 @@ function CountMode() {
     <div className="flex flex-col items-center gap-6">
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
       <div className="flex items-center gap-2">
-        <p className="text-2xl font-black text-orange-700">HOW MANY? 🤔</p>
-        <button onClick={() => speakText('How many?')} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm">🔊</button>
+        <p className="text-2xl font-black text-orange-700 dark:text-orange-400">HOW MANY? 🤔</p>
+        <button onClick={() => speakText('How many?')} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20 text-sm">🔊</button>
       </div>
-      <div className="bg-white rounded-2xl p-6 shadow-lg max-w-sm w-full">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg max-w-sm w-full">
         <div className="flex flex-wrap gap-2 justify-center min-h-[120px] items-center">
           {Array.from({ length: count }).map((_, i) => (
             <motion.span key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.05 }} className="text-4xl">
@@ -413,7 +413,7 @@ function CountMode() {
             className={`w-20 h-20 rounded-2xl text-4xl font-black shadow-lg transition-colors
               ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white' :
                 selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white' :
-                'bg-white text-orange-600 hover:bg-orange-50'}
+                'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-600'}
             `}
           >
             {opt}
@@ -421,7 +421,7 @@ function CountMode() {
         ))}
       </div>
       {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
           {feedback === 'correct' ? '⭐ AMAZING! ⭐' : '💪 TRY AGAIN!'}
         </motion.p>
       )}
@@ -522,7 +522,7 @@ function PlaceValueMode() {
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={180} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />}
 
       {/* Large number at top — each digit colored by its column */}
-      <div className="bg-white rounded-2xl min-w-28 h-28 px-6 flex items-center justify-center shadow-lg gap-1">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl min-w-28 h-28 px-6 flex items-center justify-center shadow-lg gap-1">
         {String(number).split('').map((digit, i) => {
           const allCols: PlaceColumn[] = ['thousands', 'hundreds', 'tens', 'ones'];
           const numLen = String(number).length;
@@ -541,14 +541,14 @@ function PlaceValueMode() {
 
       {/* Question */}
       <div className="flex items-center gap-2">
-        <p className="text-xl font-black text-orange-700 text-center">
+        <p className="text-xl font-black text-orange-700 dark:text-orange-400 text-center">
           How many <span className={COLUMN_CONFIG[asking].glow}>{COLUMN_CONFIG[asking].label}</span> are in {number}?
         </p>
-        <button onClick={() => speakText(`How many ${COLUMN_CONFIG[asking].label.toLowerCase()} are in ${number}?`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm flex-shrink-0">🔊</button>
+        <button onClick={() => speakText(`How many ${COLUMN_CONFIG[asking].label.toLowerCase()} are in ${number}?`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20 text-sm flex-shrink-0">🔊</button>
       </div>
 
       {/* Column grid */}
-      <div className="bg-white rounded-2xl p-4 shadow-lg flex gap-4 items-end justify-center">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg flex gap-4 items-end justify-center">
         {visibleColumns.map(col => {
           const cfg = COLUMN_CONFIG[col];
           const value = digits[col];
@@ -558,7 +558,7 @@ function PlaceValueMode() {
               key={col}
               animate={isAsked ? { boxShadow: ['0 0 0px #f97316', '0 0 16px #f97316', '0 0 0px #f97316'] } : {}}
               transition={{ duration: 1.2, repeat: isAsked ? Infinity : 0 }}
-              className={`flex flex-col items-center gap-2 rounded-xl p-2 border-4 ${isAsked ? 'border-orange-400 bg-orange-50' : 'border-transparent'}`}
+              className={`flex flex-col items-center gap-2 rounded-xl p-2 border-4 ${isAsked ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'border-transparent'}`}
             >
               <p className={`text-[10px] font-black ${cfg.glow}`}>{cfg.label}</p>
               <span className="text-lg leading-none">{cfg.emoji}</span>
@@ -594,7 +594,7 @@ function PlaceValueMode() {
             className={`w-20 h-20 rounded-2xl text-3xl font-black shadow-lg transition-colors
               ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white' :
                 selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white' :
-                'bg-white text-orange-600 hover:bg-orange-50'}
+                'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-600'}
             `}
           >
             {opt}
@@ -603,7 +603,7 @@ function PlaceValueMode() {
       </div>
 
       {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
           {feedback === 'correct' ? '⭐ AMAZING! ⭐' : '💪 TRY AGAIN!'}
         </motion.p>
       )}
@@ -651,7 +651,7 @@ function RiddlesMode() {
 
       <div className="flex items-center gap-2">
         <span className="text-2xl">⭐</span>
-        <span className="text-2xl font-black text-orange-600">{score}</span>
+        <span className="text-2xl font-black text-orange-600 dark:text-orange-400">{score}</span>
       </div>
 
       <AnimatePresence mode="wait">
@@ -660,14 +660,14 @@ function RiddlesMode() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -30 }}
-          className="bg-white rounded-3xl p-6 shadow-xl max-w-sm w-full"
+          className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl max-w-sm w-full"
         >
           <div className="text-4xl text-center mb-4">{riddle.emoji ?? '🧩'}</div>
           <div className="flex items-start gap-2">
-            <p className="text-xl font-black text-orange-700 text-center leading-relaxed flex-1">
+            <p className="text-xl font-black text-orange-700 dark:text-orange-400 text-center leading-relaxed flex-1">
               {riddle.riddle}
             </p>
-            <button onClick={() => speakText(riddle.riddle)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm flex-shrink-0 mt-1">🔊</button>
+            <button onClick={() => speakText(riddle.riddle)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20 text-sm flex-shrink-0 mt-1">🔊</button>
           </div>
           {riddle.hint && feedback === 'wrong' && (
             <p className="text-sm text-orange-400 text-center mt-2 italic">Hint: {riddle.hint}</p>
@@ -689,7 +689,7 @@ function RiddlesMode() {
             className={`w-20 h-20 rounded-2xl text-3xl font-black shadow-lg transition-colors
               ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white' :
                 selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white' :
-                'bg-white text-orange-600 hover:bg-orange-50'}
+                'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-600'}
             `}
           >
             {opt}
@@ -699,14 +699,14 @@ function RiddlesMode() {
 
       {feedback === 'correct' && (
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-2">
-          <p className="text-2xl font-black text-green-500 text-center">⭐ CORRECT! The answer is {riddle.answer}! ⭐</p>
-          <div className="text-6xl font-black text-green-500 bg-green-50 rounded-2xl w-24 h-24 flex items-center justify-center shadow-lg">
+          <p className="text-2xl font-black text-green-500 dark:text-green-400 text-center">⭐ CORRECT! The answer is {riddle.answer}! ⭐</p>
+          <div className="text-6xl font-black text-green-500 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-2xl w-24 h-24 flex items-center justify-center shadow-lg">
             {riddle.answer}
           </div>
         </motion.div>
       )}
       {feedback === 'wrong' && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-2xl font-black text-red-400">
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-2xl font-black text-red-400 dark:text-red-400">
           💪 TRY AGAIN!
         </motion.p>
       )}
@@ -759,13 +759,13 @@ function AddMode() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="bg-white rounded-3xl p-6 shadow-xl max-w-sm w-full flex flex-col items-center gap-4"
+          className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl max-w-sm w-full flex flex-col items-center gap-4"
         >
           <div className="flex items-center gap-2 self-stretch justify-center">
             <p className="text-lg font-black text-orange-500">
               {problem.a} {opText} {problem.b} = ?
             </p>
-            <button onClick={() => speakText(`${problem.a} ${opText.toLowerCase()} ${problem.b} equals?`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm">🔊</button>
+            <button onClick={() => speakText(`${problem.a} ${opText.toLowerCase()} ${problem.b} equals?`)} className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20 text-sm">🔊</button>
           </div>
 
           <div className="flex flex-col items-center gap-2">
@@ -774,7 +774,7 @@ function AddMode() {
                 <span key={i} className="text-3xl">{problem.aEmojis}</span>
               ))}
             </div>
-            <span className="text-3xl font-black text-orange-600">{problem.a}</span>
+            <span className="text-3xl font-black text-orange-600 dark:text-orange-400">{problem.a}</span>
           </div>
           <span className="text-4xl font-black text-orange-400">{opSymbol}</span>
           <div className="flex flex-col items-center gap-2">
@@ -783,10 +783,10 @@ function AddMode() {
                 <span key={i} className="text-3xl">{problem.bEmojis}</span>
               ))}
             </div>
-            <span className="text-3xl font-black text-orange-600">{problem.b}</span>
+            <span className="text-3xl font-black text-orange-600 dark:text-orange-400">{problem.b}</span>
           </div>
           {showAnswer ? (
-            <div className="flex flex-col items-center gap-2 bg-green-50 rounded-2xl p-4 w-full">
+            <div className="flex flex-col items-center gap-2 bg-green-50 dark:bg-green-900/20 rounded-2xl p-4 w-full">
               <div className="flex flex-wrap gap-1 justify-center max-w-[240px]">
                 {Array.from({ length: problem.answer }).map((_, i) => (
                   <motion.span key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.05 }} className="text-3xl">
@@ -794,9 +794,9 @@ function AddMode() {
                   </motion.span>
                 ))}
               </div>
-              <span className="text-3xl font-black text-green-600">= {problem.answer}</span>
+              <span className="text-3xl font-black text-green-600 dark:text-green-400">= {problem.answer}</span>
               {problem.label && (
-                <span className="text-xl font-black text-green-500">{problem.answer} {problem.label}!</span>
+                <span className="text-xl font-black text-green-500 dark:text-green-400">{problem.answer} {problem.label}!</span>
               )}
             </div>
           ) : (
@@ -819,7 +819,7 @@ function AddMode() {
             className={`w-20 h-20 rounded-2xl text-3xl font-black shadow-lg transition-colors
               ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white' :
                 selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white' :
-                'bg-white text-orange-600 hover:bg-orange-50'}
+                'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-600'}
             `}
           >
             {opt}
@@ -828,7 +828,7 @@ function AddMode() {
       </div>
 
       {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
           {feedback === 'correct' ? '⭐ YES! ⭐' : '💪 TRY AGAIN!'}
         </motion.p>
       )}
@@ -911,7 +911,7 @@ function NumberBondsMode() {
         transition={{ duration: 1.2, repeat: isHidden ? Infinity : 0 }}
         className={`w-20 h-20 rounded-2xl flex items-center justify-center text-5xl font-black shadow-lg border-4 ${
           isHidden
-            ? 'border-dashed border-orange-400 bg-orange-50 text-orange-300'
+            ? 'border-dashed border-orange-400 bg-orange-50 dark:bg-orange-900/20 text-orange-300 dark:text-orange-500'
             : `${color} border-transparent`
         }`}
       >
@@ -932,7 +932,7 @@ function NumberBondsMode() {
             whileTap={{ scale: 0.92 }}
             onClick={() => { setDifficulty(d); setBondIdx(0); setSelected(null); setFeedback(null); speakText(d === 'easy' ? 'Number bonds to five!' : 'Number bonds to ten!'); }}
             className={`py-2 px-5 rounded-xl font-black text-sm transition-all shadow ${
-              difficulty === d ? 'bg-orange-500 text-white scale-105' : 'bg-white text-orange-500'
+              difficulty === d ? 'bg-orange-500 text-white scale-105' : 'bg-white dark:bg-slate-700 text-orange-500 dark:text-orange-400'
             }`}
           >
             {d === 'easy' ? 'BONDS TO 5' : 'BONDS TO 10'}
@@ -943,7 +943,7 @@ function NumberBondsMode() {
       {/* Score */}
       <div className="flex items-center gap-2">
         <span className="text-2xl">⭐</span>
-        <span className="text-2xl font-black text-orange-600">{score}</span>
+        <span className="text-2xl font-black text-orange-600 dark:text-orange-400">{score}</span>
       </div>
 
       {/* Emoji */}
@@ -974,7 +974,7 @@ function NumberBondsMode() {
       </div>
 
       {/* Visual dots: partA + partB = total */}
-      <div className="flex items-center gap-2 flex-wrap justify-center bg-white rounded-2xl px-4 py-3 shadow">
+      <div className="flex items-center gap-2 flex-wrap justify-center bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow">
         <div className="flex gap-1 flex-wrap justify-center max-w-[90px]">
           {Array.from({ length: bond.partA }).map((_, i) => (
             <div key={i} className="w-5 h-5 rounded-full bg-sky-400 shadow-sm" />
@@ -996,12 +996,12 @@ function NumberBondsMode() {
 
       {/* Instruction */}
       <div className="flex items-center gap-2">
-        <p className="text-xl font-black text-orange-700 text-center">
+        <p className="text-xl font-black text-orange-700 dark:text-orange-400 text-center">
           WHAT IS THE <span className="text-orange-400">?</span>
         </p>
         <button
           onClick={() => speakText(`What is the missing number? ${bond.partA} and ${bond.partB} make ${bond.total}`)}
-          className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 text-sm"
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20 text-sm"
         >
           🔊
         </button>
@@ -1022,7 +1022,7 @@ function NumberBondsMode() {
             className={`w-20 h-20 rounded-2xl text-3xl font-black shadow-lg transition-colors
               ${selected === opt && feedback === 'correct' ? 'bg-green-400 text-white' :
                 selected === opt && feedback === 'wrong' ? 'bg-red-300 text-white' :
-                'bg-white text-orange-600 hover:bg-orange-50'}
+                'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-600'}
             `}
           >
             {opt}
@@ -1031,7 +1031,7 @@ function NumberBondsMode() {
       </div>
 
       {feedback && (
-        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500' : 'text-red-400'}`}>
+        <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-2xl font-black ${feedback === 'correct' ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
           {feedback === 'correct' ? `⭐ YES! ${bond.partA} + ${bond.partB} = ${bond.total}! ⭐` : '💪 TRY AGAIN!'}
         </motion.p>
       )}
@@ -1080,7 +1080,7 @@ export default function MathTab() {
             whileTap={{ scale: 0.92 }}
             onClick={() => handleModeChange(m.id)}
             className={`py-3 px-1 rounded-xl font-black text-xs transition-all shadow text-center min-h-[72px] ${
-              subMode === m.id ? 'bg-orange-500 text-white scale-105 shadow-md' : 'bg-white text-orange-600'
+              subMode === m.id ? 'bg-orange-500 text-white scale-105 shadow-md' : 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400'
             }`}
           >
             <div className="text-xl mb-1">{m.icon}</div>
