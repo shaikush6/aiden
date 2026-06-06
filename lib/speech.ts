@@ -5,12 +5,18 @@ let voiceEnabled = true
 export function setVoiceEnabled(v: boolean) { voiceEnabled = v }
 export function getVoiceEnabled() { return voiceEnabled }
 
-const LETTER_SOUNDS: Record<string, string> = {
-  A: 'aah', B: 'buh', C: 'cuh', D: 'duh', E: 'eh', F: 'fuh',
-  G: 'guh', H: 'huh', I: 'ih', J: 'juh', K: 'kuh', L: 'luh',
-  M: 'muh', N: 'nuh', O: 'oh', P: 'puh', Q: 'kwuh', R: 'ruh',
-  S: 'sss', T: 'tuh', U: 'uh', V: 'vuh', W: 'wuh', X: 'ks',
-  Y: 'yuh', Z: 'zzz',
+// IPA-informed phoneme map — single letters passed with phonics TTS instructions.
+// Pure sounds: no "buh/cuh" schwa — the TTS phonics instructions enforce pure phonemes.
+const PHONEME_MAP: Record<string, string> = {
+  // Short vowels (the phonics sound, not the letter name)
+  A: 'a', E: 'e', I: 'i', O: 'o', U: 'u',
+  // Consonants — single letter; TTS instructions prevent schwa addition
+  B: 'b', C: 'k', D: 'd', F: 'f', G: 'g', H: 'h', J: 'j',
+  K: 'k', L: 'l', M: 'm', N: 'n', P: 'p', Q: 'qu',
+  R: 'r', S: 's', T: 't', V: 'v', W: 'w', X: 'x', Y: 'y', Z: 'z',
+  // Digraphs
+  SH: 'sh', CH: 'ch', TH: 'th', PH: 'f', WH: 'w',
+  NG: 'ng', CK: 'k', QU: 'qu',
 }
 
 // Blob URL cache: text -> object URL
@@ -30,15 +36,15 @@ function stopCurrent() {
   }
 }
 
-async function fetchTTS(text: string, speed: number): Promise<string | null> {
-  const cacheKey = `${text}|${speed}`
+async function fetchTTS(text: string, speed: number, phonics = false): Promise<string | null> {
+  const cacheKey = `${phonics ? 'ph:' : ''}${text}|${speed}`
   if (cache.has(cacheKey)) return cache.get(cacheKey)!
 
   try {
     const res = await fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, speed }),
+      body: JSON.stringify({ text, speed, phonics }),
     })
     if (!res.ok) return null
     const blob = await res.blob()
@@ -50,13 +56,13 @@ async function fetchTTS(text: string, speed: number): Promise<string | null> {
   }
 }
 
-async function playTTS(text: string, speed = 1.0): Promise<void> {
+async function playTTS(text: string, speed = 1.0, phonics = false): Promise<void> {
   if (!voiceEnabled) return
   if (typeof window === 'undefined') return
 
   stopCurrent()
   const mySeq = ++reqSeq          // claim a sequence slot
-  const url = await fetchTTS(text, speed)
+  const url = await fetchTTS(text, speed, phonics)
 
   // If another call was made while we were fetching, discard this result
   if (!url || mySeq !== reqSeq) return
@@ -78,8 +84,15 @@ export function speakWord(word: string): Promise<void> {
 }
 
 export function speakLetterSound(letter: string): Promise<void> {
-  const sound = LETTER_SOUNDS[letter.toUpperCase()] ?? letter.toLowerCase()
-  return playTTS(sound, 0.85)
+  const key = letter.toUpperCase()
+  const phoneme = PHONEME_MAP[key] ?? letter.toLowerCase()
+  return playTTS(phoneme, 0.85, true)  // phonics=true → pure sound, no schwa
+}
+
+export function speakDigraph(digraph: string): Promise<void> {
+  const key = digraph.toUpperCase()
+  const phoneme = PHONEME_MAP[key] ?? digraph.toLowerCase()
+  return playTTS(phoneme, 0.85, true)
 }
 
 export function speakText(text: string, _rate?: number, _pitch?: number): Promise<void> {
