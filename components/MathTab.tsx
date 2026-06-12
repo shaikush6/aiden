@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MATH_ACTIVITIES, LANE_CONFIG } from "@/lib/math-categories";
 import type { MathMode, MathLane } from "@/lib/math-data";
@@ -18,9 +18,33 @@ const TenFrameMode = dynamic(() => import("@/components/math/ComposeModes").then
 
 const LANES: MathLane[] = ['SUBITIZE', 'BUILD', 'COMPARE', 'PATH', 'COMPOSE'];
 
+const ALL_MODES: MathMode[] = [
+  'QUICK_LOOK', 'BUILD_ME', 'COUNT', 'WHICH_MORE', 'CONSERVATION',
+  'NUMBER_LINE', 'ONE_MORE', 'BONDS', 'HIDE_FIND', 'BALANCE',
+  'ADD', 'MISSING', 'TEN_FRAME',
+];
+
+const CATEGORY_META: Record<MathMode, { emoji: string; label: string; color: string }> = {
+  QUICK_LOOK:   { emoji: '⚡', label: 'Quick Look',    color: 'bg-yellow-500' },
+  BUILD_ME:     { emoji: '🎯', label: 'Build Me',      color: 'bg-green-500'  },
+  COUNT:        { emoji: '🔢', label: 'Count',         color: 'bg-green-600'  },
+  WHICH_MORE:   { emoji: '⚖️', label: 'Which More',    color: 'bg-blue-500'   },
+  CONSERVATION: { emoji: '🪄', label: 'Still Same?',   color: 'bg-blue-600'   },
+  NUMBER_LINE:  { emoji: '🐸', label: 'Number Path',   color: 'bg-purple-500' },
+  ONE_MORE:     { emoji: '⚙️', label: 'One More',      color: 'bg-purple-600' },
+  BONDS:        { emoji: '🚂', label: 'Number Bonds',  color: 'bg-orange-500' },
+  HIDE_FIND:    { emoji: '☕', label: 'Hide & Find',   color: 'bg-orange-600' },
+  BALANCE:      { emoji: '⚖️', label: 'Balance',       color: 'bg-rose-500'   },
+  ADD:          { emoji: '🚌', label: 'Add',           color: 'bg-rose-600'   },
+  MISSING:      { emoji: '❓', label: 'Missing',       color: 'bg-pink-500'   },
+  TEN_FRAME:    { emoji: '📦', label: 'Ten Frame',     color: 'bg-indigo-500' },
+};
+
 export default function MathTab() {
   const [activeLane, setActiveLane] = useState<MathLane>('SUBITIZE');
   const [subMode, setSubMode] = useState<MathMode>('QUICK_LOOK');
+  const [selectedCategories, setSelectedCategories] = useState<Set<MathMode>>(new Set());
+  const chipRowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     speakText("Number time! Let us explore!");
@@ -39,12 +63,87 @@ export default function MathTab() {
     speakText(description);
   }, []);
 
+  const toggleCategory = useCallback((mode: MathMode) => {
+    setSelectedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(mode)) next.delete(mode); else next.add(mode);
+      return next;
+    });
+  }, []);
+
+  const handleRandom = useCallback(() => {
+    const pool = selectedCategories.size > 0
+      ? ALL_MODES.filter(m => selectedCategories.has(m))
+      : ALL_MODES;
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    const activity = MATH_ACTIVITIES.find(a => a.id === picked);
+    if (!activity) return;
+    setSubMode(picked);
+    const lane = activity.lane;
+    setActiveLane(lane);
+    speakText(activity.description);
+  }, [selectedCategories]);
+
   const laneActivities = MATH_ACTIVITIES.filter(a => a.lane === activeLane);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+
+      {/* Category filter chips + RANDOM button */}
+      <div className="px-2 pt-3">
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={handleRandom}
+            className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-2xl font-black text-sm text-white shadow-md bg-gradient-to-r from-violet-500 to-indigo-500"
+          >
+            🎲 <span>RANDOM</span>
+          </motion.button>
+
+          <div
+            ref={chipRowRef}
+            className="flex gap-2 overflow-x-auto pb-1"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {ALL_MODES.map(mode => {
+              const meta = CATEGORY_META[mode];
+              const isActive = selectedCategories.has(mode);
+              return (
+                <motion.button
+                  key={mode}
+                  whileTap={{ scale: 0.88 }}
+                  animate={{ opacity: isActive ? 1 : 0.65 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={() => toggleCategory(mode)}
+                  className={[
+                    "shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full font-black text-xs shadow transition-shadow",
+                    isActive
+                      ? `${meta.color} text-white shadow-md ring-2 ring-white ring-offset-1`
+                      : "bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300",
+                  ].join(" ")}
+                >
+                  <span>{meta.emoji}</span>
+                  <span>{meta.label}</span>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+        {selectedCategories.size > 0 && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedCategories(new Set())}
+            className="mt-1 ml-1 text-[11px] font-black text-violet-500 dark:text-violet-300"
+          >
+            CLEAR FILTERS ({selectedCategories.size})
+          </motion.button>
+        )}
+      </div>
+
       {/* Lane navigation */}
-      <div className="grid grid-cols-5 gap-1 px-2 pt-3">
+      <div className="grid grid-cols-5 gap-1 px-2 pt-2">
         {LANES.map(lane => {
           const cfg = LANE_CONFIG[lane];
           const isActive = lane === activeLane;

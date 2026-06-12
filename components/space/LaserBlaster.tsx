@@ -38,6 +38,24 @@ const POWER_EMOJI: Record<PowerKind, string> = {
   speed: '💨',
 };
 
+// Progressive difficulty levels — starts easy, ramps as kills accumulate
+const LEVELS = [
+  { minKills: 0,   speed: 0.7,  spawnMs: 2800, banner: '',                     types: ['rocky'] as AsteroidType[] },
+  { minKills: 10,  speed: 0.9,  spawnMs: 2400, banner: 'LEVEL 2! 🔥',          types: ['rocky'] as AsteroidType[] },
+  { minKills: 25,  speed: 1.2,  spawnMs: 2000, banner: 'NEAR MARS! 🔴',        types: ['rocky','icy'] as AsteroidType[] },
+  { minKills: 45,  speed: 1.6,  spawnMs: 1700, banner: 'ASTEROID BELT! ⚠️',   types: ['rocky','icy','icy'] as AsteroidType[] },
+  { minKills: 70,  speed: 2.0,  spawnMs: 1400, banner: 'NEAR JUPITER! 🟠',     types: ['rocky','icy','metal'] as AsteroidType[] },
+  { minKills: 100, speed: 2.6,  spawnMs: 1100, banner: 'DANGER ZONE! 💥',      types: ['icy','metal','metal'] as AsteroidType[] },
+];
+
+function getLevelIndex(kills: number) {
+  let idx = 0;
+  for (let i = 0; i < LEVELS.length; i++) {
+    if (kills >= LEVELS[i].minKills) idx = i;
+  }
+  return idx;
+}
+
 const starStyles = `@keyframes scrollStars { from { transform: translateX(0); } to { transform: translateX(-50%); } }`;
 
 // Hardcoded star positions for one half of a layer (duplicated for seamless loop).
@@ -78,7 +96,8 @@ function StarLayer({ stars, duration }: { stars: number[][]; duration: string })
 export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
   const [phase, setPhase] = useState<Phase>('ready');
   const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(3);
+  const [lives, setLives] = useState(5);
+  const [level, setLevel] = useState(0);
   const [rocketY, setRocketY] = useState(40);
   const [lasers, setLasers] = useState<Laser[]>([]);
   const [asteroids, setAsteroids] = useState<Asteroid[]>([]);
@@ -96,7 +115,10 @@ export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
   const activePowerRef = useRef<PowerKind | null>(null);
   const killCountRef = useRef(0);
   const firingRef = useRef(false);
-  const livesRef = useRef(3);
+  const livesRef = useRef(5);
+  const speedRef = useRef(LEVELS[0].speed);   // current asteroid speed
+  const levelRef = useRef(0);                 // current level index
+  const keysHeldRef = useRef(new Set<string>());  // keyboard keys currently held
 
   const gameLoopRef = useRef<number | null>(null);
   const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -135,9 +157,6 @@ export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
     powerTimerRef.current = null;
   }, []);
 
-  // Cleanup on unmount.
-  useEffect(() => clearTimers, [clearTimers]);
-
   const fireLaser = useCallback(() => {
     lasersRef.current = [
       ...lasersRef.current,
@@ -150,19 +169,47 @@ export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
     ];
   }, []);
 
+  // Keyboard controls: arrows steer, spacebar fires
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) {
+        e.preventDefault();
+        keysHeldRef.current.add(e.code);
+        if (e.code === 'Space' && !firingRef.current) {
+          firingRef.current = true;
+          fireLaser();
+          if (laserTimerRef.current) clearInterval(laserTimerRef.current);
+          laserTimerRef.current = setInterval(fireLaser, 200);
+        }
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      keysHeldRef.current.delete(e.code);
+      if (e.code === 'Space') {
+        firingRef.current = false;
+        if (laserTimerRef.current) clearInterval(laserTimerRef.current);
+        laserTimerRef.current = null;
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      keysHeldRef.current.clear();
+    };
+  }, [phase, fireLaser]);
+
+  // Cleanup on unmount.
+  useEffect(() => clearTimers, [clearTimers]);
+
   const spawnAsteroid = useCallback(() => {
-    const kc = killCountRef.current;
-    let type: AsteroidType = 'rocky';
-    if (kc < 20) {
-      type = 'rocky';
-    } else if (kc < 50) {
-      type = Math.random() < 0.5 ? 'rocky' : 'icy';
-    } else {
-      const r = Math.random();
-      type = r < 0.34 ? 'rocky' : r < 0.67 ? 'icy' : 'metal';
-    }
+    const lvl = LEVELS[levelRef.current];
+    const pool = lvl.types;
+    const type = pool[Math.floor(Math.random() * pool.length)];
     const hp = type === 'metal' ? 3 : type === 'icy' ? 2 : 1;
-    const y = 20 + Math.random() * 50;
+    const y = 15 + Math.random() * 60;
     asteroidsRef.current = [
       ...asteroidsRef.current,
       { id: nextId(), x: 105, y, hp, maxHp: hp, type },
@@ -175,30 +222,36 @@ export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
 
   const startSpawnLoop = useCallback(() => {
     if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
-    let interval = 2000;
-    const kc = killCountRef.current;
-    if (kc >= 50) interval = 1200;
-    else if (kc >= 20) interval = 1500;
-
-    spawnTimerRef.current = setInterval(() => {
-      spawnAsteroid();
-      // Adjust cadence as waves progress.
-      const cur = killCountRef.current;
-      const want = cur >= 50 ? 1200 : cur >= 20 ? 1500 : 2000;
-      if (want !== interval) {
-        interval = want;
-        if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
-        startSpawnLoop();
-      }
-    }, interval);
+    const interval = LEVELS[levelRef.current].spawnMs;
+    spawnTimerRef.current = setInterval(spawnAsteroid, interval);
   }, [spawnAsteroid]);
 
   const gameLoop = useCallback(() => {
+    // Keyboard steering — smooth continuous movement while key held
+    if (keysHeldRef.current.has('ArrowUp')) {
+      rocketYRef.current = clamp(rocketYRef.current - 1.8, 5, 75);
+    }
+    if (keysHeldRef.current.has('ArrowDown')) {
+      rocketYRef.current = clamp(rocketYRef.current + 1.8, 5, 75);
+    }
+    if (keysHeldRef.current.has('ArrowUp') || keysHeldRef.current.has('ArrowDown')) {
+      setRocketY(rocketYRef.current);
+    }
+
+    // Level progression — update speed and spawn rate when level changes
+    const newLevelIdx = getLevelIndex(killCountRef.current);
+    if (newLevelIdx !== levelRef.current) {
+      levelRef.current = newLevelIdx;
+      speedRef.current = LEVELS[newLevelIdx].speed;
+      setLevel(newLevelIdx);
+      startSpawnLoop();  // restart spawn loop with new interval
+    }
+
     // Move items.
     lasersRef.current = lasersRef.current
       .map((l) => ({ ...l, x: l.x + 7 }))
       .filter((l) => l.x < 108);
-    asteroidsRef.current = asteroidsRef.current.map((a) => ({ ...a, x: a.x - 1.8 }));
+    asteroidsRef.current = asteroidsRef.current.map((a) => ({ ...a, x: a.x - speedRef.current }));
     if (powerupRef.current) {
       powerupRef.current = { ...powerupRef.current, x: powerupRef.current.x - 0.8 };
     }
@@ -299,11 +352,15 @@ export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
     activePowerRef.current = null;
     killCountRef.current = 0;
     rocketYRef.current = 40;
-    livesRef.current = 3;
+    livesRef.current = 5;
+    speedRef.current = LEVELS[0].speed;
+    levelRef.current = 0;
+    keysHeldRef.current.clear();
     firingRef.current = false;
     // Reset state.
     setScore(0);
-    setLives(3);
+    setLives(5);
+    setLevel(0);
     setRocketY(40);
     setLasers([]);
     setAsteroids([]);
@@ -349,9 +406,7 @@ export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
     setRocketY(rocketYRef.current);
   }, []);
 
-  // Wave banner text.
-  const waveBanner =
-    killCount >= 50 ? 'Near Jupiter! 🟠' : killCount >= 20 ? 'Flying past Mars! 🔴' : '';
+  const waveBanner = LEVELS[level].banner;
 
   const heroLine = score > 25 ? 'SPACE HERO! 🌟' : 'GREAT FLYING! 🚀';
 
@@ -376,7 +431,11 @@ export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
           <p className="text-indigo-300 text-center">
             🔫 Shoot asteroids before they reach your rocket!
           </p>
-          <div className="text-2xl">❤️❤️❤️</div>
+          <div className="flex flex-col items-center gap-1 text-slate-400 text-sm">
+            <div>⌨️ <span className="text-white">↑ ↓ arrows</span> to steer &nbsp;·&nbsp; <span className="text-white">SPACE</span> to fire</div>
+            <div>📱 tap the buttons below to play on mobile</div>
+          </div>
+          <div className="text-2xl">❤️❤️❤️❤️❤️</div>
           <button
             onClick={startGame}
             className="bg-purple-600 hover:bg-purple-500 text-white text-2xl font-black py-5 px-10 rounded-2xl shadow-xl"
@@ -475,8 +534,11 @@ export default function LaserBlasterGame({ onBack }: { onBack: () => void }) {
 
             {/* HUD */}
             <div className="absolute top-2 left-2 right-2 flex justify-between pointer-events-none">
-              <div className="text-lg">{'❤️'.repeat(lives) + '🖤'.repeat(3 - lives)}</div>
-              <div className="text-white font-black text-sm">{waveBanner}</div>
+              <div className="text-base leading-none">{'❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, 5 - lives))}</div>
+              <div className="text-white font-black text-xs text-center">
+                <div>LVL {level + 1}</div>
+                {waveBanner && <div className="text-yellow-300">{waveBanner}</div>}
+              </div>
               <div className="text-white font-black">⭐ {score}</div>
             </div>
           </div>

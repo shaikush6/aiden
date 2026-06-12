@@ -21,6 +21,9 @@ const LaserBlasterGame = dynamic(() => import('@/components/space/LaserBlaster')
 const OrbitBuilderGame = dynamic(() => import('@/components/space/OrbitBuilder'), { ssr: false });
 const ConstellationGame = dynamic(() => import('@/components/space/ConstellationConnect'), { ssr: false });
 const DayNightLab = dynamic(() => import('@/components/space/DayNightLab'), { ssr: false });
+const RocketCount = dynamic(() => import('@/components/space/RocketCount'), { ssr: false });
+const PlanetSorter = dynamic(() => import('@/components/space/PlanetSorter'), { ssr: false });
+const SpaceMemory = dynamic(() => import('@/components/space/SpaceMemory'), { ssr: false });
 
 function PlanetInfoPanel({ planet, onClose }: { planet: Planet; onClose: () => void }) {
   const handleRead = useCallback(() => {
@@ -120,7 +123,7 @@ function PlanetInfoPanel({ planet, onClose }: { planet: Planet; onClose: () => v
 // ============================================================================
 
 type SpaceSection = 'LOOK' | 'BUILD' | 'PLAY' | 'FLY';
-type SpaceGame = 'laser' | 'orbit' | 'constellation' | 'daynight' | null;
+type SpaceGame = 'laser' | 'orbit' | 'constellation' | 'daynight' | 'rocket' | 'sorter' | 'memory' | null;
 
 interface SectionDef {
   id: SpaceSection;
@@ -315,12 +318,21 @@ export default function SolarTab() {
                     className="bg-indigo-900/60 border border-indigo-500/40 rounded-2xl p-5"
                     onClick={() => { setActiveGame('constellation'); speakText('Connect the stars!'); }}
                   />
+                  <GameCard
+                    emoji="🔢"
+                    title="PLANET SORTER"
+                    subtitle="Sort by size or distance!"
+                    subtitleColor="text-teal-300"
+                    className="bg-teal-900/60 border border-teal-500/40 rounded-2xl p-5"
+                    onClick={() => { setActiveGame('sorter'); speakText('Planet sorter!'); }}
+                  />
                 </div>
               </>
             ) : (
               <>
                 {activeGame === 'orbit' && <OrbitBuilderGame onBack={() => setActiveGame(null)} />}
                 {activeGame === 'constellation' && <ConstellationGame onBack={() => setActiveGame(null)} />}
+                {activeGame === 'sorter' && <PlanetSorter onBack={() => setActiveGame(null)} />}
               </>
             )
           )}
@@ -342,10 +354,19 @@ export default function SolarTab() {
                   <span className="text-purple-300 text-sm">Shoot the asteroids!</span>
                   <span className="bg-purple-600 text-white rounded-xl py-2 px-4 font-black mt-2">PLAY NOW →</span>
                 </motion.button>
+                <GameCard
+                  emoji="🪨"
+                  title="ROCKET COUNT"
+                  subtitle="Tap the right number asteroids!"
+                  subtitleColor="text-yellow-300"
+                  className="mx-4 bg-gradient-to-br from-yellow-900/80 to-orange-900/60 border border-yellow-500/40 rounded-2xl p-6"
+                  onClick={() => { setActiveGame('rocket'); speakText('Rocket count! Tap the right numbers!'); }}
+                />
               </>
             ) : (
               <>
                 {activeGame === 'laser' && <LaserBlasterGame onBack={() => setActiveGame(null)} />}
+                {activeGame === 'rocket' && <RocketCount onBack={() => setActiveGame(null)} />}
               </>
             )
           )}
@@ -364,6 +385,14 @@ export default function SolarTab() {
                     className="bg-orange-900/60 border border-orange-500/40 rounded-2xl p-5"
                     onClick={() => { setActiveGame('daynight'); speakText('Day and night lab!'); }}
                   />
+                  <GameCard
+                    emoji="🧠"
+                    title="SPACE MEMORY"
+                    subtitle="Match the space pairs!"
+                    subtitleColor="text-indigo-300"
+                    className="bg-indigo-900/60 border border-indigo-500/40 rounded-2xl p-5"
+                    onClick={() => { setActiveGame('memory'); speakText('Space memory! Find the matching pairs!'); }}
+                  />
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={handleFunFact}
@@ -380,6 +409,7 @@ export default function SolarTab() {
             ) : (
               <>
                 {activeGame === 'daynight' && <DayNightLab onBack={() => setActiveGame(null)} />}
+                {activeGame === 'memory' && <SpaceMemory onBack={() => setActiveGame(null)} />}
               </>
             )
           )}

@@ -9,6 +9,7 @@ import PatternsTab from '@/components/PatternsTab';
 import MathTab from '@/components/MathTab';
 import SolarTab from '@/components/SolarTab';
 import HebrewTab from '@/components/HebrewTab';
+import ExamPrepTab from '@/components/ExamPrepTab';
 import { setVoiceEnabled } from '@/lib/speech';
 const TeacherTab = dynamic(() => import('@/components/TeacherTab'), { ssr: false });
 
@@ -19,6 +20,7 @@ const TAB_BACKGROUNDS: Record<TabId, string> = {
   solar:    'from-slate-900 via-indigo-950 to-slate-900',
   teacher:  'from-emerald-300 via-green-200 to-teal-200 dark:from-emerald-950 dark:via-slate-900 dark:to-slate-950',
   hebrew:   'from-blue-400 via-blue-200 to-sky-100 dark:from-blue-950 dark:via-slate-900 dark:to-slate-950',
+  prep:     'from-rose-300 via-pink-200 to-fuchsia-200 dark:from-rose-950 dark:via-slate-900 dark:to-slate-950',
 };
 
 const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string; textColor: string }> = {
@@ -28,6 +30,7 @@ const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string
   solar:    { title: 'SPACE EXPLORER',  subtitle: 'Discover our solar system!',          icon: '🪐', textColor: 'text-indigo-200' },
   teacher:  { title: 'TALK TO MIMI',    subtitle: 'Your AI teacher is here!',            icon: '🎓', textColor: 'text-emerald-800' },
   hebrew:   { title: 'עברית',           subtitle: 'Learn Hebrew letters and words!',     icon: '🇮🇱', textColor: 'text-blue-900' },
+  prep:     { title: 'BRAIN GAMES',    subtitle: 'Think like a champion!',              icon: '🧠', textColor: 'text-rose-800' },
 };
 
 export default function Home() {
@@ -116,6 +119,7 @@ export default function Home() {
             {activeTab === 'solar' && <SolarTab />}
             {activeTab === 'teacher' && <TeacherTab />}
             {activeTab === 'hebrew'  && <HebrewTab />}
+            {activeTab === 'prep'    && <ExamPrepTab />}
           </motion.div>
         </AnimatePresence>
       </main>

@@ -758,6 +758,23 @@ function chipMeta(groupId: string, value: string): { icon: string; label: string
 // ── Main ───────────────────────────────────────────────────────────
 type TabMode = 'QUIZ' | 'CREATE';
 
+const PATTERN_CATEGORY_ORDER: PatternCore[] = [
+  'AB', 'ABC', 'AAB', 'ABB', 'ABA', 'AABB', 'ABBA', 'ABBB', 'AAAB',
+  'AABC', 'ABBC', 'ABCC', 'ABAC', 'ABCA', 'ABCB', 'ABCD',
+  'ABCBA', 'ABCDE', 'AABBC', 'ABBCC',
+  'growing', 'shrinking', 'mirror', 'rotation', 'matrix', 'other',
+];
+
+const CAT_COLOR_LIST = [
+  'bg-pink-500', 'bg-violet-500', 'bg-blue-500', 'bg-cyan-500',
+  'bg-teal-500', 'bg-green-500', 'bg-lime-500', 'bg-yellow-500',
+  'bg-orange-500', 'bg-red-500', 'bg-rose-500', 'bg-fuchsia-500',
+  'bg-purple-500', 'bg-indigo-500', 'bg-sky-500', 'bg-emerald-500',
+  'bg-amber-500', 'bg-pink-600', 'bg-violet-600', 'bg-blue-600',
+  'bg-cyan-600', 'bg-teal-600', 'bg-green-600', 'bg-lime-600',
+  'bg-yellow-600', 'bg-orange-600',
+];
+
 export default function PatternsTab() {
   const [difficulty, setDifficulty] = useState<Difficulty>('EASY');
   const [tabMode, setTabMode] = useState<TabMode>('QUIZ');
@@ -843,6 +860,12 @@ export default function PatternsTab() {
   };
   const handleWrong = () => setQIndex(i => i);
 
+  const handleRandom = useCallback(() => {
+    const pool = effectivePool;
+    const idx = Math.floor(Math.random() * pool.length);
+    setQIndex(idx);
+  }, [effectivePool]);
+
   const toggleFilter = (key: keyof FilterState, value: string) => {
     setFilters(prev => {
       const next = new Set(prev[key] as Set<string>);
@@ -891,6 +914,54 @@ export default function PatternsTab() {
 
       {tabMode === 'CREATE' ? <MakeYourOwnMode /> : (
         <>
+          {/* Category chips + RANDOM */}
+          <div className="w-full max-w-sm flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleRandom}
+                className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-2xl font-black text-sm text-white shadow-md bg-gradient-to-r from-purple-500 to-violet-500"
+              >
+                🎲 <span>RANDOM</span>
+              </motion.button>
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {PATTERN_CATEGORY_ORDER.map((core, i) => {
+                  const isActive = filters.patternCore.has(core);
+                  const meta = PATTERN_CORE_LABELS[core];
+                  const color = CAT_COLOR_LIST[i % CAT_COLOR_LIST.length];
+                  return (
+                    <motion.button
+                      key={core}
+                      whileTap={{ scale: 0.88 }}
+                      animate={{ opacity: isActive ? 1 : 0.6 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={() => toggleFilter('patternCore', core)}
+                      className={[
+                        'shrink-0 flex items-center gap-1 px-3 py-2 rounded-full font-black text-xs shadow transition-shadow',
+                        isActive
+                          ? `${color} text-white shadow-md ring-2 ring-white ring-offset-1`
+                          : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300',
+                      ].join(' ')}
+                    >
+                      <span className="text-[10px]">{meta.example.slice(0, 2)}</span>
+                      <span>{meta.label}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+            {filters.patternCore.size > 0 && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onClick={() => { setFilters(prev => ({ ...prev, patternCore: new Set() })); setQIndex(0); }}
+                className="text-[11px] font-black text-purple-500 dark:text-purple-300 text-left ml-1"
+              >
+                CLEAR CATEGORY ({filters.patternCore.size})
+              </motion.button>
+            )}
+          </div>
+
           {/* Difficulty + filter toggle */}
           <div className="flex items-center gap-2 w-full max-w-sm">
             <div className="grid grid-cols-5 gap-1 flex-1">

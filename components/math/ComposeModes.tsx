@@ -2,8 +2,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
-import { OBJECT_EMOJIS, NUMBER_BONDS_TO_5, NUMBER_BONDS_TO_10,
-         DICE_POSITIONS, SUBITIZE_CONFIGS, type NumberBond } from "@/lib/math-data";
+import { OBJECT_EMOJIS } from "@/lib/math-data";
 import { speakText, speakNumber, speakEncouragement } from "@/lib/speech";
 const ReactConfetti = dynamic(() => import("react-confetti"), { ssr: false });
 
