@@ -172,48 +172,52 @@ export default function SpaceMemory({ onBack }: { onBack: () => void }) {
             </div>
           </div>
 
-          <div className="relative mx-2 mb-2 rounded-2xl bg-slate-900 overflow-hidden p-2">
-            <div className="absolute inset-0 pointer-events-none">
-              {STAR_DOTS.map((s, i) => (
-                <div key={i} className="absolute w-0.5 h-0.5 bg-white rounded-full opacity-30" style={s} />
-              ))}
-            </div>
-            <div
-              className="relative z-10 grid gap-1.5"
-              style={{ gridTemplateColumns: `repeat(${cfg.cols}, minmax(0, 1fr))` }}
-            >
-              {cards.map((card) => (
-                <div
-                  key={card.id}
-                  className="aspect-square cursor-pointer"
-                  style={{ perspective: 500 }}
-                  onClick={() => handleCardTap(card.id)}
-                >
-                  <motion.div
-                    className="relative w-full h-full"
-                    animate={{ rotateY: card.flipped || card.matched ? 180 : 0 }}
-                    transition={{ duration: 0.28, ease: 'easeInOut' }}
-                    style={{ transformStyle: 'preserve-3d' }}
+          <div className="flex justify-center px-2 mb-2">
+            <div className="relative w-full max-w-xs rounded-2xl bg-slate-900 overflow-hidden p-2">
+              <div className="absolute inset-0 pointer-events-none">
+                {STAR_DOTS.map((s, i) => (
+                  <div key={i} className="absolute w-0.5 h-0.5 bg-white rounded-full opacity-30" style={s} />
+                ))}
+              </div>
+              <div
+                className="relative z-10 grid gap-1.5"
+                style={{ gridTemplateColumns: `repeat(${cfg.cols}, minmax(0, 1fr))` }}
+              >
+                {cards.map((card) => (
+                  <div
+                    key={card.id}
+                    className="aspect-square cursor-pointer"
+                    style={{ perspective: 500 }}
+                    onClick={() => handleCardTap(card.id)}
                   >
-                    <div
-                      className="absolute inset-0 rounded-lg bg-indigo-900 border border-indigo-700/60 flex items-center justify-center"
-                      style={{ backfaceVisibility: 'hidden' }}
-                    >
-                      <span className={`${cfg.emojiCls} opacity-40`}>🌌</span>
-                    </div>
                     <motion.div
-                      className={`absolute inset-0 rounded-lg flex items-center justify-center border ${
-                        card.matched ? 'bg-emerald-900/80 border-emerald-400' : 'bg-slate-700 border-indigo-500'
-                      }`}
-                      style={{ backfaceVisibility: 'hidden', rotateY: 180 }}
-                      animate={card.matched ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-                      transition={card.matched ? { duration: 0.25 } : {}}
+                      className="relative w-full h-full"
+                      animate={{ rotateY: card.flipped || card.matched ? 180 : 0 }}
+                      transition={{ duration: 0.28, ease: 'easeInOut' }}
+                      style={{ transformStyle: 'preserve-3d' }}
                     >
-                      <span className={cfg.emojiCls}>{card.emoji}</span>
+                      {/* Back face — CSS only, no emoji */}
+                      <div
+                        className="absolute inset-0 rounded-lg bg-indigo-900 border border-indigo-600/50 flex items-center justify-center"
+                        style={{ backfaceVisibility: 'hidden' }}
+                      >
+                        <div className="w-3 h-3 rounded-full bg-indigo-500/40" />
+                      </div>
+                      {/* Front face */}
+                      <motion.div
+                        className={`absolute inset-0 rounded-lg flex items-center justify-center border ${
+                          card.matched ? 'bg-emerald-900/80 border-emerald-400' : 'bg-slate-700 border-indigo-500'
+                        }`}
+                        style={{ backfaceVisibility: 'hidden', rotateY: 180 }}
+                        animate={card.matched ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+                        transition={card.matched ? { duration: 0.25 } : {}}
+                      >
+                        <span className={cfg.emojiCls}>{card.emoji}</span>
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
