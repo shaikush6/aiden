@@ -554,6 +554,26 @@ export default function PhonicsTab() {
         />
       )}
 
+      {/* Page intro banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-3 bg-white/70 dark:bg-slate-800/70 rounded-2xl px-4 py-3 shadow border border-sky-200 dark:border-slate-700"
+      >
+        <span className="text-3xl">🔤</span>
+        <p className="flex-1 text-sky-900 dark:text-sky-200 font-bold text-sm leading-snug">
+          Tap any word or letter to hear how it sounds! Choose a mode below — words, sentences, stories, and more.
+        </p>
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={() => speakText('Tap any word or letter to hear how it sounds! Choose a mode below — words, sentences, stories, and more.')}
+          className="w-10 h-10 flex-shrink-0 rounded-xl bg-sky-100 dark:bg-slate-700 flex items-center justify-center text-xl shadow"
+          aria-label="Read instructions aloud"
+        >
+          🔊
+        </motion.button>
+      </motion.div>
+
       {/* Mode selector */}
       <div className="flex gap-2 justify-center flex-wrap">
         {([
