@@ -17,7 +17,7 @@ const SolarSystem3D = dynamic(() => import('@/components/SolarSystem3D'), {
 });
 
 // New game components (browser-only)
-const LaserBlasterGame = dynamic(() => import('@/components/space/LaserBlaster'), { ssr: false });
+const LaserBlasterGame = dynamic(() => import('@/components/space/laser-blaster'), { ssr: false });
 const OrbitBuilderGame = dynamic(() => import('@/components/space/OrbitBuilder'), { ssr: false });
 const ConstellationGame = dynamic(() => import('@/components/space/ConstellationConnect'), { ssr: false });
 const DayNightLab = dynamic(() => import('@/components/space/DayNightLab'), { ssr: false });
