@@ -35,9 +35,9 @@ export const WORLD_3: WorldDef = {
       sentences: [
         { t: 'Can a fish get wet?', yes: true },
         { t: 'Is a shell as big as a ship?', yes: false },
-        { t: 'The fish is in the dish.', pic: '🐟🍽️', alts: ['🐟🚢', '🐚🍽️'] },
-        { t: 'She has a shell in a net.', pic: '👧🐚🥅', alts: ['👦🐚🥅', '👧🐟🥅'] },
-        { t: 'The ship has cash in a big box.', pic: '🚢💵📦', alts: ['🚢🐚📦', '🚐💵📦'] },
+        { t: 'The fish is in the dish.', pic: '🐟 in 🍽️', alts: ['🐟 by 🍽️', '🐚 in 🍽️'] },
+        { t: 'She has a shell in a net.', pic: '👧 🐚 in 🥅', alts: ['👦 🐚 in 🥅', '👧 🐟 in 🥅'] },
+        { t: 'The ship has cash in a big box.', pic: '🚢 💵 in 📦', alts: ['🚢 🐚 in 📦', '🚐 💵 in 📦'] },
       ],
     },
     {
@@ -66,10 +66,10 @@ export const WORLD_3: WorldDef = {
       sentences: [
         { t: 'Can a chick chop a log?', yes: false },
         { t: 'Can a chicken peck?', yes: true },
-        { t: 'The chick is by the chess set.', pic: '🐤♟️', alts: ['🐔♟️', '🐤🪵'] },
-        { t: 'All the chicks sat in the hut.', pic: '🐤🐤🐤🛖', alts: ['🐤🛖', '🐤🐤🐤🪵'] },
+        { t: 'The chick is by the chess set.', pic: '🐤 by ♟️', alts: ['🐔 by ♟️', '🐤 on ♟️'] },
+        { t: 'All the chicks sat in the hut.', pic: '3🐤 in 🛖', alts: ['1🐤 in 🛖', '3🐤 on 🪵'] },
         { t: 'Can a fish punch a nut?', yes: false },
-        { t: 'The chicken got rich! It has a big box of cash.', pic: '🐔💵📦', alts: ['🐤💵📦', '🐔🥜📦'] },
+        { t: 'The chicken got rich! It has a big box of cash.', pic: '🐔 💵 in 📦', alts: ['🐤 💵 in 📦', '🐔 🥜 in 📦'] },
       ],
     },
     {
@@ -97,8 +97,8 @@ export const WORLD_3: WorldDef = {
       sentences: [
         { t: 'Can a ship fit in a bath?', yes: false },
         { t: 'Math fun: is 5 and 5 ten?', yes: true },
-        { t: 'The fish is in this cup, not in the bath.', pic: '🐟☕', alts: ['🐟🛁', '🦆☕'] },
-        { t: 'This chick is on a rock with the fox.', pic: '🐤🪨🦊', alts: ['🐤☕🦊', '🦆🪨🦊'] },
+        { t: 'The fish is in this cup, not in the bath.', pic: '🐟 in ☕', alts: ['🐟 in 🛁', '🦆 in ☕'] },
+        { t: 'This chick is on a rock with the fox.', pic: '🐤 on 🪨 🦊', alts: ['🐤 on ☕ 🦊', '🦆 on 🪨 🦊'] },
         { t: 'The duck and the fox had fun. Then they had a nap in the sun.', pic: '🦆🦊☀️', alts: ['🦆🦊🛁', '🦆🐤☀️'] },
       ],
     },
@@ -129,8 +129,8 @@ export const WORLD_3: WorldDef = {
       sentences: [
         { t: 'Can a ship sing?', yes: false },
         { t: 'Can a king sing a song?', yes: true },
-        { t: 'She has a pink ring. Her ring is in the bank.', pic: '👧💍🏦', alts: ['👧💍🚢', '👧👑🏦'] },
-        { t: 'The chipmunk and the fish are on a ship.', pic: '🐿️🐟🚢', alts: ['🐿️🐟🏦', '🐿️🦆🚢'] },
+        { t: 'She has a pink ring. Her ring is in the bank.', pic: '👧 💍 in 🏦', alts: ['👧 💍 in 🚢', '👧 👑 in 🏦'] },
+        { t: 'The chipmunk and the fish are on a ship.', pic: '🐿️+🐟 on 🚢', alts: ['🐿️+🐟 on 🏦', '🐿️+🦆 on 🚢'] },
         { t: 'The king can wink at the chipmunk.', pic: '👑😉🐿️', alts: ['👑🎤🐿️', '👑😉🐟'] },
       ],
     },

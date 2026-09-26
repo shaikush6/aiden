@@ -35,7 +35,7 @@ export const WORLD_4: WorldDef = {
       sentences: [
         { t: 'Can you have milk in a tent?', yes: true },
         { t: 'Can a tent jump?', yes: false },
-        { t: 'Dad said the gift is in the tent.', pic: '👨🎁⛺', alts: ['👩🎁⛺', '👨🥛⛺'] },
+        { t: 'Dad said the gift is in the tent.', pic: '👨 🎁 in ⛺', alts: ['👩 🎁 in ⛺', '👨 🥛 in ⛺'] },
         { t: 'The elf has milk and a vest.', pic: '🧝🥛🦺', alts: ['🧝🥛🎁', '🧝💡🦺'] },
         { t: 'Can you jump in the sand?', yes: true },
       ],
@@ -65,7 +65,7 @@ export const WORLD_4: WorldDef = {
       sentences: [
         { t: 'Can a tent swim in a pond?', yes: false },
         { t: 'Do skunks smell bad?', yes: true },
-        { t: 'Two skunks stop at the tent.', pic: '🦨🦨⛺', alts: ['🦨⛺', '🦨🦨🛑'] },
+        { t: 'Two skunks stop at the tent.', pic: '2🦨 by ⛺', alts: ['1🦨 by ⛺', '2🦨 by 🛑'] },
         { t: 'The skunk has a snack and milk.', pic: '🦨🍿🥛', alts: ['🦨💀🥛', '🐝🍿🥛'] },
         { t: 'I swim in the pond, so the skunk has my snack!', pic: '🏊🦨🍿', alts: ['🏊🦨🥛', '🛑🦨🍿'] },
       ],
@@ -95,8 +95,8 @@ export const WORLD_4: WorldDef = {
       sentences: [
         { t: 'Can a truck grin?', yes: false },
         { t: 'Can you clap and grin?', yes: true },
-        { t: 'The frog is on the red truck.', pic: '🐸🚚', alts: ['🐸🛷', '🦀🚚'] },
-        { t: 'Come quick! The crab has some bricks on a sled.', pic: '🦀🧱🛷', alts: ['🦀🧱🚚', '🐸🧱🛷'] },
+        { t: 'The frog is on the red truck.', pic: '🐸 on 🚚', alts: ['🐸 on 🛷', '🦀 on 🚚'] },
+        { t: 'Come quick! The crab has some bricks on a sled.', pic: '🦀 🧱 on 🛷', alts: ['🦀 🧱 on 🚚', '🐸 🧱 on 🛷'] },
         { t: 'Some frogs have a flag and a drum.', pic: '🐸🐸🚩🥁', alts: ['🐸🐸🚩🔌', '🦀🦀🚩🥁'] },
       ],
     },
@@ -124,7 +124,7 @@ export const WORLD_4: WorldDef = {
       sentences: [
         { t: 'Can one shrimp drink a pond?', yes: false },
         { t: 'Can a strong kid lift a backpack?', yes: true },
-        { t: 'There is one shrimp in my backpack.', pic: '🦐🎒', alts: ['🦐🦐🎒', '🦐🥪'] },
+        { t: 'There is one shrimp in my backpack.', pic: '1🦐 in 🎒', alts: ['3🦐 in 🎒', '1🦐 in 🥪'] },
         { t: 'Splash! The strong skunk jumps in the pond with a trumpet.', pic: '🦨💦🎺', alts: ['🦨💦🧵', '🦝💦🎺'] },
         { t: 'Kit has a sandwich and a drink next to a plant.', pic: '🦊🥪🥤🪴', alts: ['🦊🥪🎺🪴', '🦊🥪🥤🎒'] },
       ],

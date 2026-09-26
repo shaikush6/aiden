@@ -4,6 +4,7 @@ import type { LevelInfo } from '@/lib/reading-quest/catalog';
 import { say } from '@/lib/reading-quest/audio';
 import { LINES } from '@/lib/reading-quest/lines';
 import type { Step } from '@/lib/reading-quest/plan';
+import Scene from '../Scene';
 import TappableText from '../TappableText';
 import { ChoiceCard, Emoji, Guide, SpeakerButton, useAnswer, useSayOnMount, type StepResult } from '../ui';
 
@@ -57,7 +58,7 @@ export default function SentenceCheck({ step, level, onDone }: Props) {
               disabled={busy}
               onClick={() => ('pic' in sentence && p === sentence.pic ? right(readAloud) : wrong(p, readAloud))}
             >
-              <Emoji size="text-6xl">{p}</Emoji>
+              <Scene scene={p} size={3.4} />
             </ChoiceCard>
           ))}
         </div>

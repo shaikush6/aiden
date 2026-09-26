@@ -38,9 +38,9 @@ export const WORLD_2: WorldDef = {
       sentences: [
         { t: 'Can a dog jog?', yes: true },
         { t: 'Can we jog on a web?', yes: false },
-        { t: 'The bug is on the web.', pic: '🐛🕸️', alts: ['🦇🕸️', '🐛🪵'] },
-        { t: 'He is in a jet.', pic: '👦✈️', alts: ['👦🚐', '🐶✈️'] },
-        { t: 'The nut is in the van.', pic: '🥜🚐', alts: ['🥜✈️', '🐛🚐'] },
+        { t: 'The bug is on the web.', pic: '🐛 on 🕸️', alts: ['🦇 on 🕸️', '🐛 on 🪵'] },
+        { t: 'He is in a jet.', pic: '👦 in ✈️', alts: ['👦 in 🚐', '🐶 in ✈️'] },
+        { t: 'The nut is in the van.', pic: '🥜 in 🚐', alts: ['🥜 in ✈️', '🐛 in 🚐'] },
       ],
     },
     {
@@ -72,9 +72,9 @@ export const WORLD_2: WorldDef = {
       sentences: [
         { t: 'Can a fox be red?', yes: true },
         { t: 'Can an ox fit in a box?', yes: false },
-        { t: 'The fox is in the box.', pic: '🦊📦', alts: ['🐂📦', '🦊🚐'] },
+        { t: 'The fox is in the box.', pic: '🦊 in 📦', alts: ['🦊 on 📦', '🐂 in 📦'] },
         { t: 'Mud on me? Yuck!', pic: '🤢', alts: ['😋', '😴'] },
-        { t: 'Six bugs sit on a log.', pic: '6️⃣🐛🪵', alts: ['6️⃣🐛📦', '🔟🐛🪵'] },
+        { t: 'Six bugs sit on a log.', pic: '6🐛 on 🪵', alts: ['4🐛 on 🪵', '6🐛 in 📦'] },
       ],
     },
     {
@@ -102,9 +102,9 @@ export const WORLD_2: WorldDef = {
       sentences: [
         { t: 'Can a duck quack?', yes: true },
         { t: 'Can a squid quack?', yes: false },
-        { t: 'The squid was in the net.', pic: '🦑🥅', alts: ['🦑🚌', '🐔🥅'] },
-        { t: 'Quick! The hen is on the bus.', pic: '🐔🚌', alts: ['🐔🪨', '🦆🚌'] },
-        { t: 'Ten ducks sat on a rock.', pic: '🔟🦆🪨', alts: ['🔟🦆🚌', '6️⃣🦆🪨'] },
+        { t: 'The squid was in the net.', pic: '🦑 in 🥅', alts: ['🦑 by 🥅', '🐔 in 🥅'] },
+        { t: 'Quick! The hen is on the bus.', pic: '🐔 on 🚌', alts: ['🐔 by 🚌', '🦆 on 🚌'] },
+        { t: 'Ten ducks sat on a rock.', pic: '10🦆 on 🪨', alts: ['7🦆 on 🪨', '10🦆 in 🚌'] },
       ],
     },
     {
@@ -131,9 +131,9 @@ export const WORLD_2: WorldDef = {
       sentences: [
         { t: 'Can you jog up a hill?', yes: true },
         { t: 'Can my hotdog quack?', yes: false },
-        { t: 'My sunhat is on the laptop.', pic: '👒💻', alts: ['👒🪣', '🧥💻'] },
+        { t: 'My sunhat is on the laptop.', pic: '👒 on 💻', alts: ['👒 on 🪣', '🧥 on 💻'] },
         { t: 'A rocket zips up at sunset.', pic: '🚀🌅', alts: ['🚀☀️', '🧲🌅'] },
-        { t: 'The hotdog is in my bucket, not in the jacket.', pic: '🌭🪣', alts: ['🌭🧥', '🧲🪣'] },
+        { t: 'The hotdog is in my bucket, not in the jacket.', pic: '🌭 in 🪣', alts: ['🌭 in 🧥', '🧲 in 🪣'] },
       ],
     },
     {

@@ -6,6 +6,7 @@ import { parseSeg, parseWord } from './parse.ts'
 import type { ParsedWord } from './types.ts'
 import { planLevel } from './plan.ts'
 import { checkScript } from './script.ts'
+import { parseScene } from './scene.ts'
 import { KIT_LINES, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, KIT_PRAISE, KIT_RETRY } from './lines.ts'
 import { narrationLines } from './narration.ts'
 import { WORLDS } from './curriculum/index.ts'
@@ -98,13 +99,18 @@ export function validateCurriculum(): string[] {
       checkText(s.t, `sentence ${i + 1}`)
       if ('pic' in s) {
         const all = [s.pic, ...s.alts]
+        for (const scene of all) { try { parseScene(scene) } catch (e) { at(`sentence ${i + 1}: ${(e as Error).message}`) } }
         if (new Set(all).size !== 3) at(`sentence ${i + 1}: picture choices must all differ`)
       }
     })
     if (!level.isBoss && def.sentences.length < 2) at('needs at least 2 sentences')
 
     if (def.story) {
-      def.story.pages.forEach((p, i) => { checkText(p.t, `story page ${i + 1}`); if (!p.pic) at(`story page ${i + 1} needs a picture`) })
+      def.story.pages.forEach((p, i) => {
+        checkText(p.t, `story page ${i + 1}`)
+        if (!p.pic) at(`story page ${i + 1} needs a picture`)
+        else { try { parseScene(p.pic) } catch (e) { at(`story page ${i + 1}: ${(e as Error).message}`) } }
+      })
       checkText(def.story.title, 'story title')
       def.story.questions.forEach((q, i) => {
         if (new Set(q.options).size !== 3) at(`story question ${i + 1}: options must differ`)

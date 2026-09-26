@@ -35,8 +35,8 @@ export const WORLD_1: WorldDef = {
       extra: [...ws('s.a.t', 'p.a.t', 't.i.p', 'a.n', 'i.n', 'i.t', 'i.t.s'), w('a', undefined, 'uh')],
       aliens: ['n.a.s', 't.a.s', 'n.i.s', 'p.i.s'],
       sentences: [
-        { t: 'an ant in a pan', pic: '🐜🍳', alts: ['🐜🥫', '📌🍳'] },
-        { t: 'a pin in a tin', pic: '📌🥫', alts: ['📌🍳', '🐜🥫'] },
+        { t: 'an ant in a pan', pic: '🐜 in 🍳', alts: ['🐜 under 🍳', '📌 in 🍳'] },
+        { t: 'a pin in a tin', pic: '📌 in 🥫', alts: ['📌 on 🥫', '🐜 in 🥫'] },
       ],
     },
     {
@@ -68,10 +68,10 @@ export const WORLD_1: WorldDef = {
       ],
       aliens: ['m.o.g', 'k.o.t', 'g.i.d', 'd.o.p'],
       sentences: [
-        { t: 'a dog in a pot', pic: '🐶🍲', alts: ['🐱🍲', '🐶🗺️'] },
-        { t: 'the cat on a map', pic: '🐱🗺️', alts: ['🐶🗺️', '🐱🧢'] },
+        { t: 'a dog in a pot', pic: '🐶 in 🍲', alts: ['🐱 in 🍲', '🐶 by 🍲'] },
+        { t: 'the cat on a map', pic: '🐱 on 🗺️', alts: ['🐶 on 🗺️', '🐱 under 🗺️'] },
         { t: 'I am sad.', pic: '😢', alts: ['😠', '😴'] },
-        { t: 'a pig in a cap', pic: '🐷🧢', alts: ['🐷🍲', '🐱🧢'] },
+        { t: 'a pig in a cap', pic: '🐷 in 🧢', alts: ['🐷 in 🍲', '🐱 in 🧢'] },
       ],
     },
     {
@@ -108,8 +108,8 @@ export const WORLD_1: WorldDef = {
         { t: 'Is the sun hot?', yes: true },
         { t: 'Can a hen run?', yes: true },
         { t: 'Can a bed run?', yes: false },
-        { t: 'The bug is in the cup.', pic: '🐛☕', alts: ['🐛🛏️', '🐀☕'] },
-        { t: 'A rat is in a hat.', pic: '🐀🎩', alts: ['🦇🎩', '🐀☕'] },
+        { t: 'The bug is in the cup.', pic: '🐛 in ☕', alts: ['🐛 on 🛏️', '🐀 in ☕'] },
+        { t: 'A rat is in a hat.', pic: '🐀 in 🎩', alts: ['🦇 in 🎩', '🐀 on 🎩'] },
       ],
     },
     {
@@ -142,8 +142,8 @@ export const WORLD_1: WorldDef = {
       ],
       aliens: ['l.u.ff', 'f.i.ck', 'g.e.ll', 'n.o.ss'],
       sentences: [
-        { t: 'The bell is on the doll.', pic: '🔔🪆', alts: ['🔔🧦', '🦆🪆'] },
-        { t: 'The duck is on a log.', pic: '🦆🪵', alts: ['🦆🪨', '🐶🪵'] },
+        { t: 'The bell is on the doll.', pic: '🔔 on 🪆', alts: ['🔔 under 🪆', '🦆 on 🪆'] },
+        { t: 'The duck is on a log.', pic: '🦆 on 🪵', alts: ['🦆 under 🪵', '🐶 on 🪵'] },
         { t: 'Can a sock run up a hill?', yes: false },
         { t: 'Can a duck get in the mud?', yes: true },
       ],
