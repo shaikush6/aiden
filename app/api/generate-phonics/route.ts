@@ -1,22 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
+
+const THEMES = ['animals', 'food', 'adventure', 'the sea', 'the farm', 'space', 'a funny dog']
+const SOUND = /^[A-Z]{1,3}$/
+
+/** Keep only short uppercase letter-sound codes like "A" or "SH", so nothing else reaches the prompt. */
+function cleanSounds(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > 30) return null
+  const out = value.filter((v): v is string => typeof v === 'string' && SOUND.test(v))
+  return out.length === value.length ? out : null
+}
 
 export async function POST(req: NextRequest) {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'No API key' }, { status: 500 })
-  }
+  if (!isSameOrigin(req)) return jsonError('Forbidden', 403)
+  if (rateLimited(req, 'generate-phonics', 10, 60_000)) return jsonError('Too many requests', 429)
+  if (!process.env.OPENAI_API_KEY) return jsonError('Generation is not configured', 503)
+
+  let body: Record<string, unknown>
+  try { body = (await req.json()) ?? {} } catch { return jsonError('Bad request', 400) }
+
+  const mode = body.mode === 'story' ? 'story' : 'sentence'
+  const vowels = cleanSounds(body.vowels)
+  const consonants = cleanSounds(body.consonants)
+  if (!vowels || !consonants || vowels.length + consonants.length === 0) return jsonError('Bad sounds', 400)
+
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
-  const { mode, vowels, consonants, theme } = await req.json() as {
-    mode: 'sentence' | 'story'
-    vowels: string[]
-    consonants: string[]
-    theme?: string
-  }
-
   const sounds = [...vowels, ...consonants].join(', ')
-  const themes = ['animals', 'food', 'adventure', 'the sea', 'the farm', 'space', 'a funny dog']
-  const chosenTheme = theme ?? themes[Math.floor(Math.random() * themes.length)]
+  const chosenTheme = typeof body.theme === 'string' && THEMES.includes(body.theme)
+    ? body.theme
+    : THEMES[Math.floor(Math.random() * THEMES.length)]
 
   const prompt = mode === 'story'
     ? `Write a short decodable story for a 4-year-old child learning to read.

@@ -394,15 +394,16 @@ function AIGenerateMode({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type,
+          mode: type === 'story' ? 'story' : 'sentence',
           vowels: Array.from(selectedVowels),
           consonants: Array.from(selectedConsonants),
         }),
       });
 
       if (!res.ok) throw new Error('Generation failed');
-      const data = await res.json() as { text: string };
-      setGeneratedText(data.text);
+      const data = await res.json() as { content?: string };
+      if (!data.content) throw new Error('Empty result');
+      setGeneratedText(data.content);
     } catch {
       setError('OOPS! COULD NOT CONNECT. TRY AGAIN!');
     } finally {

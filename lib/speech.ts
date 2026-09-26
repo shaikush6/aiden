@@ -1,9 +1,13 @@
-// OpenAI TTS — silently no-ops if API key is missing.
+// OpenAI TTS — silently no-ops if the API is unavailable.
 // All public functions return Promise<void> that resolve when audio finishes.
+// Playback goes through the shared player, so only one clip ever plays at a time.
 
-let voiceEnabled = true
-export function setVoiceEnabled(v: boolean) { voiceEnabled = v }
-export function getVoiceEnabled() { return voiceEnabled }
+import { isAudioEnabled, playClip, setAudioEnabled, stopAudio } from './audio-player'
+import { hashKey } from './hash'
+
+export function setVoiceEnabled(v: boolean) { setAudioEnabled(v) }
+export function getVoiceEnabled() { return isAudioEnabled() }
+export { stopAudio as stopSpeech }
 
 // Static phonics audio files — MIT licensed from hellodeborahuk/buzzphonics
 // https://github.com/hellodeborahuk/buzzphonics  (MIT license)
@@ -32,62 +36,89 @@ const PHONEME_MAP: Record<string, string> = {
   SH: 'sh', CH: 'ch', TH: 'th', NG: 'ng', OO: 'oo',
 }
 
-// Blob URL cache: text -> object URL
-const cache = new Map<string, string>()
+// ---------- Caching ----------
+// Layer 1: in-memory object URLs, capped so a long session cannot grow memory without limit.
+// Layer 2: the browser's Cache Storage, so clips survive page reloads and are fetched only once per device.
 
-// Current audio + request sequence counter.
-// The sequence counter ensures that if two speak() calls race,
-// only the LAST one actually plays — no overlapping or cut-off audio.
-let currentAudio: HTMLAudioElement | null = null
-let reqSeq = 0
+const MAX_URLS = 200
+const urlCache = new Map<string, string>()
+const inFlight = new Map<string, Promise<string | null>>()
+const CACHE_NAME = 'aiden-tts-v1'
 
-function stopCurrent() {
-  if (currentAudio) {
-    currentAudio.pause()
-    currentAudio.src = ''
-    currentAudio = null
+function rememberUrl(key: string, url: string) {
+  urlCache.set(key, url)
+  if (urlCache.size > MAX_URLS) {
+    const oldest = urlCache.keys().next().value as string
+    const oldUrl = urlCache.get(oldest)
+    urlCache.delete(oldest)
+    // The shared player may still be using the most recent clips, never the oldest one.
+    if (oldUrl) URL.revokeObjectURL(oldUrl)
   }
 }
 
-async function fetchTTS(text: string, speed: number, phonics = false): Promise<string | null> {
-  const cacheKey = `${phonics ? 'ph:' : ''}${text}|${speed}`
-  if (cache.has(cacheKey)) return cache.get(cacheKey)!
-
+async function openCache(): Promise<Cache | null> {
   try {
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, speed, phonics }),
-    })
-    if (!res.ok) return null
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    cache.set(cacheKey, url)
-    return url
+    return typeof caches === 'undefined' ? null : await caches.open(CACHE_NAME)
   } catch {
     return null
   }
 }
 
+/**
+ * Get a playable object URL for `key`, loading it with `load` only when neither cache has it.
+ * `persistKey` is a same-origin path used as the Cache Storage key.
+ */
+export async function cachedAudioUrl(
+  key: string,
+  persistKey: string,
+  load: () => Promise<Response>,
+): Promise<string | null> {
+  const hit = urlCache.get(key)
+  if (hit) {
+    urlCache.delete(key)          // refresh recency
+    urlCache.set(key, hit)
+    return hit
+  }
+  const pending = inFlight.get(key)
+  if (pending) return pending
+
+  const job = (async () => {
+    try {
+      const cache = await openCache()
+      let res = cache ? await cache.match(persistKey) : undefined
+      if (!res) {
+        const fresh = await load()
+        if (!fresh.ok) return null
+        if (cache) await cache.put(persistKey, fresh.clone()).catch(() => {})
+        res = fresh
+      }
+      const url = URL.createObjectURL(await res.blob())
+      rememberUrl(key, url)
+      return url
+    } catch {
+      return null
+    } finally {
+      inFlight.delete(key)
+    }
+  })()
+  inFlight.set(key, job)
+  return job
+}
+
+function fetchTTS(text: string, speed: number, phonics = false): Promise<string | null> {
+  const key = `${phonics ? 'ph:' : ''}${text}|${speed}`
+  return cachedAudioUrl(key, `/__tts-cache/${hashKey(key)}`, () =>
+    fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, speed, phonics }),
+    }),
+  )
+}
+
 async function playTTS(text: string, speed = 1.0, phonics = false): Promise<void> {
-  if (!voiceEnabled) return
-  if (typeof window === 'undefined') return
-
-  stopCurrent()
-  const mySeq = ++reqSeq          // claim a sequence slot
-  const url = await fetchTTS(text, speed, phonics)
-
-  // If another call was made while we were fetching, discard this result
-  if (!url || mySeq !== reqSeq) return
-
-  stopCurrent()                   // stop anything that snuck in during the await
-  return new Promise(resolve => {
-    const audio = new Audio(url)
-    currentAudio = audio
-    audio.onended = () => { currentAudio = null; resolve() }
-    audio.onerror = () => { currentAudio = null; resolve() }
-    audio.play().catch(() => { currentAudio = null; resolve() })
-  })
+  if (!isAudioEnabled() || typeof window === 'undefined') return
+  await playClip(() => fetchTTS(text, speed, phonics))
 }
 
 // Public API
@@ -96,15 +127,9 @@ export function speakWord(word: string): Promise<void> {
   return playTTS(word.toLowerCase(), 0.9)
 }
 
-// Play a static phonics file from /public/phonics/, falling back to TTS
 async function playPhonicsFile(filename: string): Promise<void> {
-  if (!voiceEnabled || typeof window === 'undefined') return
-  return new Promise(resolve => {
-    const audio = new Audio(`/phonics/${filename}.m4a`)
-    audio.onended = () => resolve()
-    audio.onerror = () => resolve()  // silent — TTS fallback handled by caller
-    audio.play().catch(() => resolve())
-  })
+  if (!isAudioEnabled() || typeof window === 'undefined') return
+  await playClip(`/phonics/${filename}.m4a`)
 }
 
 export async function speakLetterSound(letter: string): Promise<void> {
@@ -124,8 +149,7 @@ export async function speakDigraph(digraph: string): Promise<void> {
   return playTTS(phoneme, 0.85, true)
 }
 
-export function speakText(text: string, _rate?: number, _pitch?: number): Promise<void> {
-  // rate/pitch params kept for backward compat but ignored with OpenAI TTS
+export function speakText(text: string): Promise<void> {
   return playTTS(text, 1.0)
 }
 
@@ -154,3 +178,4 @@ export function speakEncouragement(correct: boolean): Promise<void> {
 export function speakSlow(text: string): Promise<void> {
   return playTTS(text, 0.7)
 }
+

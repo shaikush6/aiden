@@ -10,10 +10,12 @@ import MathTab from '@/components/MathTab';
 import SolarTab from '@/components/SolarTab';
 import HebrewTab from '@/components/HebrewTab';
 import ExamPrepTab from '@/components/ExamPrepTab';
+import ReadingQuest from '@/components/reading-quest/ReadingQuest';
 import { setVoiceEnabled } from '@/lib/speech';
 const TeacherTab = dynamic(() => import('@/components/TeacherTab'), { ssr: false });
 
 const TAB_BACKGROUNDS: Record<TabId, string> = {
+  quest:    'from-lime-200 via-emerald-100 to-sky-200 dark:from-emerald-950 dark:via-slate-900 dark:to-slate-950',
   phonics:  'from-sky-300 via-sky-200 to-cyan-200 dark:from-sky-950 dark:via-slate-900 dark:to-slate-950',
   patterns: 'from-purple-300 via-violet-200 to-fuchsia-200 dark:from-violet-950 dark:via-slate-900 dark:to-slate-950',
   math:     'from-orange-300 via-amber-200 to-yellow-200 dark:from-orange-950 dark:via-slate-900 dark:to-slate-950',
@@ -24,6 +26,7 @@ const TAB_BACKGROUNDS: Record<TabId, string> = {
 };
 
 const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string; textColor: string }> = {
+  quest:    { title: 'READING QUEST',   subtitle: 'Read words, rescue animals!',        icon: '🦊', textColor: 'text-emerald-800' },
   phonics:  { title: 'READ WITH ME',    subtitle: 'Tap words and letters to hear them!', icon: '🔤', textColor: 'text-sky-800' },
   patterns: { title: 'SPOT THE PATTERN',subtitle: 'What comes next?',                    icon: '🔷', textColor: 'text-purple-800' },
   math:     { title: 'NUMBER TIME',     subtitle: 'Count, add, and explore!',            icon: '🔢', textColor: 'text-orange-800' },
@@ -34,7 +37,7 @@ const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string
 };
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>('phonics');
+  const [activeTab, setActiveTab] = useState<TabId>('quest');
   const [voiceOn, setVoiceOn] = useState(true);
   const [isDark, setIsDark] = useState(false);
 
@@ -113,6 +116,7 @@ export default function Home() {
             exit={{ opacity: 0, x: -30 }}
             transition={{ duration: 0.25 }}
           >
+            {activeTab === 'quest' && <div className="px-4 pb-8"><ReadingQuest /></div>}
             {activeTab === 'phonics' && <PhonicsTab />}
             {activeTab === 'patterns' && <PatternsTab />}
             {activeTab === 'math' && <MathTab />}

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "quest:check": "node --experimental-strip-types --no-warnings scripts/validate-quest.ts"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.4",

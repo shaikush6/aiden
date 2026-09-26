@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
 
 const MIMI_INSTRUCTIONS = `You are Mimi — a warm, playful, and naturally expressive teacher for a 4.5-year-old boy named Aiden.
 
@@ -19,10 +20,11 @@ Your rules:
 - If he's silly or off-topic, play along briefly then gently guide back.
 - Never be scary, sad, or complicated.`
 
-export async function POST() {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'No API key configured' }, { status: 500 })
-  }
+export async function POST(req: NextRequest) {
+  if (!isSameOrigin(req)) return jsonError('Forbidden', 403)
+  // Each token opens a paid realtime voice session, so keep this tight.
+  if (rateLimited(req, 'realtime-token', 6, 10 * 60_000)) return jsonError('Too many requests', 429)
+  if (!process.env.OPENAI_API_KEY) return jsonError('Voice chat is not configured', 503)
 
   const res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
     method: 'POST',
@@ -42,11 +44,12 @@ export async function POST() {
   })
 
   if (!res.ok) {
-    const err = await res.text()
-    return NextResponse.json({ error: err }, { status: res.status })
+    // Log the details on the server only; never echo upstream error bodies to the browser.
+    console.error('Realtime token request failed', res.status, await res.text())
+    return jsonError('Could not start voice chat', 502)
   }
 
   const data = await res.json()
   const token = data.value ?? null
-  return NextResponse.json({ token })
+  return NextResponse.json({ token }, { headers: { 'Cache-Control': 'no-store' } })
 }
