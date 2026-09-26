@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { LEVELS, type LevelInfo } from '@/lib/reading-quest/catalog';
 import { WORLDS } from '@/lib/reading-quest/curriculum';
 import { say } from '@/lib/reading-quest/audio';
 import { LINES } from '@/lib/reading-quest/lines';
-import { isCompleted, isUnlocked, nextLevelIndex, type QuestProgress } from '@/lib/reading-quest/progress';
+import { isCompleted, isUnlocked, markWorldCelebrated, nextLevelIndex, type QuestProgress } from '@/lib/reading-quest/progress';
 import SoundSwitches from './SoundSwitches';
 import { Guide, useSayOnMount } from './ui';
 
@@ -14,17 +14,26 @@ interface Props {
   progress: QuestProgress;
   onPlay: (level: LevelInfo) => void;
   onCards: () => void;
+  onReserve: () => void;
   onParent: () => void;
 }
 
 // Zigzag offsets for the level path.
 const OFFSETS = ['-translate-x-16 sm:-translate-x-28', 'translate-x-0', 'translate-x-16 sm:translate-x-28', 'translate-x-0', '-translate-x-16 sm:-translate-x-28'];
 
-export default function QuestMap({ progress, onPlay, onCards, onParent }: Props) {
+export default function QuestMap({ progress, onPlay, onCards, onReserve, onParent }: Props) {
   const nextIdx = nextLevelIndex(progress);
   const firstVisit = Object.keys(progress.levels).length === 0;
   const currentRef = useRef<HTMLButtonElement | null>(null);
-  useSayOnMount(firstVisit ? LINES.welcome : LINES.mapHint);
+
+  // A world opened by finishing the previous one gets a one-time celebration.
+  const nextLevel = LEVELS[nextIdx];
+  const newWorld = nextLevel && nextLevel.worldIndex > 0 && !progress.unlockAll
+    && nextLevel.world.levels[0].id === nextLevel.def.id && !isCompleted(progress, nextLevel.def.id)
+    && isUnlocked(progress, nextLevel.index) && !progress.celebratedWorlds.includes(nextLevel.world.id)
+    ? nextLevel.world : null;
+  const greeting = newWorld ? [LINES.newWorld, newWorld.name] : [firstVisit ? LINES.welcome : LINES.mapHint];
+  useSayOnMount(...greeting);
 
   useEffect(() => {
     currentRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -35,7 +44,7 @@ export default function QuestMap({ progress, onPlay, onCards, onParent }: Props)
 
   return (
     <div className="flex flex-col gap-5">
-      <Guide text={firstVisit ? LINES.welcome : LINES.mapHint} onReplay={() => say(firstVisit ? LINES.welcome : LINES.mapHint)} />
+      <Guide text={greeting.join(' ')} onReplay={() => say(...greeting)} />
 
       {/* Stats bar — he loves numbers */}
       <div className="flex flex-wrap justify-center gap-3">
@@ -49,6 +58,15 @@ export default function QuestMap({ progress, onPlay, onCards, onParent }: Props)
           className="bg-amber-400 border-b-4 border-amber-600 rounded-2xl px-4 py-2 shadow font-black text-amber-950 text-xl flex items-center gap-2"
         >
           🃏 {cards} <span className="text-sm">CARDS</span>
+        </motion.button>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.92 }}
+          whileHover={{ scale: 1.05 }}
+          onClick={onReserve}
+          className="bg-lime-400 border-b-4 border-lime-600 rounded-2xl px-4 py-2 shadow font-black text-lime-950 text-xl flex items-center gap-2"
+        >
+          🏞️ <span className="text-sm">RESERVE</span>
         </motion.button>
         <SoundSwitches />
       </div>
@@ -78,7 +96,19 @@ export default function QuestMap({ progress, onPlay, onCards, onParent }: Props)
                 const isNext = level.index === nextIdx && !done;
                 const lp = progress.levels[level.def.id];
                 return (
-                  <div key={level.def.id} className={`flex items-center gap-3 ${OFFSETS[i % OFFSETS.length]}`}>
+                  <div key={level.def.id} className="flex flex-col items-center gap-3">
+                  <div className={`relative flex items-center gap-3 ${OFFSETS[i % OFFSETS.length]}`}>
+                    {isNext && (
+                      <motion.span
+                        className="absolute -left-14 top-1/2 -translate-y-1/2 text-5xl"
+                        initial={{ y: -60, opacity: 0 }}
+                        animate={{ y: [0, -10, 0], opacity: 1 }}
+                        transition={{ y: { duration: 0.9, repeat: Infinity, repeatDelay: 0.6 }, opacity: { duration: 0.4 } }}
+                        aria-hidden
+                      >
+                        🦊
+                      </motion.span>
+                    )}
                     <motion.button
                       ref={isNext ? currentRef : undefined}
                       type="button"
@@ -100,12 +130,45 @@ export default function QuestMap({ progress, onPlay, onCards, onParent }: Props)
                       {lp && <p className="text-lg leading-none">{'⭐'.repeat(lp.stars)}<span className="opacity-25">{'⭐'.repeat(3 - lp.stars)}</span></p>}
                     </div>
                   </div>
+                  {/* Paw prints show the trail Kit has already walked */}
+                  {done && i < levels.length - 1 && <span className="text-xl opacity-60 tracking-[0.5em]" aria-hidden>🐾🐾</span>}
+                  </div>
                 );
               })}
             </div>
           </section>
         );
       })}
+
+      {/* New world celebration */}
+      <AnimatePresence>
+        {newWorld && (
+          <motion.div
+            className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{ scale: 0.3, rotate: -8 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 160, damping: 12 }}
+              className={`rounded-[2.5rem] bg-gradient-to-br ${newWorld.theme} shadow-2xl p-8 flex flex-col items-center gap-4 text-center max-w-md`}
+            >
+              <motion.span className="text-8xl" animate={{ rotate: [0, -10, 10, 0], scale: [1, 1.15, 1] }} transition={{ duration: 1.4, repeat: Infinity }} aria-hidden>
+                {newWorld.emoji}
+              </motion.span>
+              <p className="font-black text-lg tracking-widest text-slate-700 dark:text-slate-200">NEW WORLD UNLOCKED!</p>
+              <h2 className="font-black text-4xl text-slate-900 dark:text-white">{newWorld.name}</h2>
+              <button
+                type="button"
+                onClick={() => markWorldCelebrated(newWorld.id)}
+                className="bg-emerald-500 border-b-8 border-emerald-700 text-white font-black text-2xl rounded-3xl px-8 py-4 shadow-lg"
+              >
+                LET’S GO! ▶
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex justify-center pb-6">
         <button

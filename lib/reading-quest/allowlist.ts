@@ -4,7 +4,8 @@
 // Scripts are stored split at their /sound/ markers: only the text pieces are spoken by the voice;
 // the phonics sounds between them are real recordings.
 import { hashKey } from '../hash.ts'
-import { LEVELS, type LevelInfo } from './catalog.ts'
+import { COUNTING_WORDS, LEVELS, type LevelInfo } from './catalog.ts'
+import { WORLDS } from './curriculum/index.ts'
 import {
   KIT_GOAL, KIT_LINES, KIT_PRAISE, KIT_RETRY, NARRATOR_GOAL, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, rescuedLine,
 } from './lines.ts'
@@ -45,6 +46,7 @@ export function levelLines(level: LevelInfo): QuestLine[] {
     ...level.newHeart.map(h => h.tip),
     ...def.sentences.map(s => s.t),
     ...(def.story ? [def.story.title, ...def.story.pages.map(p => p.t), ...def.story.questions.map(q => q.ask)] : []),
+    ...level.sums.map(s => s.text),
   ]
   const world = WORLD_NARRATION[level.world.id]
   const narratorOnly = [
@@ -57,6 +59,7 @@ export function levelLines(level: LevelInfo): QuestLine[] {
     ...level.newHeart.map(h => ({ kind: 'word' as const, text: h.word.say })),
     ...level.words.map(w => ({ kind: 'word' as const, text: w.say })),
     ...level.aliens.map(a => ({ kind: 'alien' as const, text: a.say })),
+    ...level.sums.flatMap(s => s.extra.map(w => ({ kind: 'word' as const, text: w.say }))),
   ]
 }
 
@@ -66,6 +69,10 @@ export function sharedLines(): QuestLine[] {
     ...asKit([...Object.values(KIT_LINES), ...KIT_PRAISE, ...KIT_RETRY, KIT_GOAL]),
     ...asNarrator([...Object.values(NARRATOR_LINES), ...NARRATOR_PRAISE, ...NARRATOR_RETRY, NARRATOR_GOAL, ...narrationLines()]),
     ...phonemeTtsTexts().map(text => ({ kind: 'sound' as const, text })),
+    // Counting a Block Buddy out loud, and naming a newly unlocked world.
+    ...COUNTING_WORDS.map(text => ({ kind: 'word' as const, text })),
+    ...asKit(WORLDS.map(w => w.name)),
+    ...asNarrator(WORLDS.map(w => w.name)),
   ]
 }
 

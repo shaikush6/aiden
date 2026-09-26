@@ -15,10 +15,12 @@ import CardAlbum from './CardAlbum';
 import LevelPlayer from './LevelPlayer';
 import ParentPanel from './ParentPanel';
 import QuestMap from './QuestMap';
+import Reserve from './Reserve';
 
 type View =
   | { name: 'map' }
   | { name: 'cards' }
+  | { name: 'reserve' }
   | { name: 'parent'; gate: { a: number; b: number } }
   | { name: 'level'; level: LevelInfo; steps: Step[]; run: number; script: LevelScript };
 
@@ -86,6 +88,7 @@ export default function ReadingQuest() {
     );
   }
   if (view.name === 'cards') return <CardAlbum progress={progress} onBack={toMap} />;
+  if (view.name === 'reserve') return <Reserve progress={progress} onBack={toMap} />;
   if (view.name === 'parent') return <ParentPanel progress={progress} gate={view.gate} onClose={toMap} />;
 
   return (
@@ -93,6 +96,7 @@ export default function ReadingQuest() {
       progress={progress}
       onPlay={play}
       onCards={() => { stopAudio(); setView({ name: 'cards' }); }}
+      onReserve={() => { stopAudio(); setView({ name: 'reserve' }); }}
       onParent={() => {
         stopAudio();
         const n = () => 6 + Math.floor(Math.random() * 4);

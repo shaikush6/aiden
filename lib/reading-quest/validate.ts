@@ -129,7 +129,7 @@ export function validateCurriculum(): string[] {
   return errors
 }
 
-const NO_PROGRESS: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: { music: false, narrator: false, narratorVoice: 'verse' } }
+const NO_PROGRESS: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: { music: false, narrator: false, narratorVoice: 'verse' }, celebratedWorlds: [], rocketBest: null }
 
 /** Generate each level's activities many times and make sure every activity has a full set of choices. */
 export function validatePlans(runs = 25): string[] {
@@ -139,6 +139,7 @@ export function validatePlans(runs = 25): string[] {
       const steps = planLevel(level, NO_PROGRESS)
       const at = (msg: string) => errors.add(`${level.def.id}: plan: ${msg}`)
       if (steps.length < (level.isBoss ? 3 : 10)) at(`only ${steps.length} activities`)
+      if (steps.length > 28) at(`${steps.length} activities is too long for one sitting`)
       for (const st of steps) {
         if ((st.kind === 'blend' || st.kind === 'readPick') && (st.choices.length !== 3 || new Set(st.choices.map(c => c.emoji)).size !== 3))
           at(`"${st.word.text}" (${st.kind}) could not get 3 distinct pictures`)
@@ -146,6 +147,26 @@ export function validatePlans(runs = 25): string[] {
         if (st.kind === 'heart' && st.options.length !== 3) at(`heart "${st.heart.word.text}" has ${st.options.length} options`)
         if (st.kind === 'hearPick' && st.options.length !== 3) at(`sound "${st.answer}" has ${st.options.length} options`)
         if (st.kind === 'build' && st.tiles.length < st.word.chunks.length + 1) at(`build "${st.word.text}" lacks spare tiles`)
+        if (st.kind === 'soundBlocks' && (st.word.units.length < 2 || st.word.units.length > 6)) at(`sound blocks "${st.word.text}" has ${st.word.units.length} sounds`)
+        if (st.kind === 'storySum') {
+          const o = st.options
+          if (o.length !== 3 || new Set(o).size !== 3 || !o.includes(st.sum.answer) || o.some(n => n < 1 || n > 10)) at(`story sum options ${o} for ${st.sum.answer}`)
+        }
+        if (st.kind === 'readNumber' && (st.value < 1 || st.value > 10)) at(`read number ${st.value}`)
+        if (st.kind === 'wordChain') {
+          if (st.chain.length !== 4) at(`word chain has ${st.chain.length} words`)
+          st.chain.slice(1).forEach((w, i) => {
+            const prev = st.chain[i]
+            const diffs = w.units.filter((u, k) => u.grapheme !== prev.units[k]?.grapheme).length
+            if (diffs !== 1 || w.units.length !== prev.units.length) at(`word chain ${prev.text} → ${w.text} is not one sound apart`)
+            const at1 = w.units.findIndex((u, k) => u.grapheme !== prev.units[k].grapheme)
+            const pal = st.palettes[i]
+            if (!pal.includes(w.units[at1]?.grapheme) || new Set(pal).size !== pal.length || pal.length < 3) at(`word chain palette ${pal} for ${w.text}`)
+          })
+        }
+        if (st.kind === 'bubblePop' && (!st.bubbles.some(b => b.correct) || st.bubbles.length < 8)) at(`bubble pop for /${st.phoneme}/ is too small`)
+        if (st.kind === 'rocketRead' && (st.rounds.length !== 6 || st.rounds.some(r => r.choices.length !== 2 || new Set(r.choices.map(c => c.emoji)).size !== 2)))
+          at('rocket read rounds need 2 distinct pictures each')
       }
     }
   }

@@ -1,0 +1,108 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { emitQuestEvent } from '@/lib/reading-quest/events';
+import { say } from '@/lib/reading-quest/audio';
+import { LINES } from '@/lib/reading-quest/lines';
+import type { Step } from '@/lib/reading-quest/plan';
+import { recordRocketTime } from '@/lib/reading-quest/progress';
+import { sfx } from '@/lib/sfx';
+import { BigButton, ChoiceCard, Emoji, Guide, useAlive, useSayOnMount, WordView, type StepResult } from '../ui';
+
+type Props = { step: Extract<Step, { kind: 'rocketRead' }>; onDone: (r: StepResult) => void };
+
+function secondsSince(startMs: number): number {
+  return Math.max(1, Math.round((performance.now() - startMs) / 1000));
+}
+
+function now(): number {
+  return performance.now();
+}
+
+/**
+ * Rocket Read (reading speed): read six known words fast, tapping each picture. Every right answer
+ * adds fuel; at the end the rocket launches and shows the time. Beating the record is the goal.
+ */
+export default function RocketRead({ step, onDone }: Props) {
+  const { rounds } = step;
+  const alive = useAlive();
+  const start = useRef(0);
+  const [round, setRound] = useState(0);
+  const [misses, setMisses] = useState(0);
+  const [shake, setShake] = useState<string | null>(null);
+  const [result, setResult] = useState<{ seconds: number; best: boolean } | null>(null);
+  useSayOnMount(LINES.rocketRead);
+  useEffect(() => { start.current = now(); }, []);
+
+  const tap = async (text: string) => {
+    if (result) return;
+    const word = rounds[round].word;
+    if (text !== word.text) {
+      sfx.wrong();
+      emitQuestEvent('wrong');
+      setMisses(m => m + 1);
+      setShake(text);
+      setTimeout(() => { if (alive.current) setShake(null); }, 400);
+      return;
+    }
+    sfx.pop();
+    if (round + 1 < rounds.length) { setRound(round + 1); return; }
+    const seconds = secondsSince(start.current);
+    const best = recordRocketTime(seconds);
+    setResult({ seconds, best });
+    sfx.fanfare();
+    emitQuestEvent('right');
+    await say(LINES.blastOff, ...(best ? [LINES.newRecord] : []));
+  };
+
+  const fuel = result ? 1 : round / rounds.length;
+  const current = rounds[round];
+  return (
+    <div className="flex flex-col items-center gap-5">
+      <Guide text={LINES.rocketRead} onReplay={() => say(LINES.rocketRead)} />
+      <div className="flex items-end gap-6">
+        {/* Rocket and fuel gauge */}
+        <div className="flex items-end gap-2 h-56">
+          <div className="w-6 h-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex flex-col-reverse">
+            <motion.div className="w-full bg-gradient-to-t from-orange-500 to-yellow-300" animate={{ height: `${fuel * 100}%` }} />
+          </div>
+          <motion.div
+            animate={result ? { y: -420, rotate: [0, -4, 4, 0] } : { y: [0, -4, 0] }}
+            transition={result ? { duration: 1.6, ease: 'easeIn' } : { duration: 1.2, repeat: Infinity }}
+          >
+            <Emoji size="text-8xl">🚀</Emoji>
+          </motion.div>
+        </div>
+
+        {!result && (
+          <div className="flex flex-col items-center gap-4">
+            <p className="font-black text-slate-500 dark:text-slate-400">{round + 1} / {rounds.length}</p>
+            <div className="bg-white/90 dark:bg-slate-800/90 rounded-[2rem] shadow-xl px-8 py-4">
+              <WordView word={current.word} size="xl" />
+            </div>
+            <div className="flex gap-4">
+              {current.choices.map(c => (
+                <ChoiceCard key={`${round}-${c.text}`} label={`picture ${c.text}`} state={shake === c.text ? 'wrong' : 'idle'} onClick={() => tap(c.text)}>
+                  <Emoji size="text-7xl">{c.emoji!}</Emoji>
+                </ChoiceCard>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {result && (
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-3 text-center">
+            <p className="font-black text-4xl text-slate-800 dark:text-white">
+              {rounds.length} words in <span className="text-orange-500">{result.seconds}</span> seconds!
+            </p>
+            {result.best && <p className="font-black text-3xl text-emerald-600">🏆 NEW RECORD!</p>}
+            <BigButton onClick={() => onDone({ firstTry: misses === 0 })} label="Next">NEXT ▶</BigButton>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

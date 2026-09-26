@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { say, sayPhoneme, sayWord, wordClip } from '@/lib/reading-quest/audio';
 import { LINES, randomPraise, randomRetry } from '@/lib/reading-quest/lines';
 import type { Step } from '@/lib/reading-quest/plan';
+import { emitQuestEvent } from '@/lib/reading-quest/events';
+import { sfx } from '@/lib/sfx';
 import { Emoji, Guide, SpeakerButton, useAlive, useSayOnMount, type StepResult } from '../ui';
 
 type Props = { step: Extract<Step, { kind: 'build' }>; onDone: (r: StepResult) => void };
@@ -28,6 +30,8 @@ export default function BuildWord({ step, onDone }: Props) {
     if (finished || placed.includes(i) || !nextChunk) return;
     if (tiles[i] !== nextChunk.text) {
       setMisses(m => m + 1);
+      sfx.wrong();
+      emitQuestEvent('wrong');
       setShake(i);
       say(randomRetry());
       setTimeout(() => { if (alive.current) setShake(null); }, 450);
@@ -35,11 +39,14 @@ export default function BuildWord({ step, onDone }: Props) {
     }
     const nowPlaced = [...placed, i];
     setPlaced(nowPlaced);
+    sfx.pop();
     if (nowPlaced.length < word.chunks.length) {
       sayPhoneme(word.units[nextChunk.unit].phoneme);
       return;
     }
     setFinished(true);
+    sfx.correct();
+    emitQuestEvent('right');
     await sayWord(word);
     if (!alive.current) return;
     await say(randomPraise());

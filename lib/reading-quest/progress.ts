@@ -21,11 +21,17 @@ export interface QuestProgress {
   wordsRead: number
   unlockAll: boolean
   settings: QuestSettings
+  /** Worlds whose "new world unlocked" celebration has already played. */
+  celebratedWorlds: string[]
+  /** Fastest Rocket Read, in seconds. */
+  rocketBest: number | null
 }
 
 const KEY = 'aiden-reading-quest-v1'
 const DEFAULT_SETTINGS: QuestSettings = { music: true, narrator: true, narratorVoice: DEFAULT_NARRATOR_VOICE }
-const EMPTY: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: DEFAULT_SETTINGS }
+const EMPTY: QuestProgress = {
+  v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: DEFAULT_SETTINGS, celebratedWorlds: [], rocketBest: null,
+}
 
 let current: QuestProgress | null = null
 const listeners = new Set<() => void>()
@@ -50,6 +56,8 @@ function load(): QuestProgress {
       wordsRead: Number(parsed.wordsRead) || 0,
       unlockAll: Boolean(parsed.unlockAll),
       settings: cleanSettings(parsed.settings),
+      celebratedWorlds: Array.isArray(parsed.celebratedWorlds) ? parsed.celebratedWorlds.filter(w => typeof w === 'string') : [],
+      rocketBest: typeof parsed.rocketBest === 'number' ? parsed.rocketBest : null,
     }
   } catch {
     return EMPTY
@@ -107,6 +115,19 @@ export function setUnlockAll(v: boolean) {
 export function setSettings(patch: Partial<QuestSettings>) {
   const p = getProgress()
   commit({ ...p, settings: { ...p.settings, ...patch } })
+}
+
+export function markWorldCelebrated(worldId: string) {
+  const p = getProgress()
+  if (!p.celebratedWorlds.includes(worldId)) commit({ ...p, celebratedWorlds: [...p.celebratedWorlds, worldId] })
+}
+
+/** Record a Rocket Read time; returns true when it beats the previous best. */
+export function recordRocketTime(seconds: number): boolean {
+  const p = getProgress()
+  const isBest = p.rocketBest === null || seconds < p.rocketBest
+  if (isBest) commit({ ...p, rocketBest: seconds })
+  return isBest
 }
 
 /** Reset rescues and stats, but keep the grown-up's sound settings. */

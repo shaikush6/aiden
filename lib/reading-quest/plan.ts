@@ -1,6 +1,6 @@
 // Builds the activity sequence for one play of a level.
 // Call it from an event handler (it uses randomness), then pass the steps down as props.
-import { tokenize, type HeartWord, type LevelInfo } from './catalog.ts'
+import { tokenize, type HeartWord, type LevelInfo, type StorySum } from './catalog.ts'
 import { defaultPhoneme, isKnownGrapheme } from './phonemes.ts'
 import type { ParsedWord, SentenceDef, SoundDef, StoryDef } from './types.ts'
 import type { QuestProgress } from './progress.ts'
@@ -16,6 +16,12 @@ export type Step =
   | { kind: 'heart'; heart: HeartWord; options: ParsedWord[] }
   | { kind: 'sentence'; sentence: SentenceDef; pics?: string[] }
   | { kind: 'story'; story: StoryDef }
+  | { kind: 'soundBlocks'; word: ParsedWord }
+  | { kind: 'readNumber'; word: ParsedWord; value: number }
+  | { kind: 'storySum'; sum: StorySum; options: number[] }
+  | { kind: 'wordChain'; chain: ParsedWord[]; palettes: string[][] }
+  | { kind: 'bubblePop'; phoneme: string; correct: string[]; bubbles: { label: string; correct: boolean }[] }
+  | { kind: 'rocketRead'; rounds: { word: ParsedWord; choices: ParsedWord[] }[] }
 
 /** Steps that are scored (everything except introducing a new sound). */
 export function isScored(step: Step): boolean {
@@ -26,7 +32,10 @@ export function isScored(step: Step): boolean {
 export function wordsInStep(step: Step): number {
   if (step.kind === 'sentence') return tokenize(step.sentence.t).length
   if (step.kind === 'story') return step.story.pages.reduce((n, p) => n + tokenize(p.t).length, 0)
-  if (step.kind === 'meet' || step.kind === 'hearPick') return 0
+  if (step.kind === 'storySum') return tokenize(step.sum.text).length
+  if (step.kind === 'wordChain') return step.chain.length
+  if (step.kind === 'rocketRead') return step.rounds.length
+  if (step.kind === 'meet' || step.kind === 'hearPick' || step.kind === 'bubblePop') return 0
   return 1
 }
 
@@ -35,7 +44,8 @@ export function gpcsInStep(step: Step): string[] {
   switch (step.kind) {
     case 'hearPick': return [step.gpc]
     case 'blend': case 'readPick': case 'build': case 'goal': return step.word.units.map(u => u.gpc)
-    case 'alien': return step.word.units.map(u => u.gpc)
+    case 'alien': case 'soundBlocks': return step.word.units.map(u => u.gpc)
+    case 'bubblePop': return step.correct
     default: return []
   }
 }
@@ -128,6 +138,86 @@ function reviewGpcs(level: LevelInfo, progress: QuestProgress): string[] {
   return shuffle(older).sort((a, b) => rate(b) - rate(a))
 }
 
+/** Plain spellings the child knows (no alternative sounds, no split magic-e), for tiles and bubbles. */
+function plainGraphemes(level: LevelInfo): string[] {
+  return [...level.taught].filter(g => !g.includes('=') && !g.includes('_') && isKnownGrapheme(g))
+}
+
+/** Bubble Pop: pop every bubble whose spelling makes the target sound (teaches alternative spellings too). */
+function bubbleStep(level: LevelInfo, gpc: string): Step | null {
+  const phoneme = defaultPhoneme(gpc.split('=')[0])
+  const plain = plainGraphemes(level)
+  const correct = plain.filter(g => defaultPhoneme(g) === phoneme)
+  const others = shuffle(plain.filter(g => defaultPhoneme(g) !== phoneme))
+  if (!correct.length || others.length < 4) return null
+  const bubbles = shuffle([
+    ...Array.from({ length: 5 }, (_, i) => ({ label: correct[i % correct.length], correct: true })),
+    ...others.slice(0, 5).map(label => ({ label, correct: false })),
+  ])
+  return { kind: 'bubblePop', phoneme, correct, bubbles }
+}
+
+/** Word Chain Bridge: four words, each one sound different from the last (cat → cot → dot → dog). */
+function chainStep(level: LevelInfo): Step | null {
+  const simple = (w: ParsedWord) => w.units.every(u => u.chunks.length === 1 && isKnownGrapheme(u.grapheme))
+  const words = [...level.bank.values()].filter(w => simple(w) && w.units.length >= 3 && w.units.length <= 4)
+  const diffAt = (a: ParsedWord, b: ParsedWord) => {
+    if (a.units.length !== b.units.length) return -1
+    let at = -1
+    for (let i = 0; i < a.units.length; i++) {
+      if (a.units[i].grapheme !== b.units[i].grapheme) { if (at !== -1) return -1; at = i }
+    }
+    return at
+  }
+  const starts = shuffle(level.words.filter(simple).concat(shuffle(words).slice(0, 20)))
+  for (const start of starts.slice(0, 30)) {
+    const chain = [start]
+    while (chain.length < 4) {
+      const last = chain[chain.length - 1]
+      const next = shuffle(words).find(w => diffAt(last, w) >= 0 && !chain.some(c => c.text === w.text))
+      if (!next) break
+      chain.push(next)
+    }
+    if (chain.length < 4) continue
+    const plain = plainGraphemes(level)
+    const palettes = chain.slice(1).map((w, i) => {
+      const at = diffAt(chain[i], w)
+      const right = w.units[at].grapheme
+      const wrong = shuffle(plain.filter(g => g !== right && g !== chain[i].units[at].grapheme)).slice(0, 3)
+      return shuffle([right, ...wrong])
+    })
+    return { kind: 'wordChain', chain, palettes }
+  }
+  return null
+}
+
+/** Rocket Read: six quick words, two pictures each, as fast as possible. */
+function rocketStep(level: LevelInfo, pictureBank: ParsedWord[]): Step | null {
+  const pool = shuffle(level.world.levels.flatMap(d => pictureBank.filter(w => d.words.some(x => x.seg === w.seg))))
+  const words = (pool.length >= 6 ? pool : shuffle(pictureBank)).slice(0, 6)
+  if (words.length < 6) return null
+  return { kind: 'rocketRead', rounds: words.map(word => ({ word, choices: shuffle([word, ...pickSimilar(word, pictureBank, 1, true)]) })) }
+}
+
+/** Three Block Buddies to choose from: the answer and two close numbers (1-10). */
+function numberChoices(answer: number): number[] {
+  const near = [answer - 1, answer + 1, answer - 2, answer + 2].filter(n => n >= 1 && n <= 10)
+  return shuffle([answer, ...shuffle(near).slice(0, 2)])
+}
+
+/** A Block Buddy maths moment: read a number word, or read a number story. Alternates by level. */
+function mathStep(level: LevelInfo): Step | null {
+  const numbers = level.numberWords.filter(n => n.value >= 2)
+  const sum = level.sums.length ? level.sums[Math.floor(Math.random() * level.sums.length)] : null
+  const preferSum = level.index % 2 === 1
+  if (sum && (preferSum || !numbers.length)) return { kind: 'storySum', sum, options: numberChoices(sum.answer) }
+  if (numbers.length) {
+    const n = numbers[Math.floor(Math.random() * numbers.length)]
+    return { kind: 'readNumber', word: n.word, value: n.value }
+  }
+  return null
+}
+
 export function planLevel(level: LevelInfo, progress: QuestProgress): Step[] {
   const pictureBank = [...level.bank.values()].filter(w => w.emoji)
   const allBank = [...level.bank.values()]
@@ -136,12 +226,9 @@ export function planLevel(level: LevelInfo, progress: QuestProgress): Step[] {
   const push = (s: Step | null) => { if (s) steps.push(s) }
 
   if (level.isBoss && level.def.story) {
-    review.slice(0, 2).forEach(g => push(hearPickStep(level, g)))
-    const nextWord = wordFeeder(level.words.filter(w => w.emoji))
-    for (let i = 0; i < 2; i++) {
-      const word = nextWord()
-      push({ kind: 'readPick', word, choices: shuffle([word, ...pickSimilar(word, pictureBank, 2, true)]) })
-    }
+    review.slice(0, 1).forEach(g => push(hearPickStep(level, g)))
+    push(rocketStep(level, pictureBank))
+    push(mathStep(level))
     push({ kind: 'story', story: level.def.story })
     return steps
   }
@@ -180,7 +267,10 @@ export function planLevel(level: LevelInfo, progress: QuestProgress): Step[] {
     return { kind: 'alien', word: nextWord(), real: true }
   }
 
-  if (hearTargets.length) push(nextHear())
+  // Sound check: Bubble Pop when the level brings a new sound, otherwise a quick sound hunt.
+  const bubble = fresh.length ? bubbleStep(level, shuffle(fresh)[0]) : null
+  if (bubble) push(bubble)
+  else if (hearTargets.length) push(nextHear())
   push(picture('blend'))
   push(goal())
   push(picture('blend'))
@@ -193,12 +283,15 @@ export function planLevel(level: LevelInfo, progress: QuestProgress): Step[] {
   }
   const alienOrder = shuffle([0, 1])
   if (level.aliens.length) push(alien(alienOrder[0]))
-  push(build())
+  push(chainStep(level))
   push(picture('readPick'))
-  push(picture('blend'))
+  // Sound Blocks: count the sounds (not letters) with a Block Buddy tower.
+  const blockWord = shuffle(focus.length ? focus : level.words.filter(w => w.emoji)).find(w => w.units.length >= 2 && w.units.length <= 6)
+  if (blockWord) push({ kind: 'soundBlocks', word: blockWord })
   if (level.aliens.length) push(alien(alienOrder[1]))
+  push(mathStep(level))
 
-  for (const sentence of level.def.sentences.slice(0, 4)) {
+  for (const sentence of shuffle(level.def.sentences).slice(0, 3)) {
     push({ kind: 'sentence', sentence, pics: 'pic' in sentence ? shuffle([sentence.pic, ...sentence.alts]) : undefined })
   }
   return steps

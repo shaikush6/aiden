@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { stopAudio } from '@/lib/audio-player';
 import { say, sayPhoneme, sayWord } from '@/lib/reading-quest/audio';
 import { LINES, randomPraise, randomRetry } from '@/lib/reading-quest/lines';
+import { emitQuestEvent, onQuestEvent } from '@/lib/reading-quest/events';
+import { sfx } from '@/lib/sfx';
 import type { ParsedWord } from '@/lib/reading-quest/types';
 
 export interface StepResult { firstTry: boolean }
@@ -51,6 +53,8 @@ export function useAnswer(onDone: (r: StepResult) => void) {
     locked.current = true;
     setBusy(true);
     setStatus('right');
+    sfx.correct();
+    emitQuestEvent('right');
     if (after) await after();
     if (!alive.current) return;
     await Promise.all([say(randomPraise()), wait(700)]);
@@ -63,6 +67,8 @@ export function useAnswer(onDone: (r: StepResult) => void) {
     setBusy(true);
     const n = ++missCount.current;
     setMisses(n);
+    sfx.wrong();
+    emitQuestEvent('wrong');
     setWrongPick(choiceKey);
     if (n < 2) {
       await Promise.all([say(randomRetry()), wait(900)]);
@@ -87,6 +93,21 @@ export function useAnswer(onDone: (r: StepResult) => void) {
   };
 
   return { right, wrong, busy, misses, status, stateFor };
+}
+
+/** Kit's face follows the child's answers: a happy jump when right, a little "oops" when not. */
+function useKitMood() {
+  const [mood, setMood] = useState<'idle' | 'happy' | 'oops'>('idle');
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const off = onQuestEvent(e => {
+      setMood(e === 'right' ? 'happy' : 'oops');
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setMood('idle'), 1300);
+    });
+    return () => { off(); if (timer) clearTimeout(timer); };
+  }, []);
+  return mood;
 }
 
 // ---------- visual building blocks ----------
@@ -156,15 +177,20 @@ export function SpeakerButton({ onClick, label = 'Hear it again', big }: { onCli
 
 /** Kit the fox, our guide, with the current instruction and a replay button. */
 export function Guide({ text, onReplay }: { text: string; onReplay: () => void }) {
+  const mood = useKitMood();
   return (
     <div className="flex items-center gap-3 w-full max-w-3xl mx-auto">
       <motion.div
         className="text-5xl shrink-0"
-        animate={{ rotate: [0, -6, 6, 0] }}
-        transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.5 }}
+        animate={
+          mood === 'happy' ? { y: [0, -22, 0], rotate: [0, -12, 12, 0], scale: [1, 1.2, 1] }
+            : mood === 'oops' ? { rotate: [0, -14, 14, -8, 0] }
+              : { rotate: [0, -6, 6, 0] }
+        }
+        transition={mood === 'idle' ? { duration: 2.4, repeat: Infinity, repeatDelay: 1.5 } : { duration: 0.6 }}
         aria-hidden
       >
-        🦊
+        {mood === 'oops' ? '🙈' : mood === 'happy' ? '🤩' : '🦊'}
       </motion.div>
       <div className="flex-1 bg-white/90 dark:bg-slate-800/90 rounded-3xl rounded-bl-md px-4 py-3 shadow font-extrabold text-lg text-slate-700 dark:text-slate-100 leading-snug">
         {text}

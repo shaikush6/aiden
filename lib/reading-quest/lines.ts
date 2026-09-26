@@ -30,6 +30,18 @@ export const KIT_LINES = {
   reveal: 'Here is the answer. Let’s look at it together.',
   levelDone: 'You did it! You earned a creature card!',
   newWorld: 'A new world is open!',
+  combo: 'Combo! Your creature power is charging!',
+  reserve: 'Welcome to the animal reserve! Tap an animal to say hello.',
+  soundBlocks: 'How many sounds are in this word? Build a tower with one block for each sound.',
+  readNumber: 'Read the number word. Then build a Block Buddy that big.',
+  storySum: 'Read the number story. Then tap the right Block Buddy.',
+  sumLeft: 'How many are left?',
+  sumNow: 'How many are there now?',
+  wordChain: 'Change one sound to make the new word',
+  bubblePop: 'Pop every bubble that says',
+  rocketRead: 'Read each word and tap its picture, as fast as you can!',
+  blastOff: 'Blast off! Great fast reading!',
+  newRecord: 'Wow! That is a new record!',
 }
 
 export type LineKey = keyof typeof KIT_LINES
@@ -59,6 +71,18 @@ export const NARRATOR_LINES: Record<LineKey, string> = {
   reveal: 'Here’s the answer! Let’s look at it together.',
   levelDone: 'You did it! Creature card unlocked!',
   newWorld: 'Whoa! A brand new world is open!',
+  combo: 'COMBO! Creature power charging up!',
+  reserve: 'Welcome to your animal reserve, explorer! Every animal here was saved by YOU. Tap one to say hello!',
+  soundBlocks: 'Block Buddy time! Build a tower with one block for every sound you hear!',
+  readNumber: 'Read the number word, then build a Block Buddy exactly that big!',
+  storySum: 'Number story time! Read it, then tap the right Block Buddy!',
+  sumLeft: 'So, how many are left?',
+  sumNow: 'So, how many are there now?',
+  wordChain: 'Build the bridge! Change just one sound to make the new word',
+  bubblePop: 'Bubble attack! Pop every bubble that says',
+  rocketRead: 'Rocket fuel time! Read each word and tap its picture, super fast!',
+  blastOff: 'Three, two, one, BLAST OFF! Amazing speed reading!',
+  newRecord: 'Whoa! A brand new record!',
 }
 
 function narratorOn(): boolean {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { lookupWord, tokenize, type LevelInfo } from '@/lib/reading-quest/catalog';
 import { sayWord } from '@/lib/reading-quest/audio';
+import type { ParsedWord } from '@/lib/reading-quest/types';
 import { WordView } from './ui';
 
 /**
@@ -11,14 +12,17 @@ import { WordView } from './ui';
  * Tapping a regular word shows its sound buttons so the child sounds it out (instead of just hearing it).
  * Tapping a heart word says it, because heart words cannot be sounded out.
  */
-export default function TappableText({ text, level, size = 'text-4xl sm:text-5xl' }: { text: string; level: LevelInfo; size?: string }) {
+export default function TappableText({
+  text, level, size = 'text-4xl sm:text-5xl', extra = [],
+}: { text: string; level: LevelInfo; size?: string; extra?: ParsedWord[] }) {
   const [open, setOpen] = useState<number | null>(null);
   const tokens = tokenize(text);
 
   return (
     <div className="flex flex-wrap justify-center items-end gap-x-4 gap-y-3">
       {tokens.map((tok, i) => {
-        const found = lookupWord(level, tok.key);
+        const own = extra.find(w => w.text.toLowerCase() === tok.key);
+        const found = own ? { word: own, heart: undefined } : lookupWord(level, tok.key);
         const isOpen = open === i && found;
         const punct = tok.display.match(/[.,!?;:]+$/)?.[0] ?? '';
         return (

@@ -30,6 +30,73 @@ export interface LevelInfo {
   /** Every heart word taught up to and including this level. */
   heart: Map<string, HeartWord>
   aliens: ParsedWord[]
+  /** Number words the child can read by this level (for Block Buddies). */
+  numberWords: { word: ParsedWord; value: number }[]
+  /** Decodable number stories (one adding, one taking away), when the words allow. */
+  sums: StorySum[]
+}
+
+export interface StorySum {
+  text: string
+  question: 'now' | 'left'
+  a: number
+  b: number
+  answer: number
+  /** Picture scene, e.g. "5🐱 on 🪵". */
+  scene: string
+  /** Words used in the story that are not in the bank (plurals), for tap-for-help. */
+  extra: ParsedWord[]
+}
+
+const NUMBER_WORDS: [string, number][] = [
+  ['one', 1], ['two', 2], ['three', 3], ['four', 4], ['five', 5],
+  ['six', 6], ['seven', 7], ['eight', 8], ['nine', 9], ['ten', 10],
+]
+
+/** Every number word, for counting aloud 1-10 (these are pre-approved for the voice). */
+export const COUNTING_WORDS = NUMBER_WORDS.map(([w]) => w)
+
+const SUM_ANIMALS: [string, string][] = [
+  ['cat', '🐱'], ['dog', '🐶'], ['pig', '🐷'], ['hen', '🐔'], ['bug', '🐛'], ['duck', '🦆'], ['frog', '🐸'],
+  ['rat', '🐀'], ['bat', '🦇'], ['cub', '🐻'], ['goat', '🐐'], ['seal', '🦭'], ['cow', '🐄'], ['bird', '🐦'],
+]
+const SUM_PLACES: [string, string][] = [
+  ['log', '🪵'], ['rock', '🪨'], ['bed', '🛏️'], ['bus', '🚌'], ['hill', '⛰️'], ['boat', '🚤'], ['tree', '🌳'],
+]
+const SUM_WORDS = ['sit', 'on', 'the', 'get', 'it', 'run', 'off']
+const UNVOICED_END = new Set(['p', 't', 'k', 'f', 'th'])
+
+function hasWord(bank: Map<string, ParsedWord>, heart: Map<string, HeartWord>, key: string) {
+  return bank.has(key) || heart.has(key)
+}
+
+/** "cat" → "cats" (s) and "dog" → "dogs" (s says z), only if that plural is decodable yet. */
+function plural(base: ParsedWord, taught: Set<string>): ParsedWord | null {
+  const last = base.units[base.units.length - 1]
+  if (!last || ['s', 'z', 'ks', 'sh', 'ch', 'j'].includes(last.phoneme)) return null
+  const ending = UNVOICED_END.has(last.phoneme) ? 's' : 's=z'
+  if (!taught.has(ending)) return null
+  return parseSeg(`${base.seg}.${ending}`)
+}
+
+function buildSums(index: number, bank: Map<string, ParsedWord>, heart: Map<string, HeartWord>, taught: Set<string>): StorySum[] {
+  if (!SUM_WORDS.every(w => hasWord(bank, heart, w))) return []
+  const pick = <T,>(list: T[], offset: number, ok: (t: T) => boolean) => {
+    for (let i = 0; i < list.length; i++) { const t = list[(offset + i) % list.length]; if (ok(t)) return t }
+    return null
+  }
+  const animal = pick(SUM_ANIMALS, index, ([w]) => { const b = bank.get(w); return Boolean(b && plural(b, taught)) })
+  const place = pick(SUM_PLACES, index * 3, ([w]) => bank.has(w))
+  if (!animal || !place) return []
+  const pl = plural(bank.get(animal[0])!, taught)!
+  // b is at least 2 (so the plural reads right) and a + b is at most 10 (one Block Buddy).
+  const a = 4 + (index % 4)
+  const b = 2 + (index % 2)
+  const opening = `${a} ${pl.text} sit on the ${place[0]}.`
+  return [
+    { text: `${opening} ${b} ${pl.text} get on it.`, question: 'now', a, b, answer: a + b, scene: `${a}${animal[1]} on ${place[1]}`, extra: [pl] },
+    { text: `${opening} ${b} ${pl.text} run off.`, question: 'left', a, b, answer: a - b, scene: `${a}${animal[1]} on ${place[1]}`, extra: [pl] },
+  ]
 }
 
 export function parseHeart(def: HeartWordDef): HeartWord {
@@ -66,6 +133,11 @@ function build(): LevelInfo[] {
         newHeart,
         heart: new Map(heart),
         aliens: (def.aliens ?? []).map(seg => parseSeg(seg)),
+        numberWords: NUMBER_WORDS.flatMap(([w, value]) => {
+          const found = bank.get(w) ?? heart.get(w)?.word
+          return found ? [{ word: found, value }] : []
+        }),
+        sums: buildSums(out.length, bank, heart, taught),
       })
     }
   })
