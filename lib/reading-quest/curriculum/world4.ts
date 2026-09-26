@@ -8,7 +8,7 @@ export const WORLD_4: WorldDef = {
   emoji: '⛺',
   habitat: 'Forest',
   theme: 'from-emerald-300 via-lime-200 to-amber-200 dark:from-emerald-950 dark:via-slate-900 dark:to-slate-950',
-  intro: 'Welcome to Forest Camp! Grab your backpack. Here, sounds bump together, like s and t in stop.',
+  intro: 'Welcome to Forest Camp! Grab your backpack. Here, sounds bump together, like /s/ and /t/ in stop!',
   skill: 'Blending consonant clusters (tent, stop, frog, splash) and heart words said have so do two some come one there',
   levels: [
     {
@@ -28,8 +28,8 @@ export const WORLD_4: WorldDef = {
       ],
       extra: ws('j.u.m.p', 's.a.n.d', 'w.e.n.t'),
       heart: [
-        { seg: 's.ai.d', heart: [1], tip: 'In said, the a and i say e: said.' },
-        { seg: 'h.a.v.e', heart: [3], tip: 'In have, the e at the end is silent: have.' },
+        { seg: 's.ai.d', heart: [1], tip: 'In the word said, the letters [a] and [i] say /e/: said!' },
+        { seg: 'h.a.v.e', heart: [3], tip: 'In the word have, the [e] at the end is silent: have!' },
       ],
       aliens: ['n.u.m.p', 'v.i.s.k', 'j.o.n.t', 'f.e.l.b'],
       sentences: [
@@ -57,9 +57,9 @@ export const WORLD_4: WorldDef = {
       ],
       extra: ws('p.o.n.d', 'b.a.d', 's.k.u.nk.s'),
       heart: [
-        { seg: 's.o', heart: [1], tip: 'In so, the o says its name, oh: so.' },
-        { seg: 'd.o', heart: [1], tip: 'In do, the o says oo: do.' },
-        { seg: 't.wo', heart: [1], tip: 'Two is a number word. The w is silent and the o says oo: two.' },
+        { seg: 's.o', heart: [1], tip: 'In the word so, the letter [o] says its name: /oa/. So!' },
+        { seg: 'd.o', heart: [1], tip: 'In the word do, the letter [o] says /oo/: do!' },
+        { seg: 't.wo', heart: [1], tip: 'Two is a number word! The [w] is silent, and the [o] says /oo/: two!' },
       ],
       aliens: ['s.p.e.v', 's.t.o.b', 's.m.u.d', 's.n.i.v'],
       sentences: [
@@ -88,8 +88,8 @@ export const WORLD_4: WorldDef = {
       ],
       extra: ws('b.r.i.ck.s', 'f.r.o.g.s=z'),
       heart: [
-        { seg: 's.o.m.e', heart: [1, 3], tip: 'In some, the o says u and the e is silent: some.' },
-        { seg: 'c.o.m.e', heart: [1, 3], tip: 'In come, the o says u and the e is silent: come.' },
+        { seg: 's.o.m.e', heart: [1, 3], tip: 'In the word some, the [o] says /u/, and the [e] is silent: some!' },
+        { seg: 'c.o.m.e', heart: [1, 3], tip: 'In the word come, the [o] says /u/, and the [e] is silent: come!' },
       ],
       aliens: ['p.l.u.v', 'g.r.e.p', 'c.l.o.v', 'd.r.u.m.p'],
       sentences: [
@@ -117,8 +117,8 @@ export const WORLD_4: WorldDef = {
       ],
       extra: ws('l.i.f.t', 'j.u.m.p.s', 'n.e.x.t'),
       heart: [
-        { seg: 'o.n.e', heart: [0, 1, 2], tip: 'One is a number word. It sounds like won: one.' },
-        { seg: 'th.ere', heart: [1], tip: 'In there, the e r e says air: there.' },
+        { seg: 'o.n.e', heart: [0, 1, 2], tip: 'One is a number word! It sounds like /w/ /u/ /n/: one!' },
+        { seg: 'th.ere', heart: [1], tip: 'In the word there, the letters [e], [r] and [e] say /air/: there!' },
       ],
       aliens: ['s.t.r.u.v', 's.p.l.e.n.t', 'g.r.o.n.t', 'sh.r.i.v'],
       sentences: [

@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { phonemeClips, say, sayPhoneme, sayWord } from '@/lib/reading-quest/audio';
+import { say, sayPhoneme, sayWord } from '@/lib/reading-quest/audio';
+import { displayScript } from '@/lib/reading-quest/script';
 import { LINES } from '@/lib/reading-quest/lines';
 import { displayGrapheme, type Step } from '@/lib/reading-quest/plan';
 import { BigButton, Emoji, Guide, useSayOnMount, WordView, type StepResult } from '../ui';
@@ -10,13 +11,13 @@ type Props = { step: Extract<Step, { kind: 'meet' }>; onDone: (r: StepResult) =>
 
 export default function MeetSound({ step, onDone }: Props) {
   const { sound, phoneme, examples } = step;
-  const intro = () => say(LINES.newSound, sound.tip, phonemeClips(phoneme));
-  useSayOnMount(LINES.newSound, sound.tip, phonemeClips(phoneme));
+  const intro = () => say(LINES.newSound, sound.tip);
+  useSayOnMount(LINES.newSound, sound.tip);
   const gpc = sound.p ? `${sound.g}=${sound.p}` : sound.g;
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <Guide text={`New sound! ${sound.tip}`} onReplay={intro} />
+      <Guide text={`${LINES.newSound} ${displayScript(sound.tip)}`} onReplay={intro} />
 
       <motion.button
         type="button"

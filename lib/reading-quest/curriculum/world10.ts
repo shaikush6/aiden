@@ -32,7 +32,7 @@ export const WORLD_10: WorldDef = {
         'p.a.ck', 'p.a.ck.s', 'm.oo.n',
       ),
       heart: [
-        { seg: 'th.ough.t', heart: [1], tip: 'In thought, the o u g h says aw: thought.' },
+        { seg: 'th.ough.t', heart: [1], tip: 'In the word thought, the letters [o], [u], [g] and [h] say /aw/: thought!' },
       ],
       aliens: ['z.u.b|m.o.p', 'v.i.m|f.a.sh', 'j.e.b|t.u.d', 'n.e.p|w.i.g'],
       sentences: [
@@ -64,7 +64,7 @@ export const WORLD_10: WorldDef = {
         'w.i.n|d.ow=oa', 'p.u=uu.ll.s=z',
       ),
       heart: [
-        { seg: 'th.r.ough', heart: [2], tip: 'In through, the o u g h says oo: through.' },
+        { seg: 'th.r.ough', heart: [2], tip: 'In the word through, the letters [o], [u], [g] and [h] say /oo/: through!' },
       ],
       aliens: ['z.o.b|l.e.t', 'm.i.m|p.u.n', 'v.a.s|k.i.t', 'j.u.n|t.e.m'],
       sentences: [
@@ -86,9 +86,9 @@ export const WORLD_10: WorldDef = {
         stat: 'Around the Moon in 1968',
       },
       sounds: [
-        { g: 'ed', p: 't', tip: 'Sometimes e d at the end says t, like in jumped.', emoji: '🦘' },
-        { g: 'ed', tip: 'Sometimes e d at the end says d, like in rained.', emoji: '🌧️' },
-        { g: 'ed', p: 'id', tip: 'After t or d, e d says id, like in landed.', emoji: '🛬' },
+        { g: 'ed', p: 't', tip: 'Sometimes [e] [d] at the end of a word says /t/. Like in jumped!', emoji: '🦘' },
+        { g: 'ed', tip: 'Sometimes [e] [d] at the end of a word says /d/. Like in rained!', emoji: '🌧️' },
+        { g: 'ed', p: 'id', tip: 'After [t] or [d], the ending [e] [d] says /id/. Like in landed!', emoji: '🛬' },
       ],
       words: [
         w('r.u.n|n.i.ng', '🏃'), w('s.w.i.m|m.i.ng', '🏊'), w('s.l.ee.p|i.ng', '😴'), w('c.r.y=igh|i.ng', '😭'),
@@ -102,8 +102,8 @@ export const WORLD_10: WorldDef = {
         'f.i.sh', 'm.i.l.k', 'p.o.n.d', 'k.i.d.s=z',
       ),
       heart: [
-        { seg: 'm.o.v.e', heart: [1, 3], tip: 'In move, the o says oo and the e is silent: move.' },
-        { seg: 'f.a.th.er', heart: [1], tip: 'In father, the a says ah: father.' },
+        { seg: 'm.o.v.e', heart: [1, 3], tip: 'In the word move, the [o] says /oo/, and the [e] is silent: move!' },
+        { seg: 'f.a.th.er', heart: [1], tip: 'In the word father, the [a] sounds like the /o/ in hot: father!' },
       ],
       aliens: ['z.u.m.p.ed=t', 'v.a.n.d|ed=id', 'z.a.ck|i.ng', 'r.u.v.ed'],
       sentences: [
@@ -124,8 +124,8 @@ export const WORLD_10: WorldDef = {
         stat: '2 spiders in space',
       },
       sounds: [
-        { g: 'tch', tip: 't, c and h together say ch, like in hatch.', emoji: '🐣' },
-        { g: 'tion', tip: 't, i, o and n together say shun, like in action.', emoji: '🎬' },
+        { g: 'tch', tip: 'The letters [t], [c] and [h] together say /ch/. Like in hatch!', emoji: '🐣' },
+        { g: 'tion', tip: 'The letters [t], [i], [o] and [n] together say /shun/. Like in action!', emoji: '🎬' },
       ],
       words: [
         w('h.a.tch', '🐣'), w('c.r.u.tch', '🩼'), w('s.t.i.tch', '🪡'), w('a.c|tion', '🎬'),

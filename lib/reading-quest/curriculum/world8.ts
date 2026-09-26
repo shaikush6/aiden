@@ -8,7 +8,7 @@ export const WORLD_8: WorldDef = {
   emoji: '🐴',
   habitat: 'Ranch',
   theme: 'from-orange-300 via-amber-200 to-lime-200 dark:from-orange-950 dark:via-slate-900 dark:to-slate-950',
-  intro: 'Welcome to the ranch! Here the letter r is bossy. It changes the sound of the vowel next to it. Let’s help the farm animals!',
+  intro: 'Welcome to the ranch! Here the letter [r] is bossy. It changes the sound of the vowel next to it. Let’s help the farm animals!',
   skill: 'R-controlled vowels: ar, or, ore, er, ir, ur, air, are, ear, eer',
   levels: [
     {
@@ -21,7 +21,7 @@ export const WORLD_8: WorldDef = {
         stat: 'Turns its head 270 degrees',
       },
       sounds: [
-        { g: 'ar', tip: 'a and r together say ar, like a pirate: arr!', emoji: '🏴‍☠️' },
+        { g: 'ar', tip: 'Bossy [r]! The letters [a] and [r] together say /ar/. Like a pirate: /ar/!', emoji: '🏴‍☠️' },
       ],
       words: [
         w('s.t.ar', '⭐'), w('c.ar', '🚗'), w('sh.ar.k', '🦈'), w('j.ar', '🫙'),
@@ -34,7 +34,7 @@ export const WORLD_8: WorldDef = {
         'f.u=uu.ll', 't.o.p',
       ),
       heart: [
-        { seg: 's.ch=k.oo.l', heart: [1], tip: 'In school, the c h says k: school.' },
+        { seg: 's.ch=k.oo.l', heart: [1], tip: 'In the word school, the [c] and [h] say /k/: school!' },
       ],
       aliens: ['z.ar.p', 'v.ar.b', 'j.ar.t', 'b.ar.v'],
       sentences: [
@@ -56,8 +56,8 @@ export const WORLD_8: WorldDef = {
         stat: 'Stomach with 4 parts',
       },
       sounds: [
-        { g: 'or', tip: 'o and r together say or, like in corn.', emoji: '🌽' },
-        { g: 'ore', tip: 'o, r and e together also say or, like in snore. The e is quiet.', emoji: '😴' },
+        { g: 'or', tip: 'The letters [o] and [r] together say /or/. Like in corn!', emoji: '🌽' },
+        { g: 'ore', tip: 'The letters [o], [r] and [e] say /or/ too. The [e] is quiet. Like in snore!', emoji: '😴' },
       ],
       words: [
         w('c.or.n', '🌽'), w('f.or.k', '🍴'), w('s.t.or.m', '⛈️'), w('sh.or.t.s', '🩳'),
@@ -69,7 +69,7 @@ export const WORLD_8: WorldDef = {
         'c.ow.s=z', 'ea.t', 'w.i.th', 's.p.or.t', 'm.or.n|i.ng',
       ),
       heart: [
-        { seg: 'f.r.ie.n.d', heart: [2], tip: 'In friend, the i e says e: friend.' },
+        { seg: 'f.r.ie.n.d', heart: [2], tip: 'In the word friend, the [i] and [e] say /e/: friend!' },
       ],
       aliens: ['z.or.p', 'v.or.b', 'j.ore', 'sh.or.b'],
       sentences: [
@@ -90,9 +90,9 @@ export const WORLD_8: WorldDef = {
         stat: 'Runs 35 miles per hour',
       },
       sounds: [
-        { g: 'er', tip: 'e and r together say er, like in hammer.', emoji: '🔨' },
-        { g: 'ir', tip: 'i and r also say er, like in bird.', emoji: '🐦' },
-        { g: 'ur', tip: 'u and r also say er, like in burger.', emoji: '🍔' },
+        { g: 'er', tip: 'The letters [e] and [r] together say /er/. Like in hammer!', emoji: '🔨' },
+        { g: 'ir', tip: 'The letters [i] and [r] say /er/ too. Like in bird!', emoji: '🐦' },
+        { g: 'ur', tip: 'The letters [u] and [r] say /er/ too. Like in burger!', emoji: '🍔' },
       ],
       words: [
         w('b.ir.d', '🐦'), w('g.ir.l', '👧'), w('sh.ir.t', '👕'), w('b.ir.th|d.ay', '🎂'),
@@ -104,7 +104,7 @@ export const WORLD_8: WorldDef = {
         'b.i.g|g.er', 'p.er.ch', 'f.l.y=igh', 'm.a.n', 'u.s', 's.i.t.s',
       ),
       heart: [
-        { seg: 'eye', heart: [0], tip: 'Eye is a heart word. It says I, like the letter: eye.' },
+        { seg: 'eye', heart: [0], tip: 'Eye is a heart word. It sounds just like the letter [i]: eye!' },
       ],
       aliens: ['z.er.t', 'v.ur.m', 'j.ir.p', 'n.ur.b'],
       sentences: [
@@ -126,10 +126,10 @@ export const WORLD_8: WorldDef = {
         stat: 'Remembers 50 faces',
       },
       sounds: [
-        { g: 'air', tip: 'a, i and r together say air, like the air you breathe.', emoji: '🌬️' },
-        { g: 'are', tip: 'a, r and e also say air, like in scare. The e is quiet.', emoji: '😱' },
-        { g: 'ear', tip: 'e, a and r together say ear, like the ear on your head.', emoji: '👂' },
-        { g: 'eer', tip: 'e, e and r also say ear, like in deer.', emoji: '🦌' },
+        { g: 'air', tip: 'The letters [a], [i] and [r] together say /air/. Like the air you breathe!', emoji: '🌬️' },
+        { g: 'are', tip: 'The letters [a], [r] and [e] say /air/ too. The [e] is quiet. Like in scare!', emoji: '😱' },
+        { g: 'ear', tip: 'The letters [e], [a] and [r] together say /ear/. Like the ear on your head!', emoji: '👂' },
+        { g: 'eer', tip: 'The letters [e], [e] and [r] say /ear/ too. Like in deer!', emoji: '🦌' },
       ],
       words: [
         w('ch.air', '🪑'), w('h.air', '💇'), w('air|p.l.a_e.n', '✈️'), w('s.qu.are', '🟧'),
@@ -141,7 +141,7 @@ export const WORLD_8: WorldDef = {
         's.t.air.s=z', 'ch.air.s=z', 'ear.s=z', 's.c.are.d',
       ),
       heart: [
-        { seg: 's=sh.ure', heart: [0, 1], tip: 'In sure, the s says sh and the u r e says or: sure.' },
+        { seg: 's=sh.ure', heart: [0, 1], tip: 'In the word sure, the [s] says /sh/, and the [u], [r] and [e] say /er/: sure!' },
       ],
       aliens: ['z.air', 'j.are', 'z.ear', 'k.eer'],
       sentences: [

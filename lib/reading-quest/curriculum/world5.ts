@@ -8,7 +8,7 @@ export const WORLD_5: WorldDef = {
   emoji: '🦎',
   habitat: 'Desert',
   theme: 'from-orange-300 via-amber-200 to-yellow-100 dark:from-orange-950 dark:via-slate-900 dark:to-slate-950',
-  intro: 'Welcome to the desert! Here a magic e can make a vowel say its name. Let us help the desert animals!',
+  intro: 'Welcome to the desert! Here a magic [e] can make a vowel say its name. Let us help the desert animals!',
   skill: 'Magic e (split digraphs): a_e, i_e, o_e, u_e, e_e, and pairs like cap and cape, kit and kite',
   levels: [
     {
@@ -21,7 +21,7 @@ export const WORLD_5: WorldDef = {
         stat: 'Up to 7 feet long',
       },
       sounds: [
-        { g: 'a_e', tip: 'a and e are a team. The magic e jumps over a letter and makes a say its name, ay, like in cake.', emoji: '🎂' },
+        { g: 'a_e', tip: 'Magic [e]! When magic [e] sits at the end, it jumps over one letter and makes the letter [a] say its name: /ai/! Like in cake.', emoji: '🎂' },
       ],
       words: [
         w('c.a_e.k', '🎂'), w('s.n.a_e.k', '🐍'), w('g.r.a_e.p.s', '🍇'), w('p.l.a_e.n', '✈️'),
@@ -30,8 +30,8 @@ export const WORLD_5: WorldDef = {
       ],
       extra: ws('b.a_e.k'),
       heart: [
-        { seg: 'wh.a.t', heart: [0, 1], tip: 'In what, the w h says w and the a says u: what.' },
-        { seg: 'wh.e.n', heart: [0], tip: 'In when, the w and h together say w: when.' },
+        { seg: 'wh.a.t', heart: [0, 1], tip: 'In the word what, the [w] and [h] say /w/, and the [a] says /u/: what!' },
+        { seg: 'wh.e.n', heart: [0], tip: 'In the word when, the [w] and [h] say /w/: when!' },
       ],
       aliens: ['v.a_e.k', 'z.a_e.p', 'j.a_e.t', 'f.a_e.p'],
       sentences: [
@@ -53,7 +53,7 @@ export const WORLD_5: WorldDef = {
         stat: 'Drinks 30 gallons in 13 minutes',
       },
       sounds: [
-        { g: 'i_e', tip: 'i and e are a team. The magic e makes i say its name, I, like in kite.', emoji: '🪁' },
+        { g: 'i_e', tip: 'Magic [e] jumps over one letter and makes the letter [i] say its name: /igh/! Like in kite.', emoji: '🪁' },
       ],
       words: [
         w('k.i_e.t', '🪁'), w('b.i_e.k', '🚲'), w('f.i_e.v', '5️⃣'), w('n.i_e.n', '9️⃣'),
@@ -62,7 +62,7 @@ export const WORLD_5: WorldDef = {
       ],
       extra: ws('b.i_e.t', 'r.i_e.d', 'k.i.d.s=z', 'r.a.b|b.i.t.s', 'g.l.a.d'),
       heart: [
-        { seg: 'w.ere=er', heart: [1], tip: 'In were, the e r e says er: were.' },
+        { seg: 'w.ere=er', heart: [1], tip: 'In the word were, the letters [e], [r] and [e] say /er/: were!' },
       ],
       aliens: ['v.i_e.m', 'z.i_e.t', 'j.i_e.p', 'p.i_e.m'],
       sentences: [
@@ -84,7 +84,7 @@ export const WORLD_5: WorldDef = {
         stat: 'Runs up to 40 miles per hour',
       },
       sounds: [
-        { g: 'o_e', tip: 'o and e are a team. The magic e makes o say its name, oh, like in bone.', emoji: '🦴' },
+        { g: 'o_e', tip: 'Magic [e] jumps over one letter and makes the letter [o] say its name: /oa/! Like in bone.', emoji: '🦴' },
       ],
       words: [
         w('b.o_e.n', '🦴'), w('r.o_e.s=z', '🌹'), w('n.o_e.s=z', '👃'), w('g.l.o_e.b', '🌍'),
@@ -93,8 +93,8 @@ export const WORLD_5: WorldDef = {
       ],
       extra: ws('s.m.e.ll', 'a.t', 'f.r.o.g', 'w.i.th'),
       heart: [
-        { seg: 'wh.ere', heart: [0, 1], tip: 'In where, the w h says w and the e r e says air: where.' },
-        { seg: 'wh.o', heart: [0, 1], tip: 'In who, the w h says h and the o says oo: who.' },
+        { seg: 'wh.ere', heart: [0, 1], tip: 'In the word where, the [w] and [h] say /w/, and the [e], [r] and [e] say /air/: where!' },
+        { seg: 'wh.o', heart: [0, 1], tip: 'In the word who, the [w] and [h] say /h/, and the [o] says /oo/: who!' },
       ],
       aliens: ['v.o_e.p', 'z.o_e.b', 'j.o_e.t', 'f.o_e.p'],
       sentences: [
@@ -115,9 +115,9 @@ export const WORLD_5: WorldDef = {
         stat: '8 legs',
       },
       sounds: [
-        { g: 'u_e', tip: 'u and e are a team. The magic e makes u say its name, you, like in cube.', emoji: '🧊' },
-        { g: 'u_e', p: 'oo', tip: 'Sometimes u and magic e say oo, like in tube and dune.', emoji: '🏜️' },
-        { g: 'e_e', tip: 'e and e are a team. The magic e makes e say its name, ee, like in these.', emoji: '👉' },
+        { g: 'u_e', tip: 'Magic [e] jumps over one letter and makes the letter [u] say its name: /yoo/! Like in cube.', emoji: '🧊' },
+        { g: 'u_e', p: 'oo', tip: 'Sometimes [u] with magic [e] says /oo/ instead. Like in tube and dune!', emoji: '🏜️' },
+        { g: 'e_e', tip: 'Magic [e] can make the letter [e] say its name too: /ee/! Like in these.', emoji: '👉' },
       ],
       words: [
         w('c.u_e.b', '🧊'), w('c.u.b', '🐻'), w('t.u_e=oo.b', '🧪'), w('t.u.b', '🛁'),
@@ -129,7 +129,7 @@ export const WORLD_5: WorldDef = {
         's.i.ng', 'c.u.b.s=z', 'p.a.n|c.a_e.k.s',
       ),
       heart: [
-        { seg: 'f.our', heart: [1], tip: 'Four is a number word. The o u r says or: four.' },
+        { seg: 'f.our', heart: [1], tip: 'Four is a number word! The letters [o], [u] and [r] say /or/: four!' },
       ],
       aliens: ['v.u_e.b', 'z.u_e.t', 'z.e_e.m', 'n.u_e=oo.p'],
       sentences: [

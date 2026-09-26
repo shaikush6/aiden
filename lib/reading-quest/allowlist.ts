@@ -1,60 +1,72 @@
 // The complete set of things the quest ever asks the voice to say.
 // The server only generates speech for ids in this list, so the quest's audio endpoint
 // cannot be used to generate arbitrary speech.
+// Scripts are stored split at their /sound/ markers: only the text pieces are spoken by the voice;
+// the phonics sounds between them are real recordings.
 import { hashKey } from '../hash.ts'
 import { LEVELS, type LevelInfo } from './catalog.ts'
-import { GOAL, LINES, PRAISE, RETRY, rescuedLine } from './lines.ts'
-import { narrationLines, WORLD_NARRATION } from './narration.ts'
+import {
+  KIT_GOAL, KIT_LINES, KIT_PRAISE, KIT_RETRY, NARRATOR_GOAL, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, rescuedLine,
+} from './lines.ts'
+import { NARRATOR_VOICES, narrationLines, WORLD_NARRATION } from './narration.ts'
 import { phonemeTtsTexts } from './phonemes.ts'
+import { spokenFragments } from './script.ts'
 
-/** How the voice should say a line. */
+/** How a line is voiced: Kit's teacher voice, the narrator, a single word, a made-up word, or a speech sound. */
 export type LineKind = 'line' | 'narration' | 'word' | 'alien' | 'sound'
 
-export const VOICE_VERSION = 'v1'
+export const VOICE_VERSION = 'v2'
 
-export function lineId(kind: LineKind, text: string): string {
-  return hashKey(`${VOICE_VERSION}|${kind}|${text}`)
+export function lineId(kind: LineKind, text: string, voice = ''): string {
+  return hashKey(`${VOICE_VERSION}|${kind}|${voice}|${text}`)
 }
 
-export interface QuestLine { kind: LineKind; text: string }
+export interface QuestLine { kind: LineKind; text: string; voice?: string }
 
-/** In narrator mode, every guide line can also be spoken by the narrator voice. */
-function withNarration(lines: QuestLine[]): QuestLine[] {
-  return lines.flatMap(l => (l.kind === 'line' ? [l, { kind: 'narration' as const, text: l.text }] : [l]))
+/** Kit's voice: every text piece of these scripts. */
+function asKit(scripts: string[]): QuestLine[] {
+  return scripts.flatMap(spokenFragments).map(text => ({ kind: 'line' as const, text }))
+}
+
+/** Narrator voice: every text piece of these scripts, in every voice a grown-up can choose. */
+function asNarrator(scripts: string[]): QuestLine[] {
+  return scripts.flatMap(spokenFragments).flatMap(text => NARRATOR_VOICES.map(v => ({ kind: 'narration' as const, text, voice: v.id })))
 }
 
 /** Everything one level may say (not counting the shared fixed lines). */
 export function levelLines(level: LevelInfo): QuestLine[] {
-  const out: QuestLine[] = []
-  const add = (kind: LineKind, text: string) => { if (text) out.push({ kind, text }) }
   const { def } = level
-  if (level.world.levels[0].id === def.id) add('line', level.world.intro)
-  add('line', def.animal.rescue)
-  add('line', def.animal.fact)
-  add('line', rescuedLine(def.animal.name))
-  def.sounds.forEach(s => add('line', s.tip))
-  level.newHeart.forEach(h => { add('line', h.tip); add('word', h.word.say) })
-  level.words.forEach(w => add('word', w.say))
-  level.aliens.forEach(a => add('alien', a.say))
-  def.sentences.forEach(s => add('line', s.t))
-  if (def.story) {
-    add('line', def.story.title)
-    def.story.pages.forEach(p => add('line', p.t))
-    def.story.questions.forEach(q => add('line', q.ask))
-  }
-  const story = WORLD_NARRATION[level.world.id]
-  if (story && level.world.levels[0].id === def.id) add('narration', story.arrive)
-  if (story && level.isBoss) add('narration', story.complete)
-  return withNarration(out)
+  const firstOfWorld = level.world.levels[0].id === def.id
+  // Content scripts are spoken by Kit or by the narrator, depending on the setting.
+  const content: string[] = [
+    ...(firstOfWorld ? [level.world.intro] : []),
+    def.animal.rescue, def.animal.fact, rescuedLine(def.animal.name),
+    ...def.sounds.map(s => s.tip),
+    ...level.newHeart.map(h => h.tip),
+    ...def.sentences.map(s => s.t),
+    ...(def.story ? [def.story.title, ...def.story.pages.map(p => p.t), ...def.story.questions.map(q => q.ask)] : []),
+  ]
+  const world = WORLD_NARRATION[level.world.id]
+  const narratorOnly = [
+    ...(world && firstOfWorld ? [world.arrive] : []),
+    ...(world && level.isBoss ? [world.complete] : []),
+  ]
+  return [
+    ...asKit(content),
+    ...asNarrator([...content, ...narratorOnly]),
+    ...level.newHeart.map(h => ({ kind: 'word' as const, text: h.word.say })),
+    ...level.words.map(w => ({ kind: 'word' as const, text: w.say })),
+    ...level.aliens.map(a => ({ kind: 'alien' as const, text: a.say })),
+  ]
 }
 
-/** The lines every level uses: instructions, praise, and phoneme sounds. */
+/** The lines every level uses: instructions, praise, narrator moments, and speech sounds. */
 export function sharedLines(): QuestLine[] {
-  return withNarration([
-    ...[...Object.values(LINES), ...PRAISE, ...RETRY, GOAL].map(text => ({ kind: 'line' as const, text })),
-    ...narrationLines().map(text => ({ kind: 'narration' as const, text })),
+  return [
+    ...asKit([...Object.values(KIT_LINES), ...KIT_PRAISE, ...KIT_RETRY, KIT_GOAL]),
+    ...asNarrator([...Object.values(NARRATOR_LINES), ...NARRATOR_PRAISE, ...NARRATOR_RETRY, NARRATOR_GOAL, ...narrationLines()]),
     ...phonemeTtsTexts().map(text => ({ kind: 'sound' as const, text })),
-  ])
+  ]
 }
 
 export function collectQuestLines(): QuestLine[] {
@@ -70,6 +82,6 @@ export function collectQuestLines(): QuestLine[] {
 let byId: Map<string, QuestLine> | null = null
 
 export function findQuestLine(id: string): QuestLine | undefined {
-  if (!byId) byId = new Map(collectQuestLines().map(l => [lineId(l.kind, l.text), l]))
+  if (!byId) byId = new Map(collectQuestLines().map(l => [lineId(l.kind, l.text, l.voice), l]))
   return byId.get(id)
 }

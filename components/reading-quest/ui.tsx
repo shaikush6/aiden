@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion';
 import { stopAudio } from '@/lib/audio-player';
 import { say, sayPhoneme, sayWord } from '@/lib/reading-quest/audio';
-import { LINES, PRAISE, RETRY } from '@/lib/reading-quest/lines';
+import { LINES, randomPraise, randomRetry } from '@/lib/reading-quest/lines';
 import type { ParsedWord } from '@/lib/reading-quest/types';
 
 export interface StepResult { firstTry: boolean }
@@ -28,7 +28,6 @@ export function useSayOnMount(...parts: Parameters<typeof say>) {
   }, []);
 }
 
-const pick = <T,>(arr: readonly T[]) => arr[Math.floor(Math.random() * arr.length)];
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 export type ChoiceState = 'idle' | 'right' | 'wrong' | 'reveal';
@@ -54,7 +53,7 @@ export function useAnswer(onDone: (r: StepResult) => void) {
     setStatus('right');
     if (after) await after();
     if (!alive.current) return;
-    await Promise.all([say(pick(PRAISE)), wait(700)]);
+    await Promise.all([say(randomPraise()), wait(700)]);
     if (alive.current) onDone({ firstTry: missCount.current === 0 });
   }, [onDone, alive]);
 
@@ -66,7 +65,7 @@ export function useAnswer(onDone: (r: StepResult) => void) {
     setMisses(n);
     setWrongPick(choiceKey);
     if (n < 2) {
-      await Promise.all([say(pick(RETRY)), wait(900)]);
+      await Promise.all([say(randomRetry()), wait(900)]);
       if (!alive.current) return;
       setWrongPick(null);
       setBusy(false);

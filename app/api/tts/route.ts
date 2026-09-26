@@ -12,17 +12,14 @@ const CHILD_VOICE =
 const PHONICS_VOICE =
   'You are a synthetic phonics teacher producing an isolated phoneme sound for a young child. Rules: (1) Produce ONLY the single phoneme sound — no extra words, no context, nothing before or after. (2) Stop consonants (b d g k p t): make the briefest possible plosive release with ZERO vowel following — not "buh" but a pure silent lip-pop for b; not "tuh" but a crisp tongue-tap for t. (3) Fricatives (f v s z sh th): sustain only the friction — "fff" not "fuh", "sss" not "suh". (4) Nasals (m n ng): sustain the nasal hum — "mmm" not "muh". (5) Approximants (l r w y): the pure glide only. (6) Short vowels: a = the sound in cat (never "ay"), e = the sound in bed (never "ee"), i = the sound in sit (never "eye"), o = the sound in hot (never "oh"), u = the sound in cup (never "you"). Be extremely precise and brief. You are demonstrating the phoneme, not reading.'
 
-/** Narrator mode: an adventure-movie narrator, still warm and clear enough for a 5-year-old. */
+/** Narrator mode: a bursting-with-energy kids' TV adventure host. */
 const NARRATOR_VOICE =
-  'You are the narrator of an exciting animal-rescue adventure game for a 5-year-old who loves nature documentaries and Wild Kratts. Speak like an epic movie-trailer and nature-documentary narrator: dramatic pauses, rising excitement, wonder and suspense, big energy on exclamation marks, a hushed build-up before reveals. Stay warm, friendly and never scary. Pronounce every word clearly, because the child is learning to read.'
+  "You are the super excited host of a kids' TV animal-adventure show, talking to a 5-year-old explorer who adores animals. Your energy is HIGH: big smile in your voice, bouncy rhythm, playful and a little silly, genuinely thrilled about everything. Swing your pitch up and down a lot, punch the exclamation marks, speed up with excitement and slow down only for a quick dramatic whisper before a reveal. Never flat, never monotone, never deep or serious, never sleepy. Stay kind and never scary. Say every word clearly, because the child is learning to read. If you see a single capital letter or capitals separated by spaces, say the letter names."
 
-// Change NARRATOR_VOICE_NAME to try a different narrator (e.g. 'ash', 'ballad', 'verse', 'fable').
-// Bump VOICE_VERSION in lib/reading-quest/allowlist.ts afterwards so cached clips regenerate.
-const NARRATOR_VOICE_NAME = 'onyx'
-
-const QUEST_VOICE: Record<LineKind, { instructions: string; speed: number; voice?: string }> = {
+const QUEST_VOICE: Record<LineKind, { instructions: string; speed: number }> = {
   line: { instructions: CHILD_VOICE, speed: 1.0 },
-  narration: { instructions: NARRATOR_VOICE, speed: 1.0, voice: NARRATOR_VOICE_NAME },
+  // The voice itself comes from the allowlisted line (a grown-up picks it in the parent panel).
+  narration: { instructions: NARRATOR_VOICE, speed: 1.08 },
   word: {
     instructions: 'Say only this single word, once, clearly and naturally, in a warm American accent, the way a kind teacher says a word to a 5-year-old learning to read. Nothing before or after it.',
     speed: 0.9,
@@ -58,7 +55,7 @@ export async function GET(req: NextRequest) {
   if (!line) return jsonError('Unknown line', 404)
 
   const voice = QUEST_VOICE[line.kind]
-  const audio = await synthesize(line.text, voice.instructions, voice.speed, voice.voice)
+  const audio = await synthesize(line.text, voice.instructions, voice.speed, line.voice)
   if (!audio) return jsonError('Speech failed', 502)
   return new NextResponse(new Uint8Array(audio), {
     headers: {

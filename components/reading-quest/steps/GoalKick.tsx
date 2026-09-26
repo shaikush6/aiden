@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { say, sayWord, wordClip } from '@/lib/reading-quest/audio';
-import { GOAL, LINES } from '@/lib/reading-quest/lines';
+import { goalLine, LINES } from '@/lib/reading-quest/lines';
 import type { Step } from '@/lib/reading-quest/plan';
 import { Guide, SpeakerButton, useAnswer, useSayOnMount, WordView, type StepResult } from '../ui';
 
@@ -19,7 +19,7 @@ export default function GoalKick({ step, onDone }: Props) {
   const kick = (text: string) => {
     if (busy) return;
     setKicked(text);
-    if (text === word.text) right(() => say(GOAL));
+    if (text === word.text) right(() => say(goalLine()));
     else wrong(text, () => sayWord(word)).then(() => setKicked(null));
   };
 

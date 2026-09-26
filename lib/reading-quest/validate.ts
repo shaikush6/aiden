@@ -5,6 +5,10 @@ import { isKnownGrapheme } from './phonemes.ts'
 import { parseSeg, parseWord } from './parse.ts'
 import type { ParsedWord } from './types.ts'
 import { planLevel } from './plan.ts'
+import { checkScript } from './script.ts'
+import { KIT_LINES, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, KIT_PRAISE, KIT_RETRY } from './lines.ts'
+import { narrationLines } from './narration.ts'
+import { WORLDS } from './curriculum/index.ts'
 import type { QuestProgress } from './progress.ts'
 
 const MAX_SPOKEN = 300
@@ -73,6 +77,14 @@ export function validateCurriculum(): string[] {
       } catch (e) { at(`alien "${seg}": ${(e as Error).message}`) }
     }
 
+    // Every spoken script must play real phonics sounds, never a sound spelled as text.
+    const scripts: [string, string][] = [
+      ...def.sounds.map(s => [s.tip, `sound "${s.g}" tip`] as [string, string]),
+      ...(def.heart ?? []).map(h => [h.tip, `heart word "${h.seg}" tip`] as [string, string]),
+      [def.animal.rescue, 'rescue line'], [def.animal.fact, 'animal fact'],
+    ]
+    for (const [text, what] of scripts) checkScript(text).forEach(p => at(`${what}: ${p}`))
+
     const checkText = (text: string, what: string) => {
       if (text.length > MAX_SPOKEN) at(`${what} is too long to speak`)
       for (const tok of tokenize(text)) {
@@ -102,10 +114,16 @@ export function validateCurriculum(): string[] {
       if (def.story.questions.length < 2) at('story needs at least 2 questions')
     }
   }
+  // Fixed lines, narration, and world intros.
+  const fixed = [
+    ...Object.values(KIT_LINES), ...Object.values(NARRATOR_LINES), ...KIT_PRAISE, ...KIT_RETRY,
+    ...NARRATOR_PRAISE, ...NARRATOR_RETRY, ...narrationLines(), ...WORLDS.map(w => w.intro),
+  ]
+  for (const text of fixed) checkScript(text).forEach(p => errors.push(`fixed line "${text.slice(0, 40)}…": ${p}`))
   return errors
 }
 
-const NO_PROGRESS: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: { music: false, narrator: false } }
+const NO_PROGRESS: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: { music: false, narrator: false, narratorVoice: 'verse' } }
 
 /** Generate each level's activities many times and make sure every activity has a full set of choices. */
 export function validatePlans(runs = 25): string[] {

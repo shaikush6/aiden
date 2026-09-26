@@ -9,6 +9,7 @@ import { say } from '@/lib/reading-quest/audio';
 import type { LevelScript } from './ReadingQuest';
 import { gpcsInStep, isScored, wordsInStep, type Step } from '@/lib/reading-quest/plan';
 import { recordLevel, type SoundStat } from '@/lib/reading-quest/progress';
+import SoundSwitches from './SoundSwitches';
 import { BigButton, Emoji, useSayOnMount, type StepResult } from './ui';
 import MeetSound from './steps/MeetSound';
 import HearPick from './steps/HearPick';
@@ -93,6 +94,7 @@ export default function LevelPlayer({ level, steps, script, onExit, onReplay, on
           />
         </div>
         <span className="text-3xl shrink-0" aria-hidden>{level.def.animal.emoji}</span>
+        <SoundSwitches compact />
       </div>
 
       <AnimatePresence mode="wait">

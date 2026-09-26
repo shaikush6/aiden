@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { LEVELS } from '@/lib/reading-quest/catalog';
 import { WORLDS } from '@/lib/reading-quest/curriculum';
+import { previewVoice } from '@/lib/reading-quest/audio';
+import { NARRATOR_VOICES, VOICE_PREVIEW } from '@/lib/reading-quest/narration';
 import { displayGrapheme } from '@/lib/reading-quest/plan';
 import {
-  isCompleted, nextLevelIndex, resetProgress, setUnlockAll, weakSounds, type QuestProgress,
+  isCompleted, nextLevelIndex, resetProgress, setSettings, setUnlockAll, weakSounds, type QuestProgress,
 } from '@/lib/reading-quest/progress';
 
 interface Props {
@@ -100,6 +102,37 @@ export default function ParentPanel({ progress, gate, onClose }: Props) {
             );
           })}
         </ol>
+      </section>
+
+      <section>
+        <h3 className="font-black text-lg mb-1">Narrator voice</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
+          Tap ▶ to hear each voice, then pick the most exciting one. Words and letter sounds always stay in the clear teacher voice.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {NARRATOR_VOICES.map(v => {
+            const chosen = progress.settings.narratorVoice === v.id;
+            return (
+              <div key={v.id} className={`rounded-2xl border-2 p-2 flex items-center gap-2 ${chosen ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/40' : 'border-slate-200 dark:border-slate-700'}`}>
+                <button
+                  type="button"
+                  onClick={() => previewVoice(v.id, VOICE_PREVIEW)}
+                  className="w-10 h-10 min-w-0 rounded-full bg-sky-500 text-white font-black shrink-0"
+                  aria-label={`Preview ${v.label}`}
+                >
+                  ▶
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ narratorVoice: v.id })}
+                  className={`flex-1 font-black rounded-xl py-2 ${chosen ? 'text-violet-700 dark:text-violet-300' : ''}`}
+                >
+                  {chosen ? `✓ ${v.label}` : v.label}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section className="text-sm text-slate-600 dark:text-slate-300 bg-sky-50 dark:bg-slate-900/60 rounded-2xl p-4">

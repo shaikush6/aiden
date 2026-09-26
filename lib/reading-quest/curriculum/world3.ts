@@ -21,7 +21,7 @@ export const WORLD_3: WorldDef = {
         stat: 'Around for 400 million years',
       },
       sounds: [
-        { g: 'sh', tip: 'sh says shh, like a quiet library.', emoji: '🤫' },
+        { g: 'sh', tip: 'The letters [s] and [h] team up to make a new sound: /sh/. Like a quiet library: /sh/ /sh/ /sh/!', emoji: '🤫' },
       ],
       words: [
         w('f.i.sh', '🐟'), w('sh.i.p', '🚢'), w('sh.e.ll', '🐚'), w('d.i.sh', '🍽️'),
@@ -29,7 +29,7 @@ export const WORLD_3: WorldDef = {
         w('r.o.ck', '🪨'), w('s.u.n', '☀️'),
       ],
       heart: [
-        { seg: 'sh.e', heart: [1], tip: 'In she, the e says its name, ee: she.' },
+        { seg: 'sh.e', heart: [1], tip: 'In the word she, the letter [e] says its name: /ee/. She!' },
       ],
       aliens: ['sh.o.m', 'sh.u.b', 'sh.e.g', 'v.o.sh'],
       sentences: [
@@ -50,7 +50,7 @@ export const WORLD_3: WorldDef = {
         stat: 'Up to 1 million hairs per square inch',
       },
       sounds: [
-        { g: 'ch', tip: 'ch says ch, like a choo-choo train.', emoji: '🚂' },
+        { g: 'ch', tip: 'The letters [c] and [h] team up to make a new sound: /ch/. Like a choo-choo train: /ch/ /ch/ /ch/!', emoji: '🚂' },
       ],
       words: [
         w('ch.i.ck', '🐤'), w('ch.i.ck|e.n', '🐔'), w('ch.e.ss', '♟️'), w('ch.o.p', '🪓'),
@@ -59,8 +59,8 @@ export const WORLD_3: WorldDef = {
       ],
       extra: ws('p.e.ck', 's.e.t', 'ch.i.ck.s'),
       heart: [
-        { seg: 'a.ll', heart: [0], tip: 'In all, the a says aw: all.' },
-        { seg: 'b.y=igh', heart: [1], tip: 'In by, the y says I: by.' },
+        { seg: 'a.ll', heart: [0], tip: 'In the word all, the letter [a] says /aw/: all!' },
+        { seg: 'b.y=igh', heart: [1], tip: 'In the word by, the letter [y] says /igh/: by!' },
       ],
       aliens: ['ch.e.b', 'ch.u.v', 'ch.o.b', 'v.a.ch'],
       sentences: [
@@ -82,7 +82,7 @@ export const WORLD_3: WorldDef = {
         stat: 'Swims up to 20 miles per hour',
       },
       sounds: [
-        { g: 'th', tip: 'th says th. Put your tongue between your teeth, like in thumb.', emoji: '👍' },
+        { g: 'th', tip: 'The letters [t] and [h] team up to make a new sound: /th/. Stick your tongue out between your teeth: /th/ /th/ /th/!', emoji: '👍' },
       ],
       words: [
         w('b.a.th', '🛁'), w('m.a.th', '🔢'), w('f.i.sh', '🐟'), w('sh.i.p', '🚢'),
@@ -91,7 +91,7 @@ export const WORLD_3: WorldDef = {
       ],
       extra: ws('th.i.s', 'th.e.n', 'w.i.th', 'th.a.t', 'th.e.m'),
       heart: [
-        { seg: 'th.ey', heart: [1], tip: 'In they, the e and y say ay: they.' },
+        { seg: 'th.ey', heart: [1], tip: 'In the word they, the letters [e] and [y] say /ai/: they!' },
       ],
       aliens: ['th.u.p', 'th.o.g', 'th.e.b', 'v.i.th'],
       sentences: [
@@ -112,8 +112,8 @@ export const WORLD_3: WorldDef = {
         stat: 'About 50 feet long',
       },
       sounds: [
-        { g: 'ng', tip: 'ng says ng, like at the end of ring. The sound comes out of your nose!', emoji: '💍' },
-        { g: 'nk', tip: 'nk says nk, like at the end of think.', emoji: '🤔' },
+        { g: 'ng', tip: 'The letters [n] and [g] team up to make /ng/, like at the end of ring. The sound comes out of your nose: /ng/!', emoji: '💍' },
+        { g: 'nk', tip: 'The letters [n] and [k] team up to make /nk/. Like at the end of think: /nk/ /nk/!', emoji: '🤔' },
       ],
       words: [
         w('r.i.ng', '💍'), w('k.i.ng', '👑'), w('s.i.ng', '🎤'), w('b.a.ng', '💥'),
@@ -122,8 +122,8 @@ export const WORLD_3: WorldDef = {
       ],
       extra: ws('p.i.nk', 's.o.ng'),
       heart: [
-        { seg: 'are=ar', heart: [0], tip: 'Are is a heart word. It says ar: are.' },
-        { seg: 'h.er', heart: [1], tip: 'In her, the e and r say er: her.' },
+        { seg: 'are=ar', heart: [0], tip: 'Are is a heart word. It says /ar/: are!' },
+        { seg: 'h.er', heart: [1], tip: 'In the word her, the letters [e] and [r] say /er/: her!' },
       ],
       aliens: ['v.i.ng', 'y.i.nk', 'd.e.nk', 'z.a.ng'],
       sentences: [

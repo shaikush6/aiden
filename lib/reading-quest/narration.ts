@@ -1,6 +1,19 @@
 // Dramatic narration for "narrator mode": the cinematic moments between the reading.
 // Spoken by the narrator voice. Reading content (words, sounds) always stays in the clear teacher voice.
 
+/** Narrator voices a grown-up can choose from (OpenAI text-to-speech voice names). */
+export const NARRATOR_VOICES = [
+  { id: 'verse', label: 'Verse' },
+  { id: 'ash', label: 'Ash' },
+  { id: 'coral', label: 'Coral' },
+  { id: 'ballad', label: 'Ballad' },
+] as const
+export type NarratorVoice = (typeof NARRATOR_VOICES)[number]['id']
+export const DEFAULT_NARRATOR_VOICE: NarratorVoice = 'verse'
+
+/** Played when a grown-up previews a narrator voice. */
+export const VOICE_PREVIEW = 'Hey, explorer! I am your narrator! Are you ready to read some words and rescue some animals? Let’s GO!'
+
 export interface WorldNarration {
   /** Played when the child starts the first level of a world. */
   arrive: string
@@ -10,7 +23,7 @@ export interface WorldNarration {
 
 export const WORLD_NARRATION: Record<string, WorldNarration> = {
   w1: {
-    arrive: 'Explorer… you have reached the Savanna! Tall golden grass. Hot sun. And somewhere out there, animals who need your help. Your reading power begins… NOW!',
+    arrive: 'Explorer! You have reached the Savanna! Tall golden grass. Hot sun. And somewhere out there, animals who need your help. Your reading power begins right NOW!',
     complete: 'The Savanna is safe! Zebras, lions, hippos, giraffes and elephants are free, all because of your reading power. But the adventure is not over. The jungle is calling!',
   },
   w2: {
@@ -23,7 +36,7 @@ export const WORLD_NARRATION: Record<string, WorldNarration> = {
   },
   w4: {
     arrive: 'Night falls on the Forest Camp. The campfire crackles. Owls hoot. Something is moving in the trees! Here, letters stick together like marshmallows. Let’s blend them!',
-    complete: 'Camp is safe, and the bear cub is home with his mom! You are becoming a real reading ranger. But the desert sun is rising…',
+    complete: 'Camp is safe, and the bear cub is home with his mom! You are becoming a real reading ranger. But look! The desert sun is rising!',
   },
   w5: {
     arrive: 'Whoosh! A hot wind blows across the Desert. The sand is burning, the cactus is spiky, and a mysterious magic E is hiding in the dunes. Its power changes everything!',
@@ -34,7 +47,7 @@ export const WORLD_NARRATION: Record<string, WorldNarration> = {
     complete: 'The Ice Lands are safe! Even the whales are singing your name. Warm up, explorer. The rainforest is waiting!',
   },
   w7: {
-    arrive: 'Drip… drop… You are in the Rainforest! Rain pours. Frogs glow. Butterflies flash blue. Listen closely, because sounds here come in twins!',
+    arrive: 'Drip, drop! You are in the Rainforest! Rain pours. Frogs glow. Butterflies flash blue. Listen closely, because sounds here come in twins!',
     complete: 'The rainforest is saved! Frogs are croaking a victory song just for you. Saddle up, partner. Next stop: the ranch!',
   },
   w8: {
@@ -43,10 +56,10 @@ export const WORLD_NARRATION: Record<string, WorldNarration> = {
   },
   w9: {
     arrive: 'Splash! You have entered the Swamp. Mist floats over the water. Alligators hide in the reeds. And letters here play tricks! Only the smartest readers can see through them.',
-    complete: 'You beat every trick in the swamp! Even Big Al the alligator is impressed. Now, for the greatest adventure of all… prepare for launch!',
+    complete: 'You beat every trick in the swamp! Even Big Al the alligator is impressed. Now, get ready for the greatest adventure of all. Prepare for launch!',
   },
   w10: {
-    arrive: 'Three… two… one… BLAST OFF! You are soaring into the Galaxy! Stars, planets, comets, and the biggest words in the universe. This is the final mission, explorer!',
+    arrive: 'Three, two, one, BLAST OFF! You are soaring into the Galaxy! Stars, planets, comets, and the biggest words in the universe. This is the final mission, explorer!',
     complete: 'Mission complete! You have rescued every animal and read every word from the Savanna to the stars! You are now an official reading champion of the galaxy!',
   },
 }
@@ -67,7 +80,7 @@ export const MISSION_DONE = [
   'Incredible reading! The rescue worked!',
 ] as const
 
-export const STORY_START = 'Gather round, explorer. A new story is about to begin…'
+export const STORY_START = 'Gather round, explorer! A brand new story is about to begin!'
 
 export function pickLine<T extends readonly string[]>(lines: T): T[number] {
   return lines[Math.floor(Math.random() * lines.length)]
@@ -80,5 +93,6 @@ export function narrationLines(): string[] {
     ...MISSION_START,
     ...MISSION_DONE,
     STORY_START,
+    VOICE_PREVIEW,
   ]
 }

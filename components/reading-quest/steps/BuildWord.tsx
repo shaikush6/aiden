@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { say, sayPhoneme, sayWord, wordClip } from '@/lib/reading-quest/audio';
-import { LINES, randomPraise, RETRY } from '@/lib/reading-quest/lines';
+import { LINES, randomPraise, randomRetry } from '@/lib/reading-quest/lines';
 import type { Step } from '@/lib/reading-quest/plan';
 import { Emoji, Guide, SpeakerButton, useAlive, useSayOnMount, type StepResult } from '../ui';
 
@@ -29,7 +29,7 @@ export default function BuildWord({ step, onDone }: Props) {
     if (tiles[i] !== nextChunk.text) {
       setMisses(m => m + 1);
       setShake(i);
-      say(RETRY[misses % RETRY.length]);
+      say(randomRetry());
       setTimeout(() => { if (alive.current) setShake(null); }, 450);
       return;
     }

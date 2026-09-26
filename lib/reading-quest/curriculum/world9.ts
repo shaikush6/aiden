@@ -21,9 +21,9 @@ export const WORLD_9: WorldDef = {
         stat: 'Rests standing on 1 leg',
       },
       sounds: [
-        { g: 'o', p: 'oa', tip: 'Sometimes o says its name, oh, like in cold.', emoji: '🥶' },
-        { g: 'i', p: 'igh', tip: 'Sometimes i says its name, I, like in child.', emoji: '🧒' },
-        { g: 'ea', p: 'e', tip: 'Sometimes e and a say e, like in bread.', emoji: '🍞' },
+        { g: 'o', p: 'oa', tip: 'Sometimes the letter [o] says its name: /oa/. Like in cold and gold!', emoji: '🥶' },
+        { g: 'i', p: 'igh', tip: 'Sometimes the letter [i] says its name: /igh/. Like in child and find!', emoji: '🧒' },
+        { g: 'ea', p: 'e', tip: 'Sometimes the letters [e] and [a] make a short /e/ sound. Like in bread!', emoji: '🍞' },
       ],
       words: [
         w('c.o=oa.l.d', '🥶'), w('o=oa.l.d', '👴'), w('ch.i=igh.l.d', '🧒'), w('b.r.ea=e.d', '🍞'),
@@ -35,7 +35,7 @@ export const WORLD_9: WorldDef = {
         'h.o=oa.l.d.s=z', 't.o=oa.l.d', 'l.i.f.t', 't.r.u.ck', 's.n.ow=oa', 'w.e.t', 'l.igh.t|n.i.ng', 'h.i.t.s',
       ),
       heart: [
-        { seg: 'l.augh', heart: [1], tip: 'In laugh, the a u g h says af: laugh.' },
+        { seg: 'l.augh', heart: [1], tip: 'In the word laugh, the letters [a], [u], [g] and [h] say /a/ /f/: laugh!' },
       ],
       aliens: ['z.o=oa.l.d', 'v.o=oa.l.d', 'z.i=igh.n.d', 'v.i=igh.l.d'],
       sentences: [
@@ -57,9 +57,9 @@ export const WORLD_9: WorldDef = {
         stat: 'Jumps from up to 50 feet high',
       },
       sounds: [
-        { g: 'c', p: 's', tip: 'Sometimes c says sss, when e, i or y comes next, like in ice.', emoji: '🧊' },
-        { g: 'g', p: 'j', tip: 'Sometimes g says j, when e, i or y comes next, like in gem.', emoji: '💎' },
-        { g: 'dge', tip: 'd, g and e together say j, like in bridge.', emoji: '🌉' },
+        { g: 'c', p: 's', tip: 'Sometimes the letter [c] says /s/, when [e], [i] or [y] comes next. Like in ice!', emoji: '🧊' },
+        { g: 'g', p: 'j', tip: 'Sometimes the letter [g] says /j/, when [e], [i] or [y] comes next. Like in gem!', emoji: '💎' },
+        { g: 'dge', tip: 'The letters [d], [g] and [e] together say /j/. Like in bridge!', emoji: '🌉' },
       ],
       words: [
         w('r.i_e.c=s', '🍚'), w('i_e.c=s', '🧊'), w('d.i_e.c=s', '🎲'), w('p.e.n|c=s.i.l', '✏️'),
@@ -71,7 +71,7 @@ export const WORLD_9: WorldDef = {
         'b.ow=oa.l', 'g.r.ee.n', 'p.o.t', 'n.e.x.t',
       ),
       heart: [
-        { seg: 'b.u=i.s=z.y=ee', heart: [1, 3], tip: 'In busy, the u says i and the y says ee: busy.' },
+        { seg: 'b.u=i.s=z.y=ee', heart: [1, 3], tip: 'In the word busy, the [u] says /i/, and the [y] says /ee/: busy!' },
       ],
       aliens: ['z.u.dge', 'v.e.dge', 'z.i_e.c=s', 'c=s.e.p', 'g=j.e.b'],
       sentences: [
@@ -93,8 +93,8 @@ export const WORLD_9: WorldDef = {
         stat: 'About 25,000 feathers',
       },
       sounds: [
-        { g: 'y', p: 'ee', tip: 'At the end of a longer word, y says ee, like in bunny.', emoji: '🐰' },
-        { g: 'le', tip: 'l and e at the end of a word say ul, like in turtle.', emoji: '🐢' },
+        { g: 'y', p: 'ee', tip: 'At the end of a longer word, the letter [y] says /ee/. Like in bunny!', emoji: '🐰' },
+        { g: 'le', tip: 'The letters [l] and [e] at the end of a word say /ul/. Like in turtle!', emoji: '🐢' },
       ],
       words: [
         w('b.u.n|n.y=ee', '🐰'), w('p.u.p|p.y=ee', '🐶'), w('c.a.n|d.y=ee', '🍬'), w('t.e.d|d.y=ee', '🧸'),
@@ -106,7 +106,7 @@ export const WORLD_9: WorldDef = {
         's.u.n|n.y=ee', 'f.u.n|n.y=ee', 's.i.l|l.y=ee', 'm.u.d|d.y=ee', 'a.p|p.le.s=z', 'w.a.g', 't.ai.l',
       ),
       heart: [
-        { seg: 'p.r.e=i.t|t.y=ee', heart: [2], tip: 'In pretty, the e says i: pretty.' },
+        { seg: 'p.r.e=i.t|t.y=ee', heart: [2], tip: 'In the word pretty, the [e] says /i/: pretty!' },
       ],
       aliens: ['z.i.b|b.le', 'v.o.t|t.le', 'm.u.p|p.y=ee', 'j.u.f|f.y=ee'],
       sentences: [
@@ -128,10 +128,10 @@ export const WORLD_9: WorldDef = {
         stat: '5 fingers in each wing',
       },
       sounds: [
-        { g: 'wh', tip: 'w and h together say w, like in whale.', emoji: '🐋' },
-        { g: 'ph', tip: 'p and h together say fff, like in phone.', emoji: '📱' },
-        { g: 'kn', tip: 'k and n together say nnn. The k is silent, like in knot.', emoji: '🪢' },
-        { g: 'wr', tip: 'w and r together say rrr. The w is silent, like in write.', emoji: '✍️' },
+        { g: 'wh', tip: 'The letters [w] and [h] together say /w/. Like in whale!', emoji: '🐋' },
+        { g: 'ph', tip: 'The letters [p] and [h] together say /f/. Like in phone!', emoji: '📱' },
+        { g: 'kn', tip: 'The letters [k] and [n] together say /n/. The [k] is silent! Like in knot.', emoji: '🪢' },
+        { g: 'wr', tip: 'The letters [w] and [r] together say /r/. The [w] is silent! Like in write.', emoji: '✍️' },
       ],
       words: [
         w('wh.a_e.l', '🐋'), w('wh.ee.l', '🛞'), w('ph.o_e.n', '📱'), w('d.o.l|ph.i.n', '🐬'),

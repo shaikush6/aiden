@@ -21,8 +21,8 @@ export const WORLD_6: WorldDef = {
         stat: 'Almost 4 feet tall',
       },
       sounds: [
-        { g: 'ai', tip: 'a and i are a team. Together they say ay, like in rain.', emoji: '🌧️' },
-        { g: 'ay', tip: 'a and y are a team. They say ay too, like in day. You see ay at the end of a word.', emoji: '☀️' },
+        { g: 'ai', tip: 'The letters [a] and [i] team up and say /ai/. Like in rain!', emoji: '🌧️' },
+        { g: 'ay', tip: 'The letters [a] and [y] say /ai/ too. Like in day! You see them at the end of a word.', emoji: '☀️' },
       ],
       words: [
         w('s.n.ai.l', '🐌'), w('r.ai.n', '🌧️'), w('t.r.ai.n', '🚂'), w('m.ai.l', '📬'),
@@ -31,8 +31,8 @@ export const WORLD_6: WorldDef = {
       ],
       extra: ws('p.l.ay', 'd.ay', 'w.e.t', 'sh.i.p', 'w.ai.t', 'g.r.ay', 't.ai.l', 's.ay'),
       heart: [
-        { seg: 'w.a.t.er', heart: [1, 3], tip: 'In water, the a says aw and the e r says er: water.' },
-        { seg: 'a.g.ai.n', heart: [0, 2], tip: 'In again, the first a says uh and the a i says e: again.' },
+        { seg: 'w.a.t.er', heart: [1, 3], tip: 'In the word water, the [a] says /aw/, and the [e] and [r] say /er/: water!' },
+        { seg: 'a.g.ai.n', heart: [0, 2], tip: 'In the word again, the first [a] says /u/, and the [a] and [i] say /e/: again!' },
       ],
       aliens: ['z.ai.b', 'f.ai.p', 'b.ai.m', 'v.ay'],
       sentences: [
@@ -54,8 +54,8 @@ export const WORLD_6: WorldDef = {
         stat: 'Holds its breath over 1 hour',
       },
       sounds: [
-        { g: 'ee', tip: 'e and e are a team. Together they say ee, like in bee.', emoji: '🐝' },
-        { g: 'ea', tip: 'e and a are a team. They say ee too, like in peach.', emoji: '🍑' },
+        { g: 'ee', tip: 'The letters [e] and [e] team up and say /ee/. Like in bee!', emoji: '🐝' },
+        { g: 'ea', tip: 'The letters [e] and [a] say /ee/ too. Like in peach!', emoji: '🍑' },
       ],
       words: [
         w('s.ea.l', '🦭'), w('t.r.ee', '🌳'), w('b.ee', '🐝'), w('sh.ee.p', '🐑'),
@@ -64,7 +64,7 @@ export const WORLD_6: WorldDef = {
       ],
       extra: ws('s.ea', 'ea.t', 's.ee', 's.ee.s=z', 's.ea.l.s=z', 's.t.i.ng', 's.w.i.m', 's.i.t.s', 's.i.t', 'n.ee.d'),
       heart: [
-        { seg: 'p.eo.p.le', heart: [1, 3], tip: 'In people, the e o says ee and the l e says ul: people.' },
+        { seg: 'p.eo.p.le', heart: [1, 3], tip: 'In the word people, the [e] and [o] say /ee/, and the [l] and [e] say /ul/: people!' },
       ],
       aliens: ['z.ee.p', 'v.ee.b', 'f.ee.m', 'l.ea.b'],
       sentences: [
@@ -86,9 +86,9 @@ export const WORLD_6: WorldDef = {
         stat: 'Stays warm at 58 degrees below zero',
       },
       sounds: [
-        { g: 'igh', tip: 'i g h is a team of three letters. Together they say I, like in light.', emoji: '💡' },
-        { g: 'ie', tip: 'i and e are a team. They say I too, like in pie.', emoji: '🥧' },
-        { g: 'y', p: 'igh', tip: 'At the end of a short word, y can say I, like in fly and cry.', emoji: '🪰' },
+        { g: 'igh', tip: 'Three letters, [i], [g] and [h], team up and say /igh/. Like in light!', emoji: '💡' },
+        { g: 'ie', tip: 'The letters [i] and [e] say /igh/ too. Like in pie!', emoji: '🥧' },
+        { g: 'y', p: 'igh', tip: 'At the end of a short word, the letter [y] can say /igh/. Like in fly and cry!', emoji: '🪰' },
       ],
       words: [
         w('l.igh.t', '💡'), w('n.igh.t', '🌃'), w('f.l.a.sh|l.igh.t', '🔦'), w('t.ie', '👔'),
@@ -97,8 +97,8 @@ export const WORLD_6: WorldDef = {
       ],
       extra: ws('s.k.y=igh', 'f.l.ie.s=z', 'h.igh', 'h.e.l.p'),
       heart: [
-        { seg: 'l.i.t|t.le', heart: [4], tip: 'In little, the l e at the end says ul: little.' },
-        { seg: 'eigh.t', heart: [0], tip: 'Eight is a number word. The e i g h says ay: eight.' },
+        { seg: 'l.i.t|t.le', heart: [4], tip: 'In the word little, the [l] and [e] at the end say /ul/: little!' },
+        { seg: 'eigh.t', heart: [0], tip: 'Eight is a number word! The letters [e], [i], [g] and [h] say /ai/: eight!' },
       ],
       aliens: ['v.igh.t', 'z.igh.t', 'j.igh.t'],
       sentences: [
@@ -119,9 +119,9 @@ export const WORLD_6: WorldDef = {
         stat: 'Can weigh 1,500 pounds',
       },
       sounds: [
-        { g: 'oa', tip: 'o and a are a team. Together they say oh, like in boat.', emoji: '🚤' },
-        { g: 'ow', p: 'oa', tip: 'Sometimes o and w say oh, like in snow.', emoji: '❄️' },
-        { g: 'oe', tip: 'o and e can say oh too, like in toe.', emoji: '🦶' },
+        { g: 'oa', tip: 'The letters [o] and [a] team up and say /oa/. Like in boat!', emoji: '🚤' },
+        { g: 'ow', p: 'oa', tip: 'Sometimes the letters [o] and [w] say /oa/. Like in snow!', emoji: '❄️' },
+        { g: 'oe', tip: 'The letters [o] and [e] can say /oa/ too. Like in toe!', emoji: '🦶' },
       ],
       words: [
         w('b.oa.t', '🚤'), w('g.oa.t', '🐐'), w('c.oa.t', '🧥'), w('s.oa.p', '🧼'),
@@ -131,8 +131,8 @@ export const WORLD_6: WorldDef = {
       ],
       extra: ws('f.l.oa.t', 'k.i.ck.s', 's.n.ow=oa|m.e.n', 't.oe', 't.oe.s=z', 'g.oa.t.s'),
       heart: [
-        { seg: 'm.a.n.y=ee', heart: [1, 3], tip: 'In many, the a says e and the y says ee: many.' },
-        { seg: 'a.n.y=ee', heart: [0, 2], tip: 'In any, the a says e and the y says ee: any.' },
+        { seg: 'm.a.n.y=ee', heart: [1, 3], tip: 'In the word many, the [a] says /e/, and the [y] says /ee/: many!' },
+        { seg: 'a.n.y=ee', heart: [0, 2], tip: 'In the word any, the [a] says /e/, and the [y] says /ee/: any!' },
       ],
       aliens: ['z.oa.p', 'v.oa.b', 'j.oa.m', 'n.oa.f'],
       sentences: [

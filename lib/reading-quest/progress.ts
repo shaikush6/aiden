@@ -1,6 +1,7 @@
 // Quest progress, saved in this browser's localStorage.
 // Exposed as a tiny external store so React reads it with useSyncExternalStore (no effects needed).
 import { LEVELS } from './catalog.ts'
+import { DEFAULT_NARRATOR_VOICE, NARRATOR_VOICES, type NarratorVoice } from './narration.ts'
 
 export interface LevelProgress { stars: number; plays: number }
 export interface SoundStat { right: number; wrong: number }
@@ -10,6 +11,7 @@ export interface QuestSettings {
   music: boolean
   /** Dramatic narrator voice for instructions and story moments. */
   narrator: boolean
+  narratorVoice: NarratorVoice
 }
 
 export interface QuestProgress {
@@ -22,11 +24,18 @@ export interface QuestProgress {
 }
 
 const KEY = 'aiden-reading-quest-v1'
-const DEFAULT_SETTINGS: QuestSettings = { music: true, narrator: true }
+const DEFAULT_SETTINGS: QuestSettings = { music: true, narrator: true, narratorVoice: DEFAULT_NARRATOR_VOICE }
 const EMPTY: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: DEFAULT_SETTINGS }
 
 let current: QuestProgress | null = null
 const listeners = new Set<() => void>()
+
+function cleanSettings(raw: Partial<QuestSettings> | undefined): QuestSettings {
+  const merged = { ...DEFAULT_SETTINGS, ...raw }
+  // Fall back to the default if a saved voice is no longer offered.
+  if (!NARRATOR_VOICES.some(v => v.id === merged.narratorVoice)) merged.narratorVoice = DEFAULT_NARRATOR_VOICE
+  return merged
+}
 
 function load(): QuestProgress {
   try {
@@ -40,7 +49,7 @@ function load(): QuestProgress {
       sounds: parsed.sounds ?? {},
       wordsRead: Number(parsed.wordsRead) || 0,
       unlockAll: Boolean(parsed.unlockAll),
-      settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
+      settings: cleanSettings(parsed.settings),
     }
   } catch {
     return EMPTY

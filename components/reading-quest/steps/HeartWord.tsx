@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { say, sayWord, wordClip } from '@/lib/reading-quest/audio';
 import { LINES } from '@/lib/reading-quest/lines';
+import { displayScript } from '@/lib/reading-quest/script';
 import type { Step } from '@/lib/reading-quest/plan';
 import { BigButton, ChoiceCard, Guide, SpeakerButton, useAnswer, useSayOnMount, WordView, type StepResult } from '../ui';
 
@@ -27,7 +28,7 @@ export default function HeartWord({ step, onDone }: Props) {
   if (phase === 'learn') {
     return (
       <div className="flex flex-col items-center gap-6">
-        <Guide text={`${LINES.heartWord} ${heart.tip}`} onReplay={() => say(LINES.heartWord, wordClip(heart.word), heart.tip)} />
+        <Guide text={`${LINES.heartWord} ${displayScript(heart.tip)}`} onReplay={() => say(LINES.heartWord, wordClip(heart.word), heart.tip)} />
         <motion.div
           initial={{ scale: 0.4 }}
           animate={{ scale: 1 }}

@@ -21,9 +21,9 @@ export const WORLD_2: WorldDef = {
         stat: 'Can weigh over 200 pounds',
       },
       sounds: [
-        { g: 'j', tip: 'j says j, like in juice.', emoji: '🧃' },
-        { g: 'v', tip: 'v says vvv, like a rumbling volcano.', emoji: '🌋' },
-        { g: 'w', tip: 'w says w, like a wiggly worm.', emoji: '🪱' },
+        { g: 'j', tip: 'The letter [j] says /j/. Like jumping jelly: /j/ /j/ /j/!', emoji: '🧃' },
+        { g: 'v', tip: 'The letter [v] says /v/. Like a rumbling volcano: /v/ /v/ /v/!', emoji: '🌋' },
+        { g: 'w', tip: 'The letter [w] says /w/. Like a wiggly worm: /w/ /w/ /w/!', emoji: '🪱' },
       ],
       words: [
         w('j.e.t', '✈️'), w('j.o.g', '🏃'), w('v.a.n', '🚐'), w('w.e.b', '🕸️'),
@@ -31,8 +31,8 @@ export const WORLD_2: WorldDef = {
         w('n.u.t', '🥜'), w('l.o.g', '🪵'),
       ],
       heart: [
-        { seg: 'h.e', heart: [1], tip: 'In he, the e says its name, ee: he.' },
-        { seg: 'w.e', heart: [1], tip: 'In we, the e says its name, ee: we.' },
+        { seg: 'h.e', heart: [1], tip: 'In the word he, the letter [e] says its name: /ee/. He!' },
+        { seg: 'w.e', heart: [1], tip: 'In the word we, the letter [e] says its name: /ee/. We!' },
       ],
       aliens: ['j.e.v', 'v.u.p', 'w.o.v', 'j.u.b'],
       sentences: [
@@ -53,10 +53,10 @@ export const WORLD_2: WorldDef = {
         stat: 'Poops about once a week',
       },
       sounds: [
-        { g: 'x', tip: 'x says ks, like at the end of box.', emoji: '📦' },
-        { g: 'y', tip: 'y says y, like a big yawn.', emoji: '🥱' },
-        { g: 'z', tip: 'z says zzz, like a sleepy snore.', emoji: '💤' },
-        { g: 'zz', tip: 'Two z letters make one sound: zzz, like in buzz.', emoji: '🐝' },
+        { g: 'x', tip: 'The letter [x] says /ks/. Like at the end of box: /ks/ /ks/!', emoji: '📦' },
+        { g: 'y', tip: 'The letter [y] says /y/. Like the start of yes: /y/ /y/ yes!', emoji: '🥱' },
+        { g: 'z', tip: 'The letter [z] says /z/. Like a sleepy snore: /z/ /z/ /z/!', emoji: '💤' },
+        { g: 'zz', tip: 'Two [z] letters together make just one sound: /z/. Like in buzz!', emoji: '🐝' },
       ],
       words: [
         w('b.o.x', '📦'), w('f.o.x', '🦊'), w('o.x', '🐂'), w('s.i.x', '6️⃣'),
@@ -65,8 +65,8 @@ export const WORLD_2: WorldDef = {
       ],
       extra: ws('f.i.t', 's.i.t', 'b.u.g.s=z'),
       heart: [
-        { seg: 'm.e', heart: [1], tip: 'In me, the e says its name, ee: me.' },
-        { seg: 'b.e', heart: [1], tip: 'In be, the e says its name, ee: be.' },
+        { seg: 'm.e', heart: [1], tip: 'In the word me, the letter [e] says its name: /ee/. Me!' },
+        { seg: 'b.e', heart: [1], tip: 'In the word be, the letter [e] says its name: /ee/. Be!' },
       ],
       aliens: ['y.o.x', 'z.e.b', 'v.u.zz', 'y.i.x'],
       sentences: [
@@ -87,7 +87,7 @@ export const WORLD_2: WorldDef = {
         stat: 'Tail fan about 5 feet long',
       },
       sounds: [
-        { g: 'qu', tip: 'q and u stick together and say kw, like a duck: quack!', emoji: '🦆' },
+        { g: 'qu', tip: 'The letters [q] and [u] stick together and say /kw/. Like a duck: /kw/ /kw/, quack!', emoji: '🦆' },
       ],
       words: [
         w('qu.a.ck', '🦆'), w('s.qu.i.d', '🦑'), w('qu.i.z', '❓'), w('h.e.n', '🐔'),
@@ -96,7 +96,7 @@ export const WORLD_2: WorldDef = {
       ],
       extra: ws('qu.i.ck', 'd.u.ck.s'),
       heart: [
-        { seg: 'w.a.s=z', heart: [1], tip: 'In was, the a is tricky. It says u: was.' },
+        { seg: 'w.a.s=z', heart: [1], tip: 'In the word was, the letter [a] is tricky. It says /u/: was!' },
       ],
       aliens: ['qu.e.b', 'qu.o.p', 'qu.u.d', 'qu.i.m'],
       sentences: [
@@ -124,8 +124,8 @@ export const WORLD_2: WorldDef = {
       ],
       extra: ws('a.t', 'z.i.p.s'),
       heart: [
-        { seg: 'y.ou', heart: [1], tip: 'In you, the o and u together say oo: you.' },
-        { seg: 'm.y=igh', heart: [1], tip: 'In my, the y says I: my.' },
+        { seg: 'y.ou', heart: [1], tip: 'In the word you, the letters [o] and [u] say /oo/: you!' },
+        { seg: 'm.y=igh', heart: [1], tip: 'In the word my, the letter [y] says /igh/: my!' },
       ],
       aliens: ['v.u.z', 'j.e.x', 'qu.o.v', 'y.i.z'],
       sentences: [

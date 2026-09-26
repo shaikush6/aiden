@@ -6,8 +6,8 @@ import { LEVELS, type LevelInfo } from '@/lib/reading-quest/catalog';
 import { WORLDS } from '@/lib/reading-quest/curriculum';
 import { say } from '@/lib/reading-quest/audio';
 import { LINES } from '@/lib/reading-quest/lines';
-import { MUSIC_READY } from '@/lib/reading-quest/music-tracks';
-import { isCompleted, isUnlocked, nextLevelIndex, setSettings, type QuestProgress } from '@/lib/reading-quest/progress';
+import { isCompleted, isUnlocked, nextLevelIndex, type QuestProgress } from '@/lib/reading-quest/progress';
+import SoundSwitches from './SoundSwitches';
 import { Guide, useSayOnMount } from './ui';
 
 interface Props {
@@ -50,10 +50,7 @@ export default function QuestMap({ progress, onPlay, onCards, onParent }: Props)
         >
           🃏 {cards} <span className="text-sm">CARDS</span>
         </motion.button>
-        {MUSIC_READY && (
-          <Toggle on={progress.settings.music} icon="🎵" label="MUSIC" onClick={() => setSettings({ music: !progress.settings.music })} />
-        )}
-        <Toggle on={progress.settings.narrator} icon="🎙️" label="NARRATOR" onClick={() => setSettings({ narrator: !progress.settings.narrator })} />
+        <SoundSwitches />
       </div>
 
       {WORLDS.map((world, w) => {
@@ -131,18 +128,3 @@ function Stat({ icon, value, label }: { icon: string; value: number; label: stri
   );
 }
 
-function Toggle({ on, icon, label, onClick }: { on: boolean; icon: string; label: string; onClick: () => void }) {
-  return (
-    <motion.button
-      type="button"
-      whileTap={{ scale: 0.92 }}
-      onClick={onClick}
-      aria-pressed={on}
-      className={`rounded-2xl px-4 py-2 shadow font-black text-xl flex items-center gap-2 border-b-4
-        ${on ? 'bg-violet-500 border-violet-700 text-white' : 'bg-white/85 dark:bg-slate-800/85 border-slate-300 dark:border-slate-600 text-slate-400'}`}
-    >
-      <span className={on ? '' : 'grayscale opacity-60'}>{icon}</span>
-      <span className="text-sm">{label} {on ? 'ON' : 'OFF'}</span>
-    </motion.button>
-  );
-}

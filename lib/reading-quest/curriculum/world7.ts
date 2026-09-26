@@ -8,7 +8,7 @@ export const WORLD_7: WorldDef = {
   emoji: '🦜',
   habitat: 'Rainforest',
   theme: 'from-emerald-300 via-green-200 to-lime-200 dark:from-emerald-950 dark:via-slate-900 dark:to-slate-950',
-  intro: 'Welcome to the rainforest! Here letters team up to make new sounds, like oo, ow and oy. Let us help the rainforest animals!',
+  intro: 'Welcome to the rainforest! Here letters team up to make new sounds, like /oo/, /ow/ and /oi/. Let us help the rainforest animals!',
   skill: 'Other vowel sounds: oo (moon) ew ue, oo (book) u (push), ow ou, oi oy, aw au',
   levels: [
     {
@@ -21,9 +21,9 @@ export const WORLD_7: WorldDef = {
         stat: 'Wings up to 8 inches wide',
       },
       sounds: [
-        { g: 'oo', tip: 'o and o are a team. Together they say oo, like in moon.', emoji: '🌙' },
-        { g: 'ew', tip: 'e and w are a team. They say oo too, like in stew.', emoji: '🍲' },
-        { g: 'ue', tip: 'u and e are a team. They say oo too, like in blue.', emoji: '🟦' },
+        { g: 'oo', tip: 'The letters [o] and [o] team up and say /oo/. Like in moon!', emoji: '🌙' },
+        { g: 'ew', tip: 'The letters [e] and [w] say /oo/ too. Like in stew!', emoji: '🍲' },
+        { g: 'ue', tip: 'The letters [u] and [e] say /oo/ too. Like in blue!', emoji: '🟦' },
       ],
       words: [
         w('m.oo.n', '🌙'), w('s.p.oo.n', '🥄'), w('b.oo.t', '👢'), w('t.oo.th', '🦷'),
@@ -32,9 +32,9 @@ export const WORLD_7: WorldDef = {
       ],
       extra: ws('z.oo.m', 'b.r.u.sh', 'ea.ch', 'g.r.ew', 'n.ew', 'ch.ew', 'f.l.ew', 'g.l.ue', 't.r.ue'),
       heart: [
-        { seg: 'c.oul.d', heart: [1], tip: 'In could, the o u l says oo, like in book: could.' },
-        { seg: 'w.oul.d', heart: [1], tip: 'In would, the o u l says oo, like in book: would.' },
-        { seg: 'sh.oul.d', heart: [1], tip: 'In should, the o u l says oo, like in book: should.' },
+        { seg: 'c.oul.d', heart: [1], tip: 'In the word could, the letters [o], [u] and [l] say /uu/, like in book: could!' },
+        { seg: 'w.oul.d', heart: [1], tip: 'In the word would, the letters [o], [u] and [l] say /uu/, like in book: would!' },
+        { seg: 'sh.oul.d', heart: [1], tip: 'In the word should, the letters [o], [u] and [l] say /uu/, like in book: should!' },
       ],
       aliens: ['z.oo.p', 'v.oo.b', 'j.oo.f', 'k.oo.b'],
       sentences: [
@@ -56,8 +56,8 @@ export const WORLD_7: WorldDef = {
         stat: 'Only 1 to 2 inches long',
       },
       sounds: [
-        { g: 'oo', p: 'uu', tip: 'Sometimes o and o say a short oo, like in book and look.', emoji: '📖' },
-        { g: 'u', p: 'uu', tip: 'Sometimes u says that same short oo, like in bull and push.', emoji: '🐂' },
+        { g: 'oo', p: 'uu', tip: 'Sometimes [o] [o] makes a short sound: /uu/. Like in book and look!', emoji: '📖' },
+        { g: 'u', p: 'uu', tip: 'Sometimes the letter [u] makes that same short sound: /uu/. Like in bull and push!', emoji: '🐂' },
       ],
       words: [
         w('b.oo=uu.k', '📖'), w('h.oo=uu.k', '🪝'), w('f.oo=uu.t', '🦶'), w('c.oo=uu.k', '🧑‍🍳'),
@@ -66,7 +66,7 @@ export const WORLD_7: WorldDef = {
       ],
       extra: ws('g.oo=uu.d', 'p.u=uu.t', 'p.u=uu.sh', 'p.u=uu.ll', 'f.u=uu.ll', 'l.e.f.t', 'b.a.g'),
       heart: [
-        { seg: 'o.n.ce', heart: [0, 2], tip: 'In once, the o says wu and the c e says s: once.' },
+        { seg: 'o.n.ce', heart: [0, 2], tip: 'In the word once, the [o] sounds like /w/ /u/, and the [c] and [e] say /s/: once!' },
       ],
       aliens: ['z.oo=uu.k', 'j.oo=uu.k', 'v.oo=uu.k'],
       sentences: [
@@ -88,8 +88,8 @@ export const WORLD_7: WorldDef = {
         stat: 'Can weigh 400 pounds',
       },
       sounds: [
-        { g: 'ow', tip: 'o and w are a team. They say ow, like when you bump your toe. Ow, like in cow!', emoji: '🐄' },
-        { g: 'ou', tip: 'o and u are a team. They say ow too, like in cloud.', emoji: '☁️' },
+        { g: 'ow', tip: 'The letters [o] and [w] team up and say /ow/, like when you bump your toe: /ow/! Like in cow.', emoji: '🐄' },
+        { g: 'ou', tip: 'The letters [o] and [u] say /ow/ too. Like in cloud!', emoji: '☁️' },
       ],
       words: [
         w('c.ow', '🐄'), w('ow.l', '🦉'), w('c.r.ow.n', '👑'), w('c.l.ow.n', '🤡'),
@@ -117,10 +117,10 @@ export const WORLD_7: WorldDef = {
         stat: 'Carries 50 times its own weight',
       },
       sounds: [
-        { g: 'oi', tip: 'o and i are a team. They say oy, like in coin.', emoji: '🪙' },
-        { g: 'oy', tip: 'o and y are a team. They say oy too, like in toy.', emoji: '🧸' },
-        { g: 'aw', tip: 'a and w are a team. They say aw, like in paw.', emoji: '🐾' },
-        { g: 'au', tip: 'a and u are a team. They say aw too, like in launch.', emoji: '🚀' },
+        { g: 'oi', tip: 'The letters [o] and [i] team up and say /oi/. Like in coin!', emoji: '🪙' },
+        { g: 'oy', tip: 'The letters [o] and [y] say /oi/ too. Like in toy!', emoji: '🧸' },
+        { g: 'aw', tip: 'The letters [a] and [w] team up and say /aw/. Like in paw!', emoji: '🐾' },
+        { g: 'au', tip: 'The letters [a] and [u] say /aw/ too. Like in launch!', emoji: '🚀' },
       ],
       words: [
         w('c.oi.n', '🪙'), w('p.oi.n.t', '👉'), w('t.oi|l.e.t', '🚽'), w('t.oy', '🧸'),
