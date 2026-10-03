@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import NumberLandParentSection from '@/components/number-land/NumberLandParentSection';
 import { LEVELS } from '@/lib/reading-quest/catalog';
 import { WORLDS } from '@/lib/reading-quest/curriculum';
 import { previewVoice } from '@/lib/reading-quest/audio';
@@ -103,6 +104,8 @@ export default function ParentPanel({ progress, gate, onClose }: Props) {
           })}
         </ol>
       </section>
+
+      <NumberLandParentSection />
 
       <section>
         <h3 className="font-black text-lg mb-1">Narrator voice</h3>

@@ -39,7 +39,12 @@ function note(freq: number, at: number, dur = 0.35, vol = 0.08) {
   osc.stop(t + dur + 0.05)
 }
 
+/** Counting scale: each block you count sounds a little higher, like climbing stairs. */
+const COUNT_SCALE = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760]
+
 export const sfx = {
+  /** The i-th block being counted (0-based). */
+  count(i: number) { note(COUNT_SCALE[i % COUNT_SCALE.length], 0, 0.25, 0.06) },
   /** Right answer: two rising bell notes. */
   correct() { note(1046.5, 0); note(1568, 0.08) },
   /** Wrong answer: one low, soft, short note (not a buzzer). */

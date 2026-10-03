@@ -8,6 +8,7 @@ import { QuickLookMode, BuildMeMode, CountMode } from "@/components/math/Subitiz
 import { WhichMoreMode, ConservationMode } from "@/components/math/CompareModes";
 import { NumberLineMode, OneMoreMode } from "@/components/math/PathModes";
 import dynamic from "next/dynamic";
+import NumberLand from "@/components/number-land/NumberLand";
 
 const NumberBondsMode = dynamic(() => import("@/components/math/ComposeModes").then(m => ({ default: m.NumberBondsMode })), { ssr: false });
 const HideFindMode = dynamic(() => import("@/components/math/ComposeModes").then(m => ({ default: m.HideFindMode })), { ssr: false });
@@ -40,7 +41,7 @@ const CATEGORY_META: Record<MathMode, { emoji: string; label: string; color: str
   TEN_FRAME:    { emoji: '📦', label: 'Ten Frame',     color: 'bg-indigo-500' },
 };
 
-export default function MathTab() {
+function FreePlay() {
   const [activeLane, setActiveLane] = useState<MathLane>('SUBITIZE');
   const [subMode, setSubMode] = useState<MathMode>('QUICK_LOOK');
   const [selectedCategories, setSelectedCategories] = useState<Set<MathMode>>(new Set());
@@ -213,6 +214,42 @@ export default function MathTab() {
           </motion.div>
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+type Section = 'land' | 'play';
+
+/**
+ * The Numbers tab: Block Buddy Land (read number names, wake Block Buddies, do math with words)
+ * and Free Play (the original thirteen wordless activities).
+ */
+export default function MathTab() {
+  const [section, setSection] = useState<Section>('land');
+  const choices: { id: Section; label: string; icon: string }[] = [
+    { id: 'land', label: 'BLOCK BUDDY LAND', icon: '🏘️' },
+    { id: 'play', label: 'FREE PLAY', icon: '🎲' },
+  ];
+  return (
+    <div>
+      <div className="flex justify-center gap-2 px-3 pt-3">
+        {choices.map(c => (
+          <motion.button
+            key={c.id}
+            whileTap={{ scale: 0.94 }}
+            onClick={() => setSection(c.id)}
+            aria-pressed={section === c.id}
+            className={`flex-1 max-w-xs rounded-2xl px-4 py-3 font-black text-sm sm:text-base shadow transition-colors ${
+              section === c.id
+                ? 'bg-orange-500 text-white shadow-md'
+                : 'bg-white/80 dark:bg-slate-700 text-orange-600 dark:text-orange-300'
+            }`}
+          >
+            {c.icon} {c.label}
+          </motion.button>
+        ))}
+      </div>
+      <div className="mt-3">{section === 'land' ? <NumberLand /> : <FreePlay />}</div>
     </div>
   );
 }

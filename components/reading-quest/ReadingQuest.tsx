@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { stopAudio } from '@/lib/audio-player';
+import { useHydrated } from '@/lib/use-hydrated';
 import { playMusic, setMusicEnabled, stopMusic } from '@/lib/music-player';
 import { LEVELS, type LevelInfo } from '@/lib/reading-quest/catalog';
 import { levelLines, sharedLines } from '@/lib/reading-quest/allowlist';
@@ -50,6 +51,12 @@ function scriptFor(level: LevelInfo, narrator: boolean): LevelScript {
 
 /** Reading Quest: a phonics adventure from single sounds to fluent reading. */
 export default function ReadingQuest() {
+  // The text depends on saved settings (narrator on or off), so only render it in the browser.
+  const hydrated = useHydrated();
+  return hydrated ? <QuestInner /> : <div className="min-h-[60vh]" aria-hidden />;
+}
+
+function QuestInner() {
   const progress = useSyncExternalStore(subscribeProgress, getProgress, getServerProgress);
   const [view, setView] = useState<View>({ name: 'map' });
 

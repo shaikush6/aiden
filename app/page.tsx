@@ -29,7 +29,7 @@ const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string
   quest:    { title: 'READING QUEST',   subtitle: 'Read words, rescue animals!',        icon: '🦊', textColor: 'text-emerald-800' },
   phonics:  { title: 'READ WITH ME',    subtitle: 'Tap words and letters to hear them!', icon: '🔤', textColor: 'text-sky-800' },
   patterns: { title: 'SPOT THE PATTERN',subtitle: 'What comes next?',                    icon: '🔷', textColor: 'text-purple-800' },
-  math:     { title: 'NUMBER TIME',     subtitle: 'Count, add, and explore!',            icon: '🔢', textColor: 'text-orange-800' },
+  math:     { title: 'NUMBER TIME',     subtitle: 'Meet the Block Buddies!',             icon: '🔢', textColor: 'text-orange-800' },
   solar:    { title: 'SPACE EXPLORER',  subtitle: 'Discover our solar system!',          icon: '🪐', textColor: 'text-indigo-200' },
   teacher:  { title: 'TALK TO MIMI',    subtitle: 'Your AI teacher is here!',            icon: '🎓', textColor: 'text-emerald-800' },
   hebrew:   { title: 'עברית',           subtitle: 'Learn Hebrew letters and words!',     icon: '🇮🇱', textColor: 'text-blue-900' },

@@ -12,6 +12,7 @@ import {
 import { NARRATOR_VOICES, narrationLines, WORLD_NARRATION } from './narration.ts'
 import { phonemeTtsTexts } from './phonemes.ts'
 import { spokenFragments } from './script.ts'
+import { numberLandScripts } from '../number-land/allowlist.ts'
 
 /** How a line is voiced: Kit's teacher voice, the narrator, a single word, a made-up word, or a speech sound. */
 export type LineKind = 'line' | 'narration' | 'word' | 'alien' | 'sound'
@@ -25,12 +26,12 @@ export function lineId(kind: LineKind, text: string, voice = ''): string {
 export interface QuestLine { kind: LineKind; text: string; voice?: string }
 
 /** Kit's voice: every text piece of these scripts. */
-function asKit(scripts: string[]): QuestLine[] {
+export function asKit(scripts: string[]): QuestLine[] {
   return scripts.flatMap(spokenFragments).map(text => ({ kind: 'line' as const, text }))
 }
 
 /** Narrator voice: every text piece of these scripts, in every voice a grown-up can choose. */
-function asNarrator(scripts: string[]): QuestLine[] {
+export function asNarrator(scripts: string[]): QuestLine[] {
   return scripts.flatMap(spokenFragments).flatMap(text => NARRATOR_VOICES.map(v => ({ kind: 'narration' as const, text, voice: v.id })))
 }
 
@@ -78,6 +79,13 @@ export function sharedLines(): QuestLine[] {
 
 export function collectQuestLines(): QuestLine[] {
   const out = sharedLines()
+  // Block Buddy Land (the Numbers tab) speaks through the same locked-down endpoint.
+  const nl = numberLandScripts()
+  out.push(
+    ...asKit([...nl.kit, ...nl.shared]),
+    ...asNarrator([...nl.narrator, ...nl.shared]),
+    ...nl.words.map(text => ({ kind: 'word' as const, text })),
+  )
   for (const level of LEVELS) {
     out.push(...levelLines(level))
     // Any word in the bank can be tapped for help or used as a distractor, so all are allowed.

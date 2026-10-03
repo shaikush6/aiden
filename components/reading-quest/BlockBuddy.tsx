@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import NumberBuddy from '../number-land/NumberBuddy';
 
 // Our own Block Buddies: a number you can see and count. One cube per unit, a friendly face on top.
 // Up to 5 is one tower; 6-10 stand as a 5-tower plus the rest, so the child sees 7 as 5 and 2.
@@ -29,6 +30,8 @@ interface Props {
 }
 
 export default function BlockBuddy({ n, size = 44, lit = null, labels, showNumber = false, horizontal = false }: Props) {
+  // Plain numbers use the shared Block Buddy shapes (pairs, a left-over block, ten-blocks).
+  if (!labels && !horizontal) return <NumberBuddy n={n} size={size} lit={lit} showNumber={showNumber} />;
   const color = buddyColor(n);
   const columns = horizontal ? [n] : n <= 5 ? [n] : [5, n - 5];
   let index = 0;
