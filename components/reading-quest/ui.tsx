@@ -55,9 +55,10 @@ export function useAnswer(onDone: (r: StepResult) => void) {
     setStatus('right');
     sfx.correct();
     emitQuestEvent('right');
-    if (after) await after();
+    // A hiccup while speaking or animating must never trap the child on this screen.
+    try { if (after) await after(); } catch { /* carry on */ }
     if (!alive.current) return;
-    await Promise.all([say(randomPraise()), wait(700)]);
+    await Promise.all([say(randomPraise()).catch(() => false), wait(700)]);
     if (alive.current) onDone({ firstTry: missCount.current === 0 });
   }, [onDone, alive]);
 
@@ -71,7 +72,7 @@ export function useAnswer(onDone: (r: StepResult) => void) {
     emitQuestEvent('wrong');
     setWrongPick(choiceKey);
     if (n < 2) {
-      await Promise.all([say(randomRetry()), wait(900)]);
+      await Promise.all([say(randomRetry()).catch(() => false), wait(900)]);
       if (!alive.current) return;
       setWrongPick(null);
       setBusy(false);
@@ -79,9 +80,9 @@ export function useAnswer(onDone: (r: StepResult) => void) {
       return;
     }
     setStatus('reveal');
-    await Promise.all([say(LINES.reveal), wait(600)]);
+    await Promise.all([say(LINES.reveal).catch(() => false), wait(600)]);
     if (!alive.current) return;
-    if (reveal) await reveal();
+    try { if (reveal) await reveal(); } catch { /* carry on */ }
     await wait(1200);
     if (alive.current) onDone({ firstTry: false });
   }, [onDone, alive]);

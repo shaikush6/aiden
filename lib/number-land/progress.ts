@@ -6,12 +6,12 @@ export interface NLLevelProgress { stars: number; plays: number }
 export interface NumberStat { right: number; wrong: number }
 
 export interface NLProgress {
-  v: 1
+  v: 2
   levels: Record<string, NLLevelProgress>
   /** Block Buddies the child has met (the numbers). */
   buddies: number[]
-  /** Math words the child has met. */
-  words: string[]
+  /** Signs the child has been taught (+ − = < >). */
+  signs: string[]
   wordsRead: number
   /** How often each number was answered right or wrong the first time. */
   numbers: Record<string, NumberStat>
@@ -20,9 +20,10 @@ export interface NLProgress {
   unlockAll: boolean
 }
 
-const KEY = 'aiden-number-land-v1'
+// v2 is the numeral-first journey. v1 (the reading-first version) is left untouched in the browser.
+const KEY = 'aiden-number-land-v2'
 const EMPTY: NLProgress = {
-  v: 1, levels: {}, buddies: [], words: [], wordsRead: 0, numbers: {}, rocketBest: null, celebratedTowns: [], unlockAll: false,
+  v: 2, levels: {}, buddies: [], signs: [], wordsRead: 0, numbers: {}, rocketBest: null, celebratedTowns: [], unlockAll: false,
 }
 
 let current: NLProgress | null = null
@@ -30,23 +31,35 @@ const listeners = new Set<() => void>()
 
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
 
+/** Turn anything (saved text, or data from the cloud) into valid progress. Bad parts fall back to empty. */
+export function parseNL(raw: unknown): NLProgress {
+  const p = raw as Partial<NLProgress> | null
+  if (!p || typeof p !== 'object' || p.v !== 2) return EMPTY
+  const levels: Record<string, NLLevelProgress> = {}
+  for (const [id, l] of Object.entries(p.levels ?? {})) {
+    if (l && Number.isFinite(l.stars) && Number.isFinite(l.plays)) levels[id] = { stars: l.stars, plays: l.plays }
+  }
+  const numbers: Record<string, NumberStat> = {}
+  for (const [k, s] of Object.entries(p.numbers ?? {})) {
+    if (s && Number.isFinite(s.right) && Number.isFinite(s.wrong)) numbers[k] = { right: s.right, wrong: s.wrong }
+  }
+  return {
+    v: 2,
+    levels,
+    buddies: Array.isArray(p.buddies) ? p.buddies.filter((n): n is number => Number.isInteger(n)) : [],
+    signs: strings(p.signs),
+    wordsRead: Number(p.wordsRead) || 0,
+    numbers,
+    rocketBest: typeof p.rocketBest === 'number' ? p.rocketBest : null,
+    celebratedTowns: strings(p.celebratedTowns),
+    unlockAll: Boolean(p.unlockAll),
+  }
+}
+
 function load(): NLProgress {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return EMPTY
-    const p = JSON.parse(raw) as Partial<NLProgress>
-    if (p?.v !== 1) return EMPTY
-    return {
-      v: 1,
-      levels: p.levels ?? {},
-      buddies: Array.isArray(p.buddies) ? p.buddies.filter((n): n is number => Number.isInteger(n)) : [],
-      words: strings(p.words),
-      wordsRead: Number(p.wordsRead) || 0,
-      numbers: p.numbers ?? {},
-      rocketBest: typeof p.rocketBest === 'number' ? p.rocketBest : null,
-      celebratedTowns: strings(p.celebratedTowns),
-      unlockAll: Boolean(p.unlockAll),
-    }
+    return raw ? parseNL(JSON.parse(raw)) : EMPTY
   } catch {
     return EMPTY
   }
@@ -78,7 +91,7 @@ export interface NLResult {
   stars: number
   wordsRead: number
   buddies: number[]
-  words: string[]
+  signs: string[]
   numbers: Record<string, NumberStat>
 }
 
@@ -94,7 +107,7 @@ export function recordNLLevel(r: NLResult) {
     ...p,
     levels: { ...p.levels, [r.levelId]: { stars: Math.max(prev?.stars ?? 0, r.stars), plays: (prev?.plays ?? 0) + 1 } },
     buddies: [...new Set([...p.buddies, ...r.buddies])].sort((a, b) => a - b),
-    words: [...new Set([...p.words, ...r.words])],
+    signs: [...new Set([...p.signs, ...r.signs])],
     numbers,
     wordsRead: p.wordsRead + r.wordsRead,
   })
@@ -104,6 +117,12 @@ export function recordNLLevel(r: NLResult) {
 export function meetBuddy(n: number) {
   const p = getNL()
   if (!p.buddies.includes(n)) commit({ ...p, buddies: [...p.buddies, n].sort((a, b) => a - b) })
+}
+
+/** Mark a sign as taught as soon as its lesson finishes (the Buddy Book fills up live). */
+export function meetSign(s: string) {
+  const p = getNL()
+  if (!p.signs.includes(s)) commit({ ...p, signs: [...p.signs, s] })
 }
 
 export function recordNumberRocket(seconds: number): boolean {
@@ -120,6 +139,11 @@ export function markTownCelebrated(townId: string) {
 
 export function setNLUnlockAll(v: boolean) {
   commit({ ...getNL(), unlockAll: v })
+}
+
+/** Replace everything (used when progress arrives from his profile in the cloud). */
+export function replaceNL(raw: unknown) {
+  commit(parseNL(raw))
 }
 
 export function resetNL() {

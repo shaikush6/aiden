@@ -12,9 +12,7 @@ export interface LexEntry {
   tip: string
 }
 
-export type Demo = 'plus' | 'minus' | 'more' | 'less' | 'odd' | 'even'
-
-interface Def { seg: string; heart?: number[]; tip: string; demo?: Demo }
+interface Def { seg: string; heart?: number[]; tip: string }
 
 const entry = (d: Def): LexEntry => ({ word: parseSeg(d.seg), heart: d.heart ?? [], tip: d.tip })
 
@@ -62,15 +60,15 @@ export const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
 const MATH_DEFS: Record<string, Def> = {
   and: { seg: 'a.n.d', tip: 'And joins things together! /a/ /n/ /d/: and!' },
   is: { seg: 'i.s=z', tip: 'In the word is, the letter [s] says /z/: is!' },
-  plus: { seg: 'p.l.u.s', tip: 'Plus means put them together! /p/ /l/ /u/ /s/: plus!', demo: 'plus' },
-  minus: { seg: 'm.i.n.u.s', tip: 'Minus means take some away! /m/ /i/ /n/ /u/ /s/: minus!', demo: 'minus' },
+  plus: { seg: 'p.l.u.s', tip: 'Plus means put them together! /p/ /l/ /u/ /s/: plus!' },
+  minus: { seg: 'm.i.n.u.s', tip: 'Minus means take some away! /m/ /i/ /n/ /u/ /s/: minus!' },
   which: { seg: 'wh.i.ch', tip: 'In the word which, the letters [w] and [h] say /w/, and the letters [c] and [h] say /ch/: which!' },
   or: { seg: 'or', tip: 'The letters [o] and [r] together say /or/: or!' },
-  more: { seg: 'm.ore', tip: 'More means a bigger number! The letters [o], [r] and [e] say /or/: more!', demo: 'more' },
-  less: { seg: 'l.e.ss', tip: 'Less means a smaller number! /l/ /e/ /s/: less!', demo: 'less' },
+  more: { seg: 'm.ore', tip: 'More means a bigger number! The letters [o], [r] and [e] say /or/: more!' },
+  less: { seg: 'l.e.ss', tip: 'Less means a smaller number! /l/ /e/ /s/: less!' },
   than: { seg: 'th.a.n', tip: 'Five is more than three. /th/ /a/ /n/: than!' },
-  odd: { seg: 'o.dd', tip: 'Odd means one is left over! /o/ /d/: odd!', demo: 'odd' },
-  even: { seg: 'e=ee.v.e.n', tip: 'Even means two equal sides, with nothing left over! The first [e] says /ee/: even!', demo: 'even' },
+  odd: { seg: 'o.dd', tip: 'Odd means one is left over! /o/ /d/: odd!' },
+  even: { seg: 'e=ee.v.e.n', tip: 'Even means two equal sides, with nothing left over! The first [e] says /ee/: even!' },
   who: { seg: 'wh.o', heart: [0, 1], tip: 'In the word who, the letters [w] and [h] say /h/, and the [o] says /oo/: who!' },
   am: { seg: 'a.m', tip: '/a/ /m/: am!' },
   i: { seg: 'i=igh', heart: [0], tip: 'The word I is just one letter. It is the letter [i], and it says its name: /igh/!' },
@@ -83,8 +81,8 @@ const MATH_DEFS: Record<string, Def> = {
 
 export type MathWord = keyof typeof MATH_DEFS
 
-export const MATH_WORDS: Record<string, LexEntry & { demo?: Demo }> = Object.fromEntries(
-  Object.entries(MATH_DEFS).map(([k, d]) => [k, { ...entry(d), demo: d.demo }]),
+export const MATH_WORDS: Record<string, LexEntry> = Object.fromEntries(
+  Object.entries(MATH_DEFS).map(([k, d]) => [k, entry(d)]),
 )
 
 // ---------- everyday words used in the number stories (assumed known) ----------

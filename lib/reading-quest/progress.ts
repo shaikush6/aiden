@@ -12,6 +12,12 @@ export interface QuestSettings {
   /** Dramatic narrator voice for instructions and story moments. */
   narrator: boolean
   narratorVoice: NarratorVoice
+  /** Music loudness, 0 to 1. */
+  musicVolume: number
+  /** Voice loudness, 0 to 1. */
+  voiceVolume: number
+  /** Lower the music while the voice is talking. */
+  duck: boolean
 }
 
 export interface QuestProgress {
@@ -28,7 +34,7 @@ export interface QuestProgress {
 }
 
 const KEY = 'aiden-reading-quest-v1'
-const DEFAULT_SETTINGS: QuestSettings = { music: true, narrator: true, narratorVoice: DEFAULT_NARRATOR_VOICE }
+const DEFAULT_SETTINGS: QuestSettings = { music: true, narrator: true, narratorVoice: DEFAULT_NARRATOR_VOICE, musicVolume: 0.5, voiceVolume: 1, duck: true }
 const EMPTY: QuestProgress = {
   v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: DEFAULT_SETTINGS, celebratedWorlds: [], rocketBest: null,
 }
@@ -40,25 +46,41 @@ function cleanSettings(raw: Partial<QuestSettings> | undefined): QuestSettings {
   const merged = { ...DEFAULT_SETTINGS, ...raw }
   // Fall back to the default if a saved voice is no longer offered.
   if (!NARRATOR_VOICES.some(v => v.id === merged.narratorVoice)) merged.narratorVoice = DEFAULT_NARRATOR_VOICE
+  const level = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : fallback)
+  merged.musicVolume = level(merged.musicVolume, DEFAULT_SETTINGS.musicVolume)
+  merged.voiceVolume = level(merged.voiceVolume, DEFAULT_SETTINGS.voiceVolume)
+  merged.duck = typeof merged.duck === 'boolean' ? merged.duck : true
   return merged
+}
+
+/** Turn anything (saved text, or data from the cloud) into valid progress. Bad parts fall back to empty. */
+export function parseProgress(raw: unknown): QuestProgress {
+  const parsed = raw as Partial<QuestProgress> | null
+  if (!parsed || typeof parsed !== 'object' || parsed.v !== 1) return EMPTY
+  const levels: Record<string, LevelProgress> = {}
+  for (const [id, l] of Object.entries(parsed.levels ?? {})) {
+    if (l && Number.isFinite(l.stars) && Number.isFinite(l.plays)) levels[id] = { stars: l.stars, plays: l.plays }
+  }
+  const sounds: Record<string, SoundStat> = {}
+  for (const [k, s] of Object.entries(parsed.sounds ?? {})) {
+    if (s && Number.isFinite(s.right) && Number.isFinite(s.wrong)) sounds[k] = { right: s.right, wrong: s.wrong }
+  }
+  return {
+    v: 1,
+    levels,
+    sounds,
+    wordsRead: Number(parsed.wordsRead) || 0,
+    unlockAll: Boolean(parsed.unlockAll),
+    settings: cleanSettings(parsed.settings),
+    celebratedWorlds: Array.isArray(parsed.celebratedWorlds) ? parsed.celebratedWorlds.filter(w => typeof w === 'string') : [],
+    rocketBest: typeof parsed.rocketBest === 'number' ? parsed.rocketBest : null,
+  }
 }
 
 function load(): QuestProgress {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return EMPTY
-    const parsed = JSON.parse(raw) as Partial<QuestProgress>
-    if (parsed?.v !== 1) return EMPTY
-    return {
-      v: 1,
-      levels: parsed.levels ?? {},
-      sounds: parsed.sounds ?? {},
-      wordsRead: Number(parsed.wordsRead) || 0,
-      unlockAll: Boolean(parsed.unlockAll),
-      settings: cleanSettings(parsed.settings),
-      celebratedWorlds: Array.isArray(parsed.celebratedWorlds) ? parsed.celebratedWorlds.filter(w => typeof w === 'string') : [],
-      rocketBest: typeof parsed.rocketBest === 'number' ? parsed.rocketBest : null,
-    }
+    return raw ? parseProgress(JSON.parse(raw)) : EMPTY
   } catch {
     return EMPTY
   }
@@ -128,6 +150,11 @@ export function recordRocketTime(seconds: number): boolean {
   const isBest = p.rocketBest === null || seconds < p.rocketBest
   if (isBest) commit({ ...p, rocketBest: seconds })
   return isBest
+}
+
+/** Replace everything (used when progress arrives from his profile in the cloud). */
+export function replaceProgress(raw: unknown) {
+  commit(parseProgress(raw))
 }
 
 /** Reset rescues and stats, but keep the grown-up's sound settings. */

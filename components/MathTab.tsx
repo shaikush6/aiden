@@ -46,6 +46,7 @@ function FreePlay() {
   const [subMode, setSubMode] = useState<MathMode>('QUICK_LOOK');
   const [selectedCategories, setSelectedCategories] = useState<Set<MathMode>>(new Set());
   const chipRowRef = useRef<HTMLDivElement>(null);
+  const [showChoices, setShowChoices] = useState(false);
 
   useEffect(() => {
     speakText("Number time! Let us explore!");
@@ -86,21 +87,38 @@ function FreePlay() {
   }, [selectedCategories]);
 
   const laneActivities = MATH_ACTIVITIES.filter(a => a.lane === activeLane);
+  const currentActivity = MATH_ACTIVITIES.find(a => a.id === subMode);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
+      {/* What he is playing, with a big way to switch. The full menu is for grown-ups (or a curious kid). */}
+      <div className="px-3 pt-3 flex flex-wrap items-center justify-center gap-3">
+        <div className="bg-white/90 dark:bg-slate-800/90 rounded-2xl px-5 py-2 shadow font-black text-xl text-slate-700 dark:text-slate-100">
+          {currentActivity ? `${currentActivity.icon} ${currentActivity.label}` : 'Free play'}
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={handleRandom}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-lg text-white shadow-md bg-gradient-to-r from-violet-500 to-indigo-500 border-b-4 border-indigo-700"
+        >
+          🎲 <span>NEW GAME</span>
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => setShowChoices(c => !c)}
+          aria-expanded={showChoices}
+          className="px-5 py-2.5 rounded-2xl font-black text-lg shadow bg-white/90 dark:bg-slate-700 text-violet-600 dark:text-violet-300"
+        >
+          ⚙️ {showChoices ? 'HIDE' : 'CHOOSE'}
+        </motion.button>
+      </div>
+
+      {showChoices && (
+        <div>
       {/* Category filter chips + RANDOM button */}
       <div className="px-2 pt-3">
         <div className="flex items-center gap-2">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleRandom}
-            className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-2xl font-black text-sm text-white shadow-md bg-gradient-to-r from-violet-500 to-indigo-500"
-          >
-            🎲 <span>RANDOM</span>
-          </motion.button>
-
           <div
             ref={chipRowRef}
             className="flex gap-2 overflow-x-auto pb-1"
@@ -188,6 +206,9 @@ function FreePlay() {
         })}
       </div>
 
+        </div>
+      )}
+
       {/* Content area */}
       <div className="mt-3 px-3 pb-8 flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
@@ -226,13 +247,14 @@ type Section = 'land' | 'play';
  */
 export default function MathTab() {
   const [section, setSection] = useState<Section>('land');
+  const [playing, setPlaying] = useState(false);
   const choices: { id: Section; label: string; icon: string }[] = [
     { id: 'land', label: 'BLOCK BUDDY LAND', icon: '🏘️' },
     { id: 'play', label: 'FREE PLAY', icon: '🎲' },
   ];
   return (
     <div>
-      <div className="flex justify-center gap-2 px-3 pt-3">
+      <div className={`flex justify-center gap-2 px-3 pt-3 ${section === 'land' && playing ? 'hidden' : ''}`}>
         {choices.map(c => (
           <motion.button
             key={c.id}
@@ -249,7 +271,7 @@ export default function MathTab() {
           </motion.button>
         ))}
       </div>
-      <div className="mt-3">{section === 'land' ? <NumberLand /> : <FreePlay />}</div>
+      <div className="mt-3">{section === 'land' ? <NumberLand onPlaying={setPlaying} /> : <FreePlay />}</div>
     </div>
   );
 }

@@ -2,12 +2,13 @@
 // Usage: npm run quest:check
 import { summary, validateCurriculum, validatePlans } from '../lib/reading-quest/validate.ts'
 import { numberLandSummary, validateNumberLand } from '../lib/number-land/validate.ts'
+import { validateProfiles } from '../lib/profile/validate.ts'
 
-const errors = [...validateCurriculum(), ...validatePlans(), ...validateNumberLand()]
+const errors = [...validateCurriculum(), ...validatePlans(), ...validateNumberLand(), ...validateProfiles()]
 const s = summary()
 console.log(`Levels: ${s.levels} · practice words: ${s.practiceWords} · sounds taught: ${s.sounds}`)
 const nl = numberLandSummary()
-console.log(`Block Buddy Land: ${nl.levels} levels in ${nl.towns} towns · ${nl.numberWords} number words · ${nl.mathWords} math words`)
+console.log(`Block Buddy Land: ${nl.levels} levels in ${nl.towns} towns · ${nl.lessons} lessons · ${nl.numberWords} number words`)
 if (errors.length) {
   console.error(`\n${errors.length} problem(s):`)
   errors.forEach(e => console.error('  ✗ ' + e))

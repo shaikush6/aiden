@@ -14,7 +14,12 @@ let el: HTMLAudioElement | null = null
 let ctx: AudioContext | null = null
 let gain: GainNode | null = null
 let current: { src: string; loop: boolean } | null = null
+// The track most recently asked for. A stop that is still fading out must not hide a new request for the same track.
+let target: { src: string; loop: boolean } | null = null
 let enabled = true
+// The child's own mix. 0.5 is the level the tracks were tuned for; the slider can go quieter or up to twice as loud.
+let volume = 0.5
+let duckOn = true
 let ducked = false
 let swapToken = 0
 let fadingOut = false
@@ -23,7 +28,7 @@ let installed = false
 
 function level(): number {
   if (!enabled || !current) return 0
-  return ducked ? DUCKED : FULL
+  return (ducked && duckOn ? DUCKED : FULL) * volume * 2
 }
 
 function rampTo(value: number, seconds = FADE_S) {
@@ -43,7 +48,7 @@ function setup(): boolean {
   el = new Audio()
   el.preload = 'auto'
   // A one-shot track (the victory fanfare) is finished once it ends; a later tap must not replay it.
-  el.addEventListener('ended', () => { if (current && !current.loop) current = null })
+  el.addEventListener('ended', () => { if (current && !current.loop) { current = null; target = null } })
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     ctx = new Ctx()
@@ -89,8 +94,16 @@ const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
 /** Switch to a track (or to silence with null), fading out the old one first. */
 export async function playMusic(track: { src: string; loop: boolean } | null) {
   if (!setup() || !el) return
-  if (track?.src === current?.src) return
+  if (track?.src === target?.src) return
+  target = track
   const mine = ++swapToken
+  if (track && track.src === current?.src) {
+    // Asked for the track that is already loaded (for example while a stop was fading it out): keep it going.
+    fadingOut = false
+    if (enabled && el.paused) await el.play().catch(() => {})
+    if (mine === swapToken) rampTo(level())
+    return
+  }
   if (current) {
     fadingOut = true
     rampTo(0)
@@ -117,4 +130,16 @@ export function setMusicEnabled(v: boolean) {
   if (!el) return
   if (!v) { rampTo(0, 0.3); setTimeout(() => { if (!enabled) el?.pause() }, 300) }
   else if (current) { el.play().catch(() => {}); rampTo(level()) }
+}
+
+/** 0 to 1 (0.5 is the tuned level). */
+export function setMusicVolume(v: number) {
+  volume = Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0.5))
+  if (el && current && enabled) rampTo(level(), 0.15)
+}
+
+/** Whether the music dips while someone is speaking. */
+export function setMusicDucking(v: boolean) {
+  duckOn = v
+  if (el && current && enabled) rampTo(level(), 0.3)
 }

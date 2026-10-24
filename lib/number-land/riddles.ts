@@ -1,8 +1,9 @@
 // Number Detective riddles: "I am more than six. I am less than eight. Who am I?"
 // Every riddle is checked by brute force so exactly ONE number fits all its clues.
-import { NUMBER_TEXT, MAX_NUMBER, cap } from './words.ts'
+import { NUMBER_TEXT, MAX_NUMBER } from './words.ts'
 
-export type ClueKind = 'more' | 'less' | 'odd' | 'even' | 'onemore'
+import type { ClueKind } from './terms.ts'
+export type { ClueKind }
 
 export interface Clue { kind: ClueKind; k: number; text: string }
 
@@ -120,9 +121,4 @@ export function allClueTexts(): string[] {
   const out = [RIDDLE_QUESTION, clueText('odd', 0), clueText('even', 0)]
   for (let k = 1; k <= MAX_NUMBER; k++) out.push(clueText('more', k), clueText('less', k), clueText('onemore', k))
   return out
-}
-
-/** "Five is odd." style sentences, spoken when a riddle is solved or the Buddy Book opens. */
-export function parityFact(n: number): string {
-  return `${cap(NUMBER_TEXT[n])} is ${n % 2 === 0 ? 'even' : 'odd'}.`
 }

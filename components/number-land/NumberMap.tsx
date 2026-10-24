@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { lineClip, say } from '@/lib/reading-quest/audio';
-import { NUMBER_LEVELS, TOWNS, type NLevel } from '@/lib/number-land/curriculum';
+import { NUMBER_LEVELS, TOWNS, levelBlurb, type NLevel } from '@/lib/number-land/curriculum';
 import { NL } from '@/lib/number-land/lines';
 import { townIntro } from '@/lib/number-land/script';
 import { getProgress } from '@/lib/reading-quest/progress';
@@ -66,6 +66,7 @@ export default function NumberMap({ progress, onPlay, onBook }: Props) {
       <div className="flex flex-wrap justify-center gap-3">
         <Stat icon="⭐" value={stars} label="stars" />
         <Stat icon="🧱" value={met.length} label={`of ${MAX_NUMBER + 1} buddies`} />
+        <Stat icon="➕" value={progress.signs.length} label="of 5 signs" />
         <Stat icon="📚" value={progress.wordsRead} label="words read" />
         <motion.button
           type="button"
@@ -74,7 +75,7 @@ export default function NumberMap({ progress, onPlay, onBook }: Props) {
           onClick={onBook}
           className="bg-amber-400 border-b-4 border-amber-600 rounded-2xl px-4 py-2 shadow font-black text-amber-950 text-xl flex items-center gap-2"
         >
-          📖 <span className="text-sm">BUDDY BOOK</span>
+          📖 <span className="text-sm">MY BOOK</span>
         </motion.button>
         <SoundSwitches />
       </div>
@@ -111,7 +112,7 @@ export default function NumberMap({ progress, onPlay, onBook }: Props) {
                 const unlocked = isNLUnlocked(progress, index);
                 const isNext = index === nextIdx && !done;
                 const lp = progress.levels[level.id];
-                const shape = level.buddies.length ? level.buddies[level.buddies.length - 1] : null;
+                const shape = level.meets.length ? level.meets[level.meets.length - 1] : null;
                 return (
                   <div key={level.id} className="flex flex-col items-center gap-3">
                     <div className={`relative flex items-center gap-3 ${OFFSETS[i % OFFSETS.length]}`}>
@@ -144,6 +145,7 @@ export default function NumberMap({ progress, onPlay, onBook }: Props) {
                       </motion.button>
                       <div className="w-32 sm:w-44">
                         <p className="font-black text-slate-800 dark:text-white leading-tight">{level.title}</p>
+                        <p className="text-sm font-bold text-slate-600 dark:text-slate-300 leading-tight">{levelBlurb(level)}</p>
                         {lp && <p className="text-lg leading-none">{'⭐'.repeat(lp.stars)}<span className="opacity-25">{'⭐'.repeat(3 - lp.stars)}</span></p>}
                       </div>
                     </div>

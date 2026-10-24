@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { AnimatePresence, motion } from 'framer-motion';
 import { stopAudio } from '@/lib/audio-player';
@@ -9,6 +9,7 @@ import { NUMBER_LEVELS, TOWNS, type NLevel } from '@/lib/number-land/curriculum'
 import { NL } from '@/lib/number-land/lines';
 import type { NLScript } from '@/lib/number-land/script';
 import { isNScored, nStepNumbers, nWordsInStep, type NStep } from '@/lib/number-land/plan';
+import { TOPIC_SIGNS } from '@/lib/number-land/terms';
 import { recordNLLevel, type NumberStat } from '@/lib/number-land/progress';
 import { BigButton, useSayOnMount, type StepResult } from '@/components/reading-quest/ui';
 import { useJuice } from '@/components/reading-quest/Juice';
@@ -16,13 +17,10 @@ import SoundSwitches from '@/components/reading-quest/SoundSwitches';
 import NumberBuddy from './NumberBuddy';
 import { fitSize } from './types';
 import MeetBuddy from './steps/MeetBuddy';
-import MeetWord from './steps/MeetWord';
-import Wake from './steps/Wake';
+import Learn from './steps/Learn';
+import Choose from './steps/Choose';
+import Count from './steps/Count';
 import Build from './steps/Build';
-import Equation from './steps/Equation';
-import Riddle from './steps/Riddle';
-import OddEven from './steps/OddEven';
-import Compare from './steps/Compare';
 import Story from './steps/Story';
 import WordBond from './steps/WordBond';
 import SoundCompare from './steps/SoundCompare';
@@ -54,6 +52,14 @@ export default function NumberLevelPlayer({ level, steps, script, onExit, onRepl
   const [result, setResult] = useState<{ stars: number; words: number } | null>(null);
   const tally = useRef<Tally>({ scored: 0, firstTry: 0, words: 0, numbers: {} });
   const juice = useJuice();
+  const top = useRef<HTMLDivElement | null>(null);
+
+  // Each new screen starts at the top of the game, so the question is never below the fold.
+  useEffect(() => {
+    // Wait for the old screen to slide out, so the scroll is not cut short by the layout changing.
+    const timer = setTimeout(() => top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 350);
+    return () => clearTimeout(timer);
+  }, [index, phase]);
 
   const finishStep = (r: StepResult) => {
     const step = steps[index];
@@ -75,7 +81,7 @@ export default function NumberLevelPlayer({ level, steps, script, onExit, onRepl
       return;
     }
     const stars = starsFor(t);
-    recordNLLevel({ levelId: level.id, stars, wordsRead: t.words, buddies: level.buddies, words: level.words, numbers: t.numbers });
+    recordNLLevel({ levelId: level.id, stars, wordsRead: t.words, buddies: level.meets, signs: level.learn.flatMap(topic => TOPIC_SIGNS[topic] ?? []), numbers: t.numbers });
     setResult({ stars, words: t.words });
     setPhase('done');
   };
@@ -83,7 +89,7 @@ export default function NumberLevelPlayer({ level, steps, script, onExit, onRepl
   const exit = () => { stopAudio(); onExit(); };
 
   return (
-    <div className={`min-h-[70vh] rounded-[2rem] bg-gradient-to-br ${town.theme} p-4 sm:p-6 shadow-inner`}>
+    <div ref={top} className={`min-h-[70vh] scroll-mt-2 rounded-[2rem] bg-gradient-to-br ${town.theme} p-4 sm:p-6 shadow-inner`}>
       <div className="flex items-center gap-3 mb-5">
         <motion.button
           type="button"
@@ -137,14 +143,11 @@ export default function NumberLevelPlayer({ level, steps, script, onExit, onRepl
 
 function StepView({ step, onDone }: { step: NStep; onDone: (r: StepResult) => void }) {
   switch (step.kind) {
+    case 'learn': return <Learn step={step} onDone={onDone} />;
     case 'meet': return <MeetBuddy step={step} onDone={onDone} />;
-    case 'meetWord': return <MeetWord step={step} onDone={onDone} />;
-    case 'wake': return <Wake step={step} onDone={onDone} />;
+    case 'choose': return <Choose step={step} onDone={onDone} />;
+    case 'count': return <Count step={step} onDone={onDone} />;
     case 'build': return <Build step={step} onDone={onDone} />;
-    case 'equation': return <Equation step={step} onDone={onDone} />;
-    case 'riddle': return <Riddle step={step} onDone={onDone} />;
-    case 'oddEven': return <OddEven step={step} onDone={onDone} />;
-    case 'compare': return <Compare step={step} onDone={onDone} />;
     case 'story': return <Story step={step} onDone={onDone} />;
     case 'wordBond': return <WordBond step={step} onDone={onDone} />;
     case 'soundCompare': return <SoundCompare step={step} onDone={onDone} />;
@@ -158,11 +161,11 @@ function Intro({ level, lines, onStart }: { level: NLevel; lines: string[]; onSt
   return (
     <div className="flex flex-col items-center gap-6 text-center py-6">
       <p className="font-black text-slate-600 dark:text-slate-300 text-xl">{town.emoji} {town.name} · {level.title}</p>
-      {level.buddies.length > 0 ? (
+      {level.meets.length > 0 ? (
         <div className="flex items-end justify-center gap-6 min-h-[170px]">
-          {level.buddies.map(n => (
+          {level.meets.map(n => (
             <motion.div key={n} animate={{ y: [0, -6, 0] }} transition={{ duration: 2, repeat: Infinity, delay: n * 0.2 }}>
-              <NumberBuddy n={n} size={fitSize(level.buddies, 170)} asleep />
+              <NumberBuddy n={n} size={fitSize(level.meets, 170)} />
             </motion.div>
           ))}
         </div>
@@ -192,7 +195,7 @@ function Complete({
   return (
     <div className="flex flex-col items-center gap-5 text-center py-4">
       <ReactConfetti width={size.w} height={size.h} recycle={false} numberOfPieces={350} style={{ position: 'fixed', inset: 0 }} />
-      <h2 className="text-4xl sm:text-5xl font-black text-slate-800 dark:text-white drop-shadow">{isLast ? 'CHAMPION!' : 'BUDDIES AWAKE!'}</h2>
+      <h2 className="text-4xl sm:text-5xl font-black text-slate-800 dark:text-white drop-shadow">{isLast ? 'WIZARD CHAMPION!' : level.boss ? 'BOSS BEATEN!' : 'LEVEL COMPLETE!'}</h2>
       <div className="flex gap-2" aria-label={`${stars} stars`}>
         {[1, 2, 3].map(n => (
           <motion.span
@@ -206,16 +209,16 @@ function Complete({
           </motion.span>
         ))}
       </div>
-      {level.buddies.length > 0 && (
+      {level.meets.length > 0 && (
         <div className="flex items-end justify-center gap-6 min-h-[150px]">
-          {level.buddies.map(n => (
+          {level.meets.map(n => (
             <motion.div key={n} initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 + n * 0.05, type: 'spring' }}>
-              <NumberBuddy n={n} size={fitSize(level.buddies, 150)} />
+              <NumberBuddy n={n} size={fitSize(level.meets, 150)} />
             </motion.div>
           ))}
         </div>
       )}
-      <p className="font-black text-xl text-slate-700 dark:text-slate-200">📚 You read {words} words!</p>
+      {words > 0 && <p className="font-black text-xl text-slate-700 dark:text-slate-200">📚 You read {words} words!</p>}
       <p className="font-bold text-slate-600 dark:text-slate-300">{NL.levelDone}</p>
       <div className="flex flex-wrap justify-center gap-3 mt-2">
         <BigButton onClick={onExit} color="bg-sky-500 border-sky-700" label="Back to map">🗺️ MAP</BigButton>

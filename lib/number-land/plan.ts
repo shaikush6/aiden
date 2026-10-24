@@ -1,72 +1,36 @@
 // Turns a level's recipe into the concrete activities for one play. It is pure: pass in the word bank
-// (the Quest words the child has met, for the Word Gym) and, in tests, a seeded random function.
+// (the Quest words he has already met, for the word-splitting games) and, in tests, a seeded random function.
 import type { ParsedWord } from '../reading-quest/types.ts'
 import { MAX_NUMBER } from './words.ts'
-import { knownNumbersAt, knownWordsAt, levelIndex, type NLevel } from './curriculum.ts'
-import { RIDDLE_QUESTION, makeClue, makeRiddle, riddleOptions, type Clue } from './riddles.ts'
-import { makeStory, type NStory } from './stories.ts'
+import { knownNumbersAt, knownTopicsAt, levelIndex, type NLevel } from './curriculum.ts'
+import { makeClue, makeRiddle, riddleOptions } from './riddles.ts'
+import { makeStory } from './stories.ts'
 import { canSplit, pickSoundPair } from './word-bonds.ts'
-import { compareAnswer, compareQuestion, tokenKeys, type Ask, type Op } from './sentences.ts'
+import { SKIP_STEPS, SUM_MAX, tokenKeys } from './speech.ts'
+import * as q from './questions.ts'
+import { isNScored, type NStep } from './steps.ts'
 
-export type NStep =
-  | { kind: 'meet'; n: number }
-  | { kind: 'meetWord'; key: string }
-  | { kind: 'wake'; n: number; options: number[] }
-  | { kind: 'build'; n: number }
-  | { kind: 'equation'; op: Op; a: number; b: number; answer: number; options: number[] }
-  | { kind: 'riddle'; clues: Clue[]; answer: number; options: number[] }
-  | { kind: 'oddEven'; n: number }
-  | { kind: 'compare'; a: number; b: number; ask: Ask }
-  | { kind: 'story'; story: NStory; options: number[] }
-  | { kind: 'wordBond'; word: ParsedWord; demo: boolean }
-  | { kind: 'soundCompare'; a: ParsedWord; b: ParsedWord }
-  | { kind: 'rocket'; rounds: { n: number; options: [number, number] }[] }
+export type { NStep }
+export { isNScored }
 
-type Rand = () => number
-
-function shuffle<T>(arr: T[], rand: Rand): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
-const randInt = (lo: number, hi: number, rand: Rand) => lo + Math.floor(rand() * (hi - lo + 1))
-
-/** The answer plus two close-by numbers, shuffled. Never a negative or past twenty. */
-export function numberOptions(n: number, rand: Rand = Math.random): number[] {
-  const min = n === 0 ? 0 : 1
-  const valid = (x: number) => x >= min && x <= MAX_NUMBER && x !== n
-  const near = shuffle([n - 2, n - 1, n + 1, n + 2].filter(valid), rand)
-  const far = shuffle([n - 3, n + 3].filter(valid), rand)
-  return shuffle([n, ...[...near, ...far].slice(0, 2)], rand)
-}
-
-/** True for steps the child answers (everything except the two "meet" cards). */
-export const isNScored = (s: NStep): boolean => s.kind !== 'meet' && s.kind !== 'meetWord'
+type Rand = q.Rand
 
 /** How many words the child reads in a step, for the "words read" counter. */
 export function nWordsInStep(s: NStep): number {
   switch (s.kind) {
-    case 'equation': return 4
-    case 'oddEven': return 5
-    case 'compare': return tokenKeys(compareQuestion(s.a, s.b, s.ask)).length
-    case 'riddle': return s.clues.reduce((n, c) => n + tokenKeys(c.text).length, 0) + tokenKeys(RIDDLE_QUESTION).length
+    case 'choose': return s.words
     case 'story': return s.story.sentences.reduce((n, t) => n + tokenKeys(t).length, 0)
-    case 'rocket': return s.rounds.length
-    case 'meet': case 'meetWord': return 0
-    default: return 1
+    case 'rocket': return s.from === 'word' ? s.rounds.length : 0
+    case 'wordBond': case 'soundCompare': return 1
+    default: return 0
   }
 }
 
 /** The numbers a step is "about", for the grown-up's "numbers to practise" view. */
 export function nStepNumbers(s: NStep): number[] {
   switch (s.kind) {
-    case 'wake': case 'build': case 'oddEven': return [s.n]
-    case 'equation': case 'riddle': return [s.answer]
-    case 'compare': return [compareAnswer(s.a, s.b, s.ask)]
+    case 'choose': return s.numbers
+    case 'count': case 'build': return [s.n]
     case 'story': return [s.story.answer]
     case 'rocket': return s.rounds.map(r => r.n)
     default: return []
@@ -76,15 +40,19 @@ export function nStepNumbers(s: NStep): number[] {
 export function planNumberLevel(level: NLevel, bank: ParsedWord[], rand: Rand = Math.random): NStep[] {
   const idx = levelIndex(level.id)
   const known = knownNumbersAt(idx)
-  const words = knownWordsAt(idx)
+  const topics = knownTopicsAt(idx)
   const [lo, hi] = level.range
   const maxKnown = known.length ? Math.max(...known) : 0
   const pool = known.filter(n => n >= lo && n <= hi)
-  const buildPool = pool.filter(n => n >= 1)
-  const splittable = shuffle(bank.filter(canSplit), rand)
+  const positive = pool.filter(n => n >= 1)
+  // The level that introduces zero practises zero too.
+  const practice = level.meets.includes(0) ? pool : positive
+  const sumTop = Math.min(hi, SUM_MAX, maxKnown)
+  const ctx: q.Ctx = { rand, min: known.includes(0) ? 0 : 1, max: Math.min(MAX_NUMBER, Math.max(maxKnown, 1)) }
+  const splittable = q.shuffle(bank.filter(canSplit), rand)
 
   // New buddies are practised first, then anything in range, never the same number twice in a row.
-  const fresh = [...level.buddies, ...level.buddies]
+  const fresh = [...level.meets, ...level.meets]
   let last = -1
   const nextN = (from: number[]): number => {
     const cand = fresh.find(n => from.includes(n))
@@ -94,88 +62,152 @@ export function planNumberLevel(level: NLevel, bank: ParsedWord[], rand: Rand = 
     }
     const choices = from.filter(n => n !== last)
     const list = choices.length ? choices : from
-    return (last = list[Math.floor(rand() * list.length)])
+    return (last = q.pick(list, rand))
   }
 
   const steps: NStep[] = []
-  let storyCount = 0
-  let bondCount = 0
   const used = new Set<string>()
+  const unused = (key: string): boolean => !used.has(key)
+  const mark = (key: string) => { used.add(key) }
+  let matches = 0
+  let stories = 0
+  let bonds = 0
+  let skips = 0
+  let wordSigns = 0
+  let wordNums = q.shuffle(pool, rand)
+
+  level.meets.forEach(n => steps.push({ kind: 'meet', n }))
+  level.learn.forEach(topic => steps.push({ kind: 'learn', topic }))
+
+  const useEquals = topics.has('equals')
 
   for (const token of level.plan) {
     switch (token) {
-      case 'meetBuddies':
-        level.buddies.forEach(n => steps.push({ kind: 'meet', n }))
-        break
-      case 'meetWords':
-        level.words.forEach(key => steps.push({ kind: 'meetWord', key }))
-        break
-      case 'wake': {
-        const n = nextN(pool)
-        steps.push({ kind: 'wake', n, options: numberOptions(n, rand) })
+      case 'numMatch': {
+        const n = nextN(practice)
+        // He sees the blocks and picks the numeral first; later the numeral is the clue.
+        steps.push(matches++ % 2 === 0 ? q.buddyToNumeral(n, ctx) : q.numeralToBuddy(n, ctx))
         break
       }
+      case 'count':
+        steps.push(q.countStep(nextN(practice), ctx))
+        break
       case 'build':
-        steps.push({ kind: 'build', n: nextN(buildPool) })
+        steps.push({ kind: 'build', n: nextN(positive) })
         break
-      case 'plus': case 'minus': {
-        const top = Math.min(hi, maxKnown)
-        const sums: { a: number; b: number; answer: number }[] = []
-        for (const a of known) for (const b of known) {
-          if (a < 1 || b < 1) continue
-          if (token === 'plus' && a + b <= top && known.includes(a + b)) sums.push({ a, b, answer: a + b })
-          if (token === 'minus' && a <= top && b < a && known.includes(a - b) && a - b >= 1) sums.push({ a, b, answer: a - b })
-        }
-        const mixed = shuffle(sums, rand)
-        const pick = mixed.find(s => !used.has(`${token}${s.a}.${s.b}`)) ?? mixed[0]
-        if (pick) {
-          used.add(`${token}${pick.a}.${pick.b}`)
-          steps.push({ kind: 'equation', op: token, ...pick, options: numberOptions(pick.answer, rand) })
-        }
+      case 'rocket': case 'rocketWord': {
+        const source = positive
+        const rounds = Array.from({ length: 6 }, () => {
+          const n = q.pick(source, rand)
+          const other = q.numberChoices(n, ctx, { min: 1, max: Math.min(MAX_NUMBER, Math.max(maxKnown, 5)) }).find(x => x !== n) ?? (n === 1 ? 2 : n - 1)
+          return { n, options: q.shuffle([n, other], rand) as [number, number] }
+        })
+        steps.push({ kind: 'rocket', from: token === 'rocket' ? 'num' : 'word', rounds })
         break
       }
-      case 'compare': {
-        const a = nextN(buildPool)
+      case 'add': case 'addN': case 'sub': case 'subN': case 'missing': {
+        const isAdd = token === 'add' || token === 'addN'
+        const sums: { a: number; b: number }[] = []
+        for (const a of positive) for (const b of positive) {
+          if (token === 'missing' ? a + b <= sumTop && a >= 1 : isAdd ? a + b <= sumTop : a <= sumTop && b < a) sums.push({ a, b })
+        }
+        const mixed = q.shuffle(sums, rand)
+        const choice = mixed.find(s => unused(`${token}${s.a}.${s.b}`)) ?? mixed[0]
+        if (!choice) break
+        mark(`${token}${choice.a}.${choice.b}`)
+        const pictures = token === 'add' || token === 'sub'
+        if (token === 'missing') steps.push(q.missingStep(choice.a, choice.a + choice.b, ctx))
+        else if (isAdd) steps.push(q.addStep(choice.a, choice.b, { pictures, useEquals, max: SUM_MAX }, ctx))
+        else steps.push(q.subStep(choice.a, choice.b, { pictures, max: SUM_MAX }, ctx))
+        break
+      }
+      case 'more': {
+        const a = nextN(positive)
         let b = a
-        for (let i = 0; i < 20 && b === a; i++) b = buildPool[Math.floor(rand() * buildPool.length)]
-        if (b === a) break
-        steps.push({ kind: 'compare', a, b, ask: words.has('less') && rand() < 0.5 ? 'less' : 'more' })
+        for (let i = 0; i < 20 && b === a; i++) b = q.pick(positive, rand)
+        if (b !== a) steps.push(q.moreStep(a, b, rand() < 0.5 ? 'more' : 'less', ctx))
+        break
+      }
+      case 'sign': {
+        const a = nextN(positive)
+        let b = rand() < 0.25 ? a : q.pick(positive, rand)
+        if (b === a && rand() < 0.5) b = q.pick(positive, rand)
+        steps.push(q.signStep(a, b, ctx))
         break
       }
       case 'oddEven':
-        steps.push({ kind: 'oddEven', n: nextN(buildPool) })
+        steps.push(q.oddEvenStep(nextN(positive), ctx))
         break
+      case 'teenSum': {
+        const teens = known.filter(n => n >= 11 && n <= 20).map(n => n - 10)
+        if (teens.length) steps.push(q.teenSumStep(q.pick(teens, rand), ctx))
+        break
+      }
+      case 'next': {
+        const starts = positive.filter(n => n + 3 <= maxKnown && n + 3 <= MAX_NUMBER)
+        if (starts.length) steps.push(q.nextStep(q.pick(starts, rand), ctx))
+        break
+      }
+      case 'before': {
+        const ns = positive.filter(n => n >= 2 && n + 1 <= MAX_NUMBER && n + 1 <= maxKnown)
+        if (ns.length) steps.push(q.beforeStep(q.pick(ns, rand), ctx))
+        break
+      }
+      case 'between': {
+        const as = positive.filter(n => n + 2 <= maxKnown)
+        if (as.length) steps.push(q.betweenStep(q.pick(as, rand), ctx))
+        break
+      }
+      case 'skip':
+        steps.push(q.skipStep(SKIP_STEPS[skips++ % SKIP_STEPS.length], ctx))
+        break
+      case 'double': {
+        const ns = positive.filter(n => n >= 2 && n <= 9)
+        const fresh2 = ns.filter(n => unused(`d${n}`))
+        if (ns.length) {
+          const n = q.pick(fresh2.length ? fresh2 : ns, rand)
+          mark(`d${n}`)
+          steps.push(q.doubleStep(n, ctx))
+        }
+        break
+      }
+      case 'bond': {
+        const t = bonds++ < 2 ? 10 : q.pick([5, 10], rand)
+        const as = Array.from({ length: t - 1 }, (_, i) => i + 1).filter(a => unused(`b${a}.${t}`))
+        const a = q.pick(as.length ? as : [1], rand)
+        mark(`b${a}.${t}`)
+        steps.push(q.bondStep(a, t, ctx))
+        break
+      }
       case 'riddle': {
         const kinds = level.riddle ?? ['more', 'less']
         const r = makeRiddle(Math.max(1, lo), Math.min(hi, maxKnown), kinds, rand)
         const riddle = r ?? { clues: [makeClue('more', 1), makeClue('less', 3)], answer: 2, lo: 1, hi: 10 }
-        steps.push({ kind: 'riddle', clues: riddle.clues, answer: riddle.answer, options: riddleOptions(riddle, rand) })
+        steps.push(q.riddleStep(riddle, riddleOptions(riddle, rand)))
         break
       }
       case 'story': {
-        const story = makeStory(storyCount++ % 2 === 0 ? 'plus' : 'minus', hi, rand)
-        steps.push({ kind: 'story', story, options: numberOptions(story.answer, rand) })
+        const op = topics.has('minus') && stories++ % 2 === 1 ? 'minus' : 'plus'
+        const story = makeStory(op, Math.min(hi, 10), rand)
+        steps.push({ kind: 'story', story, options: q.numberChoices(story.answer, ctx, { min: 1, max: 10, lure: [story.a, story.b] }) })
         break
       }
+      case 'wordNum': {
+        if (!wordNums.length) wordNums = q.shuffle(pool, rand)
+        steps.push(q.wordNumStep(wordNums.pop() as number, ctx))
+        break
+      }
+      case 'wordSign':
+        steps.push(q.wordSignStep(wordSigns++ % 2 === 0 ? 'plus' : 'minus', ctx))
+        break
       case 'wordBond': {
-        const word = splittable[bondCount % Math.max(1, splittable.length)]
-        if (word) steps.push({ kind: 'wordBond', word, demo: level.id === 'nl19' && bondCount === 0 })
-        bondCount++
+        const word = splittable[bonds++ % Math.max(1, splittable.length)]
+        if (word) steps.push({ kind: 'wordBond', word, demo: level.id === 'n29' && bonds === 1 })
         break
       }
       case 'soundCompare': {
         const pair = pickSoundPair(bank, rand)
         if (pair) steps.push({ kind: 'soundCompare', a: pair[0], b: pair[1] })
-        break
-      }
-      case 'rocket': {
-        const rounds = Array.from({ length: 6 }, () => {
-          const n = buildPool[randInt(0, buildPool.length - 1, rand)]
-          const other = numberOptions(n, rand).find(x => x !== n && x >= 1) ?? (n === 1 ? 2 : n - 1)
-          const options = shuffle([n, other], rand) as [number, number]
-          return { n, options }
-        })
-        steps.push({ kind: 'rocket', rounds })
         break
       }
     }

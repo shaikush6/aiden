@@ -8,6 +8,7 @@ import { emitQuestEvent } from '@/lib/reading-quest/events';
 import { NL } from '@/lib/number-land/lines';
 import { recordNumberRocket } from '@/lib/number-land/progress';
 import { numberWord } from '@/lib/number-land/words';
+import { NumeralTile } from '../Terms';
 import { sfx } from '@/lib/sfx';
 import { BigButton, ChoiceCard, Emoji, Guide, WordView, useAlive, useSayOnMount } from '@/components/reading-quest/ui';
 import NumberBuddy from '../NumberBuddy';
@@ -23,14 +24,14 @@ function now(): number {
 
 /** Number Rocket (reading speed): read six number names and tap each Block Buddy, as fast as possible. */
 export default function NumberRocket({ step, onDone }: StepProps<'rocket'>) {
-  const { rounds } = step;
+  const { rounds, from } = step;
   const alive = useAlive();
   const start = useRef(0);
   const [round, setRound] = useState(0);
   const [misses, setMisses] = useState(0);
   const [shake, setShake] = useState<number | null>(null);
   const [result, setResult] = useState<{ seconds: number; best: boolean } | null>(null);
-  useSayOnMount(NL.rocket);
+  useSayOnMount(from === 'word' ? NL.rocketWord : NL.rocket);
   useEffect(() => { start.current = now(); }, []);
 
   const tap = async (n: number) => {
@@ -58,7 +59,7 @@ export default function NumberRocket({ step, onDone }: StepProps<'rocket'>) {
   const current = rounds[round];
   return (
     <div className="flex flex-col items-center gap-5">
-      <Guide text={NL.rocket} onReplay={() => say(NL.rocket)} />
+      <Guide text={from === 'word' ? NL.rocketWord : NL.rocket} onReplay={() => say(from === 'word' ? NL.rocketWord : NL.rocket)} />
       <div className="flex items-end gap-6">
         <div className="flex items-end gap-2 h-56">
           <div className="w-6 h-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex flex-col-reverse">
@@ -75,13 +76,19 @@ export default function NumberRocket({ step, onDone }: StepProps<'rocket'>) {
         {!result && (
           <div className="flex flex-col items-center gap-4">
             <p className="font-black text-slate-500 dark:text-slate-400">{round + 1} / {rounds.length}</p>
-            <div className="bg-white/90 dark:bg-slate-800/90 rounded-[2rem] shadow-xl px-8 py-4">
-              <WordView word={numberWord(current.n)} size="xl" />
-            </div>
+            {from === 'word' ? (
+              <div className="bg-white/90 dark:bg-slate-800/90 rounded-[2rem] shadow-xl px-8 py-4">
+                <WordView word={numberWord(current.n)} size="xl" />
+              </div>
+            ) : (
+              <NumeralTile n={current.n} scale="lg" />
+            )}
             <div className="flex gap-4">
               {current.options.map(o => (
-                <ChoiceCard key={`${round}-${o}`} label={`Block Buddy ${o}`} state={shake === o ? 'wrong' : 'idle'} onClick={() => tap(o)}>
-                  <NumberBuddy n={o} size={o > 10 ? 15 : 22} />
+                <ChoiceCard key={`${round}-${o}`} label={from === 'word' ? `The number ${o}` : `Block Buddy ${o}`} state={shake === o ? 'wrong' : 'idle'} onClick={() => tap(o)}>
+                  {from === 'word'
+                    ? <span className="text-7xl font-black leading-none text-slate-700 dark:text-slate-100">{o}</span>
+                    : <NumberBuddy n={o} size={o > 10 ? 15 : 22} />}
                 </ChoiceCard>
               ))}
             </div>
@@ -93,7 +100,7 @@ export default function NumberRocket({ step, onDone }: StepProps<'rocket'>) {
         {result && (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-3 text-center">
             <p className="font-black text-4xl text-slate-800 dark:text-white">
-              {rounds.length} number names in <span className="text-orange-500">{result.seconds}</span> seconds!
+              {rounds.length} numbers in <span className="text-orange-500">{result.seconds}</span> seconds!
             </p>
             {result.best && <p className="font-black text-3xl text-emerald-600">🏆 NEW RECORD!</p>}
             <BigButton onClick={() => onDone({ firstTry: misses === 0 })} label="Next">NEXT ▶</BigButton>

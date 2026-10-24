@@ -1,23 +1,22 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { PREP_CATEGORIES, type PrepCategory, type PrepQuestion } from '@/lib/exam-prep-data';
-import { speakText, speakEncouragement } from '@/lib/speech';
+import { speakText, speakEncouragement, stopSpeech } from '@/lib/speech';
 
 const ReactConfetti = dynamic(() => import('react-confetti'), { ssr: false });
 
 type AgeGroup = 5 | 6;
 
+const noopSubscribe = (): (() => void) => () => {};
+
+/** The window size, read without setting state during render. */
 function useWindowSize() {
-  const [size, setSize] = useState({ width: 0, height: 0 });
-  const measured = useRef(false);
-  if (!measured.current && typeof window !== 'undefined') {
-    measured.current = true;
-    setSize({ width: window.innerWidth, height: window.innerHeight });
-  }
-  return size;
+  const width = useSyncExternalStore(noopSubscribe, () => window.innerWidth, () => 0);
+  const height = useSyncExternalStore(noopSubscribe, () => window.innerHeight, () => 0);
+  return { width, height };
 }
 
 function AgeSelector({ age, onSelect }: { age: AgeGroup; onSelect: (a: AgeGroup) => void }) {
@@ -78,11 +77,13 @@ function AnswerButton({
   state,
   onPress,
   disabled,
+  big = false,
 }: {
   label: string;
   state: 'idle' | 'correct' | 'wrong';
   onPress: () => void;
   disabled: boolean;
+  big?: boolean;
 }) {
   return (
     <motion.button
@@ -97,7 +98,7 @@ function AnswerButton({
       }
       onClick={onPress}
       disabled={disabled}
-      className={`w-full py-5 px-4 rounded-2xl font-black text-lg shadow-lg transition-colors text-left leading-snug
+      className={`w-full rounded-2xl font-black shadow-lg transition-colors leading-snug ${big ? 'py-8 text-6xl text-center' : 'py-6 px-5 text-2xl text-left'}
         ${state === 'correct' ? 'bg-green-400 text-white'
           : state === 'wrong' ? 'bg-red-300 text-white'
           : 'bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100'}
@@ -123,6 +124,27 @@ function QuestionView({
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [misses, setMisses] = useState(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The question is read out when it appears (he may not read yet), and everything stops when he leaves.
+  useEffect(() => {
+    void speakText(question.questionText);
+    return () => {
+      stopSpeech();
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [question.questionText]);
+
+  const later = (fn: () => void, ms: number) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(fn, ms);
+  };
+
+  const readAll = () => {
+    const letters = ['A', 'B', 'C', 'D'];
+    void speakText(`${question.questionText} ${question.choices.map((c, i) => `${letters[i]}. ${c}.`).join(' ')}`);
+  };
 
   const handleChoice = useCallback((i: number) => {
     if (selected !== null) return;
@@ -130,21 +152,31 @@ function QuestionView({
     if (i === question.correctIndex) {
       setFeedback('correct');
       speakEncouragement(true);
-      setTimeout(() => { setFeedback(null); setSelected(null); onCorrect(); }, 1800);
+      later(() => { setFeedback(null); setSelected(null); onCorrect(); }, 1800);
     } else {
+      const missesNow = misses + 1;
+      setMisses(missesNow);
       setFeedback('wrong');
       speakEncouragement(false);
-      setTimeout(() => { setFeedback(null); setSelected(null); onWrong(); }, 1400);
+      // After two tries, show the right answer and move on, so nobody gets stuck.
+      later(() => {
+        setFeedback(null);
+        setSelected(missesNow >= 2 ? question.correctIndex : null);
+        if (missesNow >= 2) { setFeedback('correct'); later(() => { setFeedback(null); setSelected(null); onWrong(); }, 1600); }
+      }, 1200);
     }
-  }, [selected, question.correctIndex, onCorrect, onWrong]);
+  }, [selected, misses, question.correctIndex, onCorrect, onWrong]);
 
   const buttonState = (i: number): 'idle' | 'correct' | 'wrong' => {
     if (selected !== i) return 'idle';
     return feedback ?? 'idle';
   };
 
+  // Short answers (mostly numbers) become big tiles; long ones stay as wide buttons.
+  const short = question.choices.every(c => c.length <= 3);
+
   return (
-    <div className="flex flex-col gap-5 w-full max-w-lg">
+    <div className="flex flex-col gap-5 w-full max-w-2xl">
       <div className="flex items-center justify-between">
         <span className="text-rose-500 dark:text-rose-400 font-black text-sm">
           Question {index + 1} of {total}
@@ -165,20 +197,24 @@ function QuestionView({
         className="bg-white/90 dark:bg-slate-700 rounded-3xl p-6 shadow-xl"
       >
         <div className="flex items-start gap-3">
-          <span className="text-3xl leading-none shrink-0">{question.emoji}</span>
+          <span className="text-5xl leading-none shrink-0" aria-hidden>{question.emoji}</span>
           <button
             onClick={() => speakText(question.questionText)}
-            className="text-2xl font-black text-gray-800 dark:text-white leading-snug text-left"
+            className="text-2xl sm:text-3xl font-black text-gray-800 dark:text-white leading-snug text-left"
           >
             {question.questionText}
           </button>
         </div>
-        <button
-          onClick={() => speakText(question.questionText)}
-          className="mt-3 flex items-center gap-1.5 text-sm font-bold text-rose-500 dark:text-rose-400"
-        >
-          🔊 Tap to hear
-        </button>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={readAll}
+            className="bg-sky-500 border-b-4 border-sky-700 text-white rounded-2xl px-5 py-2 font-black text-lg shadow flex items-center gap-2"
+            aria-label="Read the question and the answers to me"
+          >
+            <span aria-hidden>🔊</span> READ IT TO ME
+          </motion.button>
+        </div>
       </motion.div>
 
       <AnimatePresence>
@@ -194,11 +230,12 @@ function QuestionView({
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col gap-3">
+      <div className={short ? 'grid grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
         {question.choices.map((choice, i) => (
           <AnswerButton
             key={i}
             label={choice}
+            big={short}
             state={buttonState(i)}
             onPress={() => handleChoice(i)}
             disabled={selected !== null}
@@ -309,8 +346,11 @@ export default function ExamPrepTab() {
     }
   }, [score, questionIndex, filteredQuestions.length]);
 
+  // Two misses: the answer was shown, so move on without a point.
   const handleWrong = useCallback(() => {
-  }, []);
+    if (questionIndex + 1 >= filteredQuestions.length) setFinished(true);
+    else setQuestionIndex(i => i + 1);
+  }, [questionIndex, filteredQuestions.length]);
 
   return (
     <div className="flex flex-col items-center gap-5 p-4 pb-10">

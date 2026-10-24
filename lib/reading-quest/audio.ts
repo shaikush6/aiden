@@ -3,6 +3,7 @@
 // Letter sounds come from the static recordings in /public/phonics.
 import { playSequence } from '../audio-player'
 import { cachedAudioUrl } from '../speech'
+import { timeoutSignal } from '../fetch-timeout'
 import { lineId, type LineKind } from './allowlist.ts'
 import { soundSource, UNKNOWN_PHONEME } from './phonemes.ts'
 import { parseScript } from './script.ts'
@@ -21,7 +22,7 @@ function voiceFor(kind: LineKind): { kind: LineKind; voice: string } {
 export function lineClip(text: string, kind: LineKind = 'line'): Clip {
   const v = voiceFor(kind)
   const id = lineId(v.kind, text, v.voice)
-  return () => cachedAudioUrl(`q:${id}`, `/__tts-cache/q-${id}`, () => fetch(`/api/tts?id=${id}`))
+  return () => cachedAudioUrl(`q:${id}`, `/__tts-cache/q-${id}`, () => fetch(`/api/tts?id=${id}`, { signal: timeoutSignal(10_000) }))
 }
 
 /** A script with /sound/ markers becomes spoken pieces with the real phonics recordings in between. */
@@ -54,7 +55,7 @@ export function say(...parts: (string | Clip | Clip[])[]): Promise<boolean> {
 /** Preview a narrator voice (for the grown-up settings), whatever the current setting is. */
 export function previewVoice(voice: string, text: string): Promise<boolean> {
   const id = lineId('narration', text, voice)
-  return playSequence([() => cachedAudioUrl(`q:${id}`, `/__tts-cache/q-${id}`, () => fetch(`/api/tts?id=${id}`))])
+  return playSequence([() => cachedAudioUrl(`q:${id}`, `/__tts-cache/q-${id}`, () => fetch(`/api/tts?id=${id}`, { signal: timeoutSignal(10_000) }))])
 }
 
 export function sayPhoneme(p: PhonemeKey): Promise<boolean> {

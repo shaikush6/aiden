@@ -13,6 +13,7 @@ import { levelPrefetchItems } from '@/lib/number-land/prefetch';
 import { getNL, getServerNL, isNLUnlocked, subscribeNL } from '@/lib/number-land/progress';
 import { levelScript, type NLScript } from '@/lib/number-land/script';
 import BuddyBook from './BuddyBook';
+import ExplainProvider from './ExplainProvider';
 import NumberLevelPlayer from './NumberLevelPlayer';
 import NumberMap from './NumberMap';
 
@@ -28,7 +29,15 @@ function questBank() {
 }
 
 /** Block Buddy Land: read the number names to wake Block Buddies, then use words to do math. */
-export default function NumberLand() {
+export default function NumberLand(props: { onPlaying?: (playing: boolean) => void }) {
+  return (
+    <ExplainProvider>
+      <NumberLandInner {...props} />
+    </ExplainProvider>
+  );
+}
+
+function NumberLandInner({ onPlaying }: { onPlaying?: (playing: boolean) => void }) {
   const progress = useSyncExternalStore(subscribeNL, getNL, getServerNL);
   const quest = useSyncExternalStore(subscribeProgress, getProgress, getServerProgress);
   const [view, setView] = useState<View>({ name: 'map' });
@@ -40,6 +49,11 @@ export default function NumberLand() {
   useEffect(() => { setMusicEnabled(musicOn); }, [musicOn]);
   useEffect(() => { if (MUSIC_READY) void playMusic(TRACKS[scene]); }, [scene, sceneKey]);
   useEffect(() => () => { stopMusic(); stopAudio(); }, []);
+
+  // Tell the page when a level is on, so it can hide the extra switches and give the game more room.
+  const playing = view.name === 'level';
+  useEffect(() => { onPlaying?.(playing); }, [playing, onPlaying]);
+  useEffect(() => () => onPlaying?.(false), [onPlaying]);
 
   const play = (level: NLevel) => {
     stopAudio();

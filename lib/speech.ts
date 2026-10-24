@@ -4,6 +4,7 @@
 
 import { isAudioEnabled, playClip, setAudioEnabled, stopAudio } from './audio-player'
 import { hashKey } from './hash'
+import { timeoutSignal } from './fetch-timeout'
 
 export function setVoiceEnabled(v: boolean) { setAudioEnabled(v) }
 export function getVoiceEnabled() { return isAudioEnabled() }
@@ -112,6 +113,7 @@ function fetchTTS(text: string, speed: number, phonics = false): Promise<string 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, speed, phonics }),
+      signal: timeoutSignal(10_000),
     }),
   )
 }

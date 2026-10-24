@@ -787,6 +787,7 @@ export default function PatternsTab() {
     patternCore: new Set(), changeType: new Set(), theme: new Set(), drillType: new Set(),
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showControls, setShowControls] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['STRUCTURE']));
 
   // Load saved filters on mount.
@@ -914,8 +915,19 @@ export default function PatternsTab() {
 
       {tabMode === 'CREATE' ? <MakeYourOwnMode /> : (
         <>
+          {/* The choosing controls are for grown-ups; the child just plays. */}
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setShowControls(c => !c)}
+            aria-expanded={showControls}
+            className="font-black text-sm rounded-2xl px-5 py-2 shadow bg-white/90 dark:bg-slate-700 text-purple-600 dark:text-purple-300"
+          >
+            ⚙️ {showControls ? 'HIDE CHOICES' : `CHOOSE WHAT TO PRACTISE · ${diffConfig[difficulty].label}`}
+          </motion.button>
+          {showControls && (
+            <div className="w-full max-w-2xl flex flex-col gap-4 items-center">
           {/* Category chips + RANDOM */}
-          <div className="w-full max-w-sm flex flex-col gap-1.5">
+          <div className="w-full max-w-2xl flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
               <motion.button
                 whileTap={{ scale: 0.9 }}
@@ -963,7 +975,7 @@ export default function PatternsTab() {
           </div>
 
           {/* Difficulty + filter toggle */}
-          <div className="flex items-center gap-2 w-full max-w-sm">
+          <div className="flex items-center gap-2 w-full max-w-2xl">
             <div className="grid grid-cols-5 gap-1 flex-1">
               {(['EASY', 'MEDIUM', 'HARD', 'EXPERT', 'MASTER'] as Difficulty[]).map(d => (
                 <motion.button key={d} whileTap={{ scale: 0.92 }}
@@ -996,7 +1008,7 @@ export default function PatternsTab() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.25 }}
-                className="w-full max-w-sm overflow-hidden"
+                className="w-full max-w-2xl overflow-hidden"
               >
                 <div className="bg-white/90 dark:bg-slate-800 rounded-2xl shadow-xl p-4 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
@@ -1076,6 +1088,9 @@ export default function PatternsTab() {
             )}
           </AnimatePresence>
 
+            </div>
+          )}
+
           {/* Score + counter */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl px-5 py-2 shadow">
@@ -1098,7 +1113,8 @@ export default function PatternsTab() {
           <AnimatePresence mode="wait">
             <motion.div key={`${difficulty}-${qIndex}-${question.id}`}
               initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }}
-              className="w-full max-w-lg">
+              style={{ zoom: 1.25 }}   // bigger shapes and answer buttons for small fingers
+              className="w-full max-w-2xl">
               {question.drillType === 'FIND_MISTAKE' ? (
                 <FindMistakeDrill question={question} onCorrect={handleCorrect} onWrong={handleWrong} />
               ) : question.drillType === 'COUNT' ? (

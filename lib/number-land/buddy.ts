@@ -67,3 +67,22 @@ export function cellColor(n: number, group: 0 | 1): string {
   if (n <= 10) return buddyColor(n)
   return group === 0 ? PALETTE[10] : buddyColor(n - 10)
 }
+
+/** Numeral tile colours per number (text and border), matching the Block Buddy of the same number. */
+const NUMERAL_PALETTE = [
+  'text-slate-500 border-slate-300',
+  'text-red-600 border-red-400',
+  'text-orange-600 border-orange-400',
+  'text-yellow-600 border-yellow-400',
+  'text-green-600 border-green-400',
+  'text-sky-600 border-sky-400',
+  'text-indigo-600 border-indigo-400',
+  'text-violet-600 border-violet-400',
+  'text-fuchsia-600 border-fuchsia-400',
+  'text-stone-600 border-stone-400',
+  'text-amber-600 border-amber-400',
+]
+
+export function numeralColor(n: number): string {
+  return NUMERAL_PALETTE[n <= 10 ? Math.max(0, n) : 10]
+}

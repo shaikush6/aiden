@@ -32,6 +32,16 @@ export default function TeacherTab() {
 
   useEffect(() => () => disconnect(), [disconnect])
 
+  /** Ask Mimi about a topic by typing it into the conversation for him, then asking her to answer. */
+  const ask = useCallback((topic: string) => {
+    const dc = dcRef.current
+    if (!dc || dc.readyState !== 'open') return
+    const text = `Tell me about ${topic.toLowerCase()}, in a fun way for a five year old.`
+    dc.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } }))
+    dc.send(JSON.stringify({ type: 'response.create' }))
+    setTranscript(t => [...t.slice(-6), { role: 'user', text }])
+  }, [])
+
   const connect = useCallback(async () => {
     try {
       setConnState('connecting')
@@ -211,13 +221,19 @@ export default function TeacherTab() {
 
       {/* Topic suggestions when connected */}
       {connState === 'connected' && (
-        <div className="w-full max-w-sm">
-          <p className="text-emerald-600 font-black text-sm text-center mb-2">ASK MIMI ABOUT:</p>
+        <div className="w-full max-w-md">
+          <p className="text-emerald-600 font-black text-base text-center mb-2">TAP A TOPIC TO ASK MIMI:</p>
           <div className="flex flex-wrap gap-2 justify-center">
             {['THE LETTER S', 'THE SUN', 'HOW TO COUNT', 'THE WORD CAT', 'PLANETS'].map(topic => (
-              <div key={topic} className="bg-white dark:bg-slate-700/60 rounded-xl px-3 py-1 text-xs font-black text-emerald-600 shadow">
+              <motion.button
+                key={topic}
+                type="button"
+                whileTap={{ scale: 0.92 }}
+                onClick={() => ask(topic)}
+                className="bg-white dark:bg-slate-700/60 rounded-2xl px-4 py-2 text-sm font-black text-emerald-600 dark:text-emerald-300 shadow border-b-4 border-emerald-200 dark:border-emerald-900"
+              >
                 {topic}
-              </div>
+              </motion.button>
             ))}
           </div>
         </div>

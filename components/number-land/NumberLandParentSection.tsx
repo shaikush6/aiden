@@ -17,10 +17,11 @@ export default function NumberLandParentSection() {
 
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="font-black text-lg">🏘️ Block Buddy Land (numbers and reading)</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+      <h3 className="font-black text-lg">🏘️ Block Buddy Land (numbers, signs and reading)</h3>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
         <Stat label="Levels done" value={`${done} / ${NUMBER_LEVELS.length}`} />
         <Stat label="Buddies met" value={`${nl.buddies.length} / ${MAX_NUMBER + 1}`} />
+        <Stat label="Signs taught" value={`${nl.signs.length} / 5`} />
         <Stat label="Words read" value={nl.wordsRead.toLocaleString()} />
         <Stat label="Rocket best" value={nl.rocketBest === null ? '—' : `${nl.rocketBest}s`} />
       </div>

@@ -75,9 +75,9 @@ function LettersMode() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-white/70 dark:bg-slate-800/80 rounded-2xl p-3 shadow text-center">
-        <p className="text-sm font-black text-blue-700 dark:text-blue-300">TAP A LETTER TO FLIP IT AND HEAR IT! 🔊</p>
-        <p className="text-xs text-blue-400 dark:text-blue-500 font-bold mt-0.5">Hebrew has 22 letters — all read right to left →</p>
+      <div dir="ltr" className="bg-white/70 dark:bg-slate-800/80 rounded-2xl p-3 shadow text-center">
+        <p className="text-base font-black text-blue-700 dark:text-blue-300">🔊 Tap a letter to flip it and hear it!</p>
+        <p className="text-sm text-blue-500 dark:text-blue-400 font-bold mt-0.5">Hebrew has 22 letters, and it is read from right to left ←</p>
       </div>
 
       <div className="grid grid-cols-4 gap-2">

@@ -137,7 +137,7 @@ export interface SaveData {
 export const MAX_LIVES = 5;
 export const MAX_PARTICLES = 350;
 
-const SAVE_KEY = 'aiden-laser-blaster-v2';
+export const SAVE_KEY = 'aiden-laser-blaster-v2';
 
 export function loadSave(): SaveData {
   try {

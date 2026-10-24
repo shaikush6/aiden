@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navigation, { type TabId } from '@/components/Navigation';
+import AudioSettingsBridge from '@/components/AudioSettingsBridge';
+import ProfileBadge from '@/components/profile/ProfileBadge';
+import SignIn from '@/components/profile/SignIn';
+import { getProfileState, getServerProfileState, initProfile, subscribeProfile } from '@/lib/profile/client';
 import PhonicsTab from '@/components/PhonicsTab';
 import PatternsTab from '@/components/PatternsTab';
 import MathTab from '@/components/MathTab';
@@ -36,7 +40,19 @@ const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string
   prep:     { title: 'BRAIN GAMES',    subtitle: 'Think like a champion!',              icon: '🧠', textColor: 'text-rose-800' },
 };
 
+/** The front door: shows the sign-in screen when this device is not signed in, otherwise the app. */
 export default function Home() {
+  const profile = useSyncExternalStore(subscribeProfile, getProfileState, getServerProfileState);
+  useEffect(() => initProfile(), []);
+
+  if (profile.phase === 'checking') {
+    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-200 to-pink-200 dark:from-slate-900 dark:to-indigo-950 text-8xl" aria-label="Loading">🦊</div>;
+  }
+  if (profile.phase === 'gate') return <SignIn />;
+  return <App />;
+}
+
+function App() {
   const [activeTab, setActiveTab] = useState<TabId>('quest');
   const [voiceOn, setVoiceOn] = useState(true);
   const [isDark, setIsDark] = useState(false);
@@ -74,6 +90,7 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${bg} transition-all duration-500`}>
+      <AudioSettingsBridge />
       {/* App header */}
       <header className="pt-4 pb-2 px-4 flex items-center justify-between">
         <div>
@@ -95,11 +112,7 @@ export default function Home() {
             className="bg-white/80 dark:bg-slate-700 rounded-2xl w-12 h-12 flex items-center justify-center shadow text-2xl">
             {isDark ? '☀️' : '🌙'}
           </motion.button>
-          {/* Aiden badge */}
-          <div className="bg-white/80 dark:bg-slate-700 rounded-2xl px-3 py-2 shadow text-center">
-            <p className="text-xs font-black text-gray-400 dark:text-slate-400 leading-none">FOR</p>
-            <p className="text-xl font-black text-indigo-600 leading-none">AIDEN</p>
-          </div>
+          <ProfileBadge />
         </div>
       </header>
 
