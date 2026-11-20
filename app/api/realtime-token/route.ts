@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
+import { aiGate } from '@/lib/server/ai-gate'
+import { REALTIME_START_USD, charge } from '@/lib/server/quota'
 
 const MIMI_INSTRUCTIONS = `You are Mimi — a warm, playful, and naturally expressive teacher for a 4.5-year-old boy named Aiden.
 
@@ -25,6 +27,9 @@ export async function POST(req: NextRequest) {
   // Each token opens a paid realtime voice session, so keep this tight.
   if (rateLimited(req, 'realtime-token', 6, 10 * 60_000)) return jsonError('Too many requests', 429)
   if (!process.env.OPENAI_API_KEY) return jsonError('Voice chat is not configured', 503)
+  // A voice chat costs a few cents a minute, so it needs a little credit left to start.
+  const gate = await aiGate(req, 0.1)
+  if ('error' in gate) return gate.error
 
   const res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
     method: 'POST',
@@ -51,5 +56,6 @@ export async function POST(req: NextRequest) {
 
   const data = await res.json()
   const token = data.value ?? null
+  if (gate.user && token) await charge(gate.user, REALTIME_START_USD).catch(() => {})
   return NextResponse.json({ token }, { headers: { 'Cache-Control': 'no-store' } })
 }

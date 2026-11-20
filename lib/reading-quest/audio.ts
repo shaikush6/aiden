@@ -1,7 +1,7 @@
 // Client-side audio for the quest.
 // Spoken lines come from GET /api/tts?id=… (allowlisted, cached by the CDN, the browser, and Cache Storage).
 // Letter sounds come from the static recordings in /public/phonics.
-import { playSequence } from '../audio-player'
+import { playSequence, withFallback } from '../audio-player'
 import { cachedAudioUrl } from '../speech'
 import { timeoutSignal } from '../fetch-timeout'
 import { lineId, type LineKind } from './allowlist.ts'
@@ -22,7 +22,9 @@ function voiceFor(kind: LineKind): { kind: LineKind; voice: string } {
 export function lineClip(text: string, kind: LineKind = 'line'): Clip {
   const v = voiceFor(kind)
   const id = lineId(v.kind, text, v.voice)
-  return () => cachedAudioUrl(`q:${id}`, `/__tts-cache/q-${id}`, () => fetch(`/api/tts?id=${id}`, { signal: timeoutSignal(10_000) }))
+  const load = () => cachedAudioUrl(`q:${id}`, `/__tts-cache/q-${id}`, () => fetch(`/api/tts?id=${id}`, { signal: timeoutSignal(10_000) }))
+  // Speech sounds must never fall back: a built-in voice would say the letter name, not the sound.
+  return kind === 'sound' ? load : withFallback(load, text)
 }
 
 /** A script with /sound/ markers becomes spoken pieces with the real phonics recordings in between. */

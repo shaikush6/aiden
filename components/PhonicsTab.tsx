@@ -96,9 +96,9 @@ function WordCard({ word, onConfetti }: { word: CVCWord; onConfetti: () => void 
     <motion.div
       whileHover={{ scale: cardState === 'speaking' ? 1 : 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 flex flex-col items-center gap-2 cursor-pointer select-none border-4 border-sky-200 hover:border-sky-400 transition-colors relative"
+      className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-4 flex flex-col items-center gap-2 cursor-pointer select-none border-4 border-b-8 border-sky-200 dark:border-slate-600 hover:border-sky-400 transition-colors relative"
       onClick={handleWordClick}
-      style={{ minHeight: '140px' }}
+      style={{ minHeight: '180px' }}
     >
       {/* Re-speak button — only when revealed */}
       {cardState === 'revealed' && (
@@ -112,7 +112,7 @@ function WordCard({ word, onConfetti }: { word: CVCWord; onConfetti: () => void 
       )}
 
       {/* Emoji area */}
-      <div className="w-12 h-12 flex items-center justify-center">
+      <div className="w-16 h-16 flex items-center justify-center">
         {cardState === 'hidden' && (
           <motion.div
             animate={{ borderColor: ['#7dd3fc', '#0ea5e9', '#7dd3fc'] }}
@@ -130,7 +130,7 @@ function WordCard({ word, onConfetti }: { word: CVCWord; onConfetti: () => void 
             initial={{ rotateY: 90, scale: 0.8 }}
             animate={{ rotateY: 0, scale: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-            className="text-4xl"
+            className="text-6xl"
           >
             {word.emoji}
           </motion.div>
@@ -143,20 +143,26 @@ function WordCard({ word, onConfetti }: { word: CVCWord; onConfetti: () => void 
           <motion.span
             key={idx}
             animate={letterPop === idx ? { scale: [1, 1.5, 1], color: ['#0ea5e9', '#7c3aed', '#0ea5e9'] } : {}}
-            className="text-3xl font-black text-sky-700 cursor-pointer hover:text-purple-600 transition-colors px-1 rounded"
+            className="text-5xl font-black text-sky-800 dark:text-sky-200 cursor-pointer hover:text-purple-600 transition-colors px-1 rounded"
             onClick={(e) => handleLetterClick(letter, idx, e)}
           >
-            {letter}
+            {letter.toLowerCase()}
           </motion.span>
         ))}
       </div>
 
       {/* Tap hint */}
       {cardState === 'hidden' && (
-        <span className="text-xs text-sky-400 font-bold">TAP TO HEAR!</span>
+        <span className="text-sm text-sky-500 font-black">TAP TO HEAR 🔊</span>
       )}
     </motion.div>
   );
+}
+
+/** "THE CAT SAT." becomes "The cat sat." (how books look, and how the Quest shows words). */
+function sentenceCase(text: string): string {
+  const lower = text.toLowerCase().replace(/\bi\b/g, 'I');
+  return lower.replace(/(^|[.!?]\s+)([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase());
 }
 
 function SentenceView({ sentence }: { sentence: Phonicssentence }) {
@@ -167,9 +173,9 @@ function SentenceView({ sentence }: { sentence: Phonicssentence }) {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       onClick={handleClick}
-      className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-5 cursor-pointer border-4 border-sky-200 hover:border-sky-400 transition-colors"
+      className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-5 cursor-pointer border-4 border-b-8 border-sky-200 dark:border-slate-600 hover:border-sky-400 transition-colors w-full max-w-3xl mx-auto"
     >
-      <p className="text-2xl font-black text-sky-800 dark:text-sky-300 leading-relaxed text-center">{sentence.text}</p>
+      <p className="text-3xl sm:text-4xl font-black text-sky-900 dark:text-sky-200 leading-relaxed text-center">{sentenceCase(sentence.text)}</p>
       <p className="text-3xl text-center mt-2">{sentence.emojis}</p>
     </motion.div>
   );
@@ -186,12 +192,12 @@ function StoryView({ story }: { story: (typeof PHONICS_STORIES)[0] }) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 w-full max-w-3xl mx-auto">
       <div className="flex items-center justify-center gap-2">
-        <h3 className="text-2xl font-black text-sky-800 dark:text-sky-300 text-center">{story.title}</h3>
+        <h3 className="text-3xl font-black text-sky-900 dark:text-sky-200 text-center">{sentenceCase(story.title)}</h3>
         <button
           onClick={() => speakText(story.title.toLowerCase())}
-          className="w-7 h-7 flex items-center justify-center rounded-full bg-sky-100 dark:bg-slate-700 hover:bg-sky-200 dark:hover:bg-slate-700 transition-colors text-sm flex-shrink-0"
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-sky-500 border-b-4 border-sky-700 text-xl flex-shrink-0 shadow"
           aria-label="Hear title"
         >
           🔊
@@ -203,17 +209,17 @@ function StoryView({ story }: { story: (typeof PHONICS_STORIES)[0] }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => handleSentenceClick(s)}
-          className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 cursor-pointer border-4 border-sky-200 hover:border-sky-400 transition-colors"
+          className="bg-white dark:bg-slate-800 rounded-3xl shadow p-4 cursor-pointer border-4 border-sky-200 dark:border-slate-600 hover:border-sky-400 transition-colors"
         >
-          <p className="text-2xl font-black text-sky-800 dark:text-sky-300 text-center">{s}</p>
+          <p className="text-3xl font-black text-sky-900 dark:text-sky-200 text-center">{sentenceCase(s)}</p>
         </motion.div>
       ))}
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={handleFullStory}
-        className="mt-2 bg-sky-500 hover:bg-sky-600 text-white font-black text-xl py-4 px-8 rounded-2xl shadow-lg transition-colors"
+        className="mt-2 bg-sky-500 border-b-8 border-sky-700 text-white font-black text-2xl py-4 px-8 rounded-3xl shadow-lg"
       >
-        READ THE WHOLE STORY 📖
+        🔊 READ THE WHOLE STORY
       </motion.button>
     </div>
   );
@@ -400,6 +406,8 @@ function AIGenerateMode({
         }),
       });
 
+      if (res.status === 402) { setError('THE AI CREDIT FOR THIS ACCOUNT IS USED UP.'); return; }
+      if (res.status === 401) { setError('PLEASE SIGN IN AGAIN.'); return; }
       if (!res.ok) throw new Error('Generation failed');
       const data = await res.json() as { content?: string };
       if (!data.content) throw new Error('Empty result');
@@ -500,6 +508,36 @@ function AIGenerateMode({
   );
 }
 
+const WORDS_AT_ONCE = 8;
+
+const MODES: { id: Mode; label: string; emoji: string }[] = [
+  { id: 'WORDS', label: 'WORDS', emoji: '🔤' },
+  { id: 'SENTENCES', label: 'SENTENCES', emoji: '📝' },
+  { id: 'STORY', label: 'STORY', emoji: '📖' },
+  { id: 'CHAIN', label: 'CHAIN', emoji: '🔗' },
+  { id: 'AI', label: 'MIMI', emoji: '✨' },
+];
+
+const MODE_INTRO: Record<Mode, string> = {
+  WORDS: 'Tap a word to hear it. Tap a letter to hear its sound!',
+  SENTENCES: 'Read the sentence. Tap any word to hear it.',
+  STORY: 'Pick a story and read it. Tap a line to hear it.',
+  CHAIN: 'Change one letter to make a new word!',
+  AI: 'Mimi writes new sentences and stories just for you.',
+};
+
+/** The same list in a mixed-up order; a new seed gives a new order. */
+function shuffled<T>(list: T[], seed: number): T[] {
+  const out = [...list];
+  let x = seed * 9301 + 49297;
+  for (let i = out.length - 1; i > 0; i--) {
+    x = (x * 9301 + 49297) % 233280;
+    const j = Math.floor((x / 233280) * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 export default function PhonicsTab() {
   const [selectedVowels, setSelectedVowels] = useState<Set<VowelSound>>(new Set(ALL_VOWELS));
   const [selectedConsonants, setSelectedConsonants] = useState<Set<string>>(new Set(ALL_CONSONANTS));
@@ -507,6 +545,8 @@ export default function PhonicsTab() {
   const [mode, setMode] = useState<Mode>('WORDS');
   const [showConfetti, setShowConfetti] = useState(false);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [showLetters, setShowLetters] = useState(false);
+  const [wordSeed, setWordSeed] = useState(1);
 
   const triggerConfetti = useCallback(() => {
     setShowConfetti(true);
@@ -538,6 +578,7 @@ export default function PhonicsTab() {
   };
 
   const filteredWords = filterWords(selectedVowels, selectedConsonants, selectedDigraphs);
+  const shownWords = shuffled(filteredWords, wordSeed).slice(0, WORDS_AT_ONCE);
   const filteredSentences = filterSentences(selectedVowels, selectedConsonants);
 
   const currentStory = PHONICS_STORIES[storyIndex];
@@ -546,7 +587,7 @@ export default function PhonicsTab() {
     currentStory.requiredConsonants.every(c => selectedConsonants.has(c));
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-8">
+    <div className="flex flex-col gap-5 p-4 pb-8">
       {showConfetti && (
         <ReactConfetti
           recycle={false}
@@ -555,110 +596,121 @@ export default function PhonicsTab() {
         />
       )}
 
-      {/* Page intro banner */}
+      {/* Page intro: what to do here, and a button to hear it */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3 bg-white/70 dark:bg-slate-800/70 rounded-2xl px-4 py-3 shadow border border-sky-200 dark:border-slate-700"
+        className="flex items-center gap-3 bg-white/85 dark:bg-slate-800/85 rounded-3xl px-5 py-4 shadow max-w-3xl w-full mx-auto"
       >
-        <span className="text-3xl">🔤</span>
-        <p className="flex-1 text-sky-900 dark:text-sky-200 font-bold text-sm leading-snug">
-          Tap any word or letter to hear how it sounds! Choose a mode below — words, sentences, stories, and more.
-        </p>
+        <span className="text-5xl" aria-hidden>🦊</span>
+        <p className="flex-1 text-sky-900 dark:text-sky-100 font-extrabold text-lg leading-snug">{MODE_INTRO[mode]}</p>
         <motion.button
           whileTap={{ scale: 0.88 }}
-          onClick={() => speakText('Tap any word or letter to hear how it sounds! Choose a mode below — words, sentences, stories, and more.')}
-          className="w-10 h-10 flex-shrink-0 rounded-xl bg-sky-100 dark:bg-slate-700 flex items-center justify-center text-xl shadow"
+          onClick={() => speakText(MODE_INTRO[mode])}
+          className="w-14 h-14 flex-shrink-0 rounded-full bg-sky-500 border-b-4 border-sky-700 text-white flex items-center justify-center text-2xl shadow-lg"
           aria-label="Read instructions aloud"
         >
           🔊
         </motion.button>
       </motion.div>
 
-      {/* Mode selector */}
-      <div className="flex gap-2 justify-center flex-wrap">
-        {([
-          { id: 'WORDS', label: 'WORDS' },
-          { id: 'SENTENCES', label: 'SENTENCES' },
-          { id: 'STORY', label: 'STORY' },
-          { id: 'CHAIN', label: '🔗 CHAIN' },
-          { id: 'AI', label: '✨ AI' },
-        ] as { id: Mode; label: string }[]).map(m => (
+      {/* Mode tiles */}
+      <div className="grid grid-cols-5 gap-2 max-w-3xl w-full mx-auto">
+        {MODES.map(m => (
           <motion.button
             key={m.id}
             whileTap={{ scale: 0.92 }}
-            onClick={() => setMode(m.id)}
-            className={`py-2 px-4 rounded-xl font-black text-base transition-all shadow ${
-              mode === m.id ? 'bg-sky-500 text-white scale-105 shadow-md' : 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-300'
+            onClick={() => { setMode(m.id); speakText(MODE_INTRO[m.id]); }}
+            className={`py-3 rounded-2xl font-black text-sm sm:text-base flex flex-col items-center gap-1 shadow border-b-4 transition-colors ${
+              mode === m.id ? 'bg-sky-500 text-white border-sky-700' : 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-200 border-sky-200 dark:border-slate-600'
             }`}
           >
+            <span className="text-3xl" aria-hidden>{m.emoji}</span>
             {m.label}
           </motion.button>
         ))}
       </div>
 
-      {/* Vowel selector */}
-      <div className="bg-white/70 dark:bg-slate-800 rounded-2xl p-3 shadow">
-        <p className="text-xs font-black text-sky-700 mb-2 text-center uppercase tracking-widest">Vowels</p>
-        <div className="flex gap-2 justify-center flex-wrap">
-          {ALL_VOWELS.map(v => (
-            <motion.button
-              key={v}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => toggleVowel(v)}
-              className={`w-12 h-12 rounded-xl font-black text-xl transition-all shadow ${VOWEL_COLORS[v]} ${
-                selectedVowels.has(v) ? VOWEL_SELECTED[v] : 'opacity-40'
-              }`}
-            >
-              {v}
-            </motion.button>
-          ))}
-        </div>
-      </div>
+      {/* The letter pickers are for grown-ups: tucked away until needed */}
+      {mode !== 'CHAIN' && (
+        <div className="max-w-3xl w-full mx-auto flex flex-col items-center gap-3">
+          <motion.button
+            whileTap={{ scale: 0.94 }}
+            onClick={() => setShowLetters(v => !v)}
+            aria-expanded={showLetters}
+            className="font-black text-sm rounded-2xl px-5 py-2 shadow bg-white/90 dark:bg-slate-700 text-sky-700 dark:text-sky-200"
+          >
+            ⚙️ {showLetters ? 'HIDE LETTERS' : `CHOOSE LETTERS · ${selectedVowels.size + selectedConsonants.size} on`}
+          </motion.button>
+          {showLetters && (
+            <div className="w-full flex flex-col gap-3">
+              {/* Vowel selector */}
+              <div className="bg-white/70 dark:bg-slate-800 rounded-2xl p-3 shadow">
+                <p className="text-xs font-black text-sky-700 mb-2 text-center uppercase tracking-widest">Vowels</p>
+                <div className="flex gap-2 justify-center flex-wrap">
+                  {ALL_VOWELS.map(v => (
+                    <motion.button
+                      key={v}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => toggleVowel(v)}
+                      className={`w-12 h-12 rounded-xl font-black text-xl transition-all shadow ${VOWEL_COLORS[v]} ${
+                        selectedVowels.has(v) ? VOWEL_SELECTED[v] : 'opacity-40'
+                      }`}
+                    >
+                      {v}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
 
-      {/* Consonant selector */}
-      <div className="bg-white/70 dark:bg-slate-800 rounded-2xl p-3 shadow">
-        <p className="text-xs font-black text-sky-700 mb-2 text-center uppercase tracking-widest">Consonants</p>
-        <div className="flex gap-1 justify-center flex-wrap">
-          {ALL_CONSONANTS.map(c => (
-            <motion.button
-              key={c}
-              whileTap={{ scale: 0.85 }}
-              onClick={() => toggleConsonant(c)}
-              className={`w-9 h-9 rounded-lg font-black text-sm transition-all shadow ${
-                selectedConsonants.has(c)
-                  ? 'bg-sky-500 text-white'
-                  : 'bg-white dark:bg-slate-700 text-sky-400 opacity-50'
-              }`}
-            >
-              {c}
-            </motion.button>
-          ))}
-        </div>
-      </div>
+              {/* Consonant selector */}
+              <div className="bg-white/70 dark:bg-slate-800 rounded-2xl p-3 shadow">
+                <p className="text-xs font-black text-sky-700 mb-2 text-center uppercase tracking-widest">Consonants</p>
+                <div className="flex gap-1 justify-center flex-wrap">
+                  {ALL_CONSONANTS.map(c => (
+                    <motion.button
+                      key={c}
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => toggleConsonant(c)}
+                      className={`w-9 h-9 rounded-lg font-black text-sm transition-all shadow ${
+                        selectedConsonants.has(c)
+                          ? 'bg-sky-500 text-white'
+                          : 'bg-white dark:bg-slate-700 text-sky-400 opacity-50'
+                      }`}
+                    >
+                      {c}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
 
-      {/* Digraph selector */}
-      <div className="bg-white/70 dark:bg-slate-800 rounded-2xl p-3 shadow">
-        <p className="text-xs font-black text-rose-600 mb-2 text-center uppercase tracking-widest">
-          Digraphs <span className="text-rose-400 normal-case font-semibold">(optional add-ons)</span>
-        </p>
-        <div className="flex gap-2 justify-center flex-wrap">
-          {ALL_DIGRAPHS.map(d => (
-            <motion.button
-              key={d}
-              whileTap={{ scale: 0.85 }}
-              onClick={() => toggleDigraph(d)}
-              className={`px-4 h-10 rounded-xl font-black text-sm transition-all shadow ${
-                selectedDigraphs.includes(d)
-                  ? 'bg-rose-500 text-white ring-4 ring-rose-600 scale-105'
-                  : 'bg-rose-50 dark:bg-slate-800 text-rose-400 border-2 border-rose-200'
-              }`}
-            >
-              {d}
-            </motion.button>
-          ))}
+              {/* Digraph selector */}
+              <div className="bg-white/70 dark:bg-slate-800 rounded-2xl p-3 shadow">
+                <p className="text-xs font-black text-rose-600 mb-2 text-center uppercase tracking-widest">
+                  Digraphs <span className="text-rose-400 normal-case font-semibold">(optional add-ons)</span>
+                </p>
+                <div className="flex gap-2 justify-center flex-wrap">
+                  {ALL_DIGRAPHS.map(d => (
+                    <motion.button
+                      key={d}
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => toggleDigraph(d)}
+                      className={`px-4 h-10 rounded-xl font-black text-sm transition-all shadow ${
+                        selectedDigraphs.includes(d)
+                          ? 'bg-rose-500 text-white ring-4 ring-rose-600 scale-105'
+                          : 'bg-rose-50 dark:bg-slate-800 text-rose-400 border-2 border-rose-200'
+                      }`}
+                    >
+                      {d}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Content area */}
       <AnimatePresence mode="wait">
@@ -674,10 +726,22 @@ export default function PhonicsTab() {
                 NO WORDS MATCH! TRY SELECTING MORE LETTERS. 🤔
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {filteredWords.map(w => (
-                  <WordCard key={w.word} word={w} onConfetti={triggerConfetti} />
-                ))}
+              <div className="flex flex-col items-center gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-4xl">
+                  {shownWords.map(w => (
+                    <WordCard key={`${wordSeed}-${w.word}`} word={w} onConfetti={triggerConfetti} />
+                  ))}
+                </div>
+                {filteredWords.length > WORDS_AT_ONCE && (
+                  <motion.button
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => setWordSeed(n => n + 1)}
+                    className="bg-violet-500 border-b-4 border-violet-700 text-white font-black text-2xl rounded-3xl px-8 py-4 shadow-lg"
+                  >
+                    🔀 NEW WORDS
+                  </motion.button>
+                )}
+                <p className="text-sm font-bold text-sky-700 dark:text-sky-300">{filteredWords.length} words to practise</p>
               </div>
             )}
           </motion.div>

@@ -49,6 +49,8 @@ export default function TeacherTab() {
 
       // 1. Get ephemeral token from our server
       const tokenRes = await fetch('/api/realtime-token', { method: 'POST' })
+      if (tokenRes.status === 402) throw new Error('The AI credit for this account is used up, so Mimi is resting.')
+      if (tokenRes.status === 401) throw new Error('Please sign in again.')
       if (!tokenRes.ok) throw new Error('Could not get session token')
       const { token, error: tokenErr } = await tokenRes.json() as { token: string | null; error?: string }
       if (tokenErr || !token) throw new Error(tokenErr ?? 'No token returned')
@@ -83,6 +85,16 @@ export default function TeacherTab() {
               role?: string
               content?: { transcript?: string }[]
             }
+            response?: { usage?: unknown }
+          }
+          // Each finished reply carries its token totals: pass them on so they count against the account's AI credit.
+          if (event.type === 'response.done' && event.response?.usage) {
+            void fetch('/api/usage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usage: event.response.usage }) })
+              .then(r => (r.ok ? r.json() : null))
+              .then((j: { stop?: boolean } | null) => {
+                if (j?.stop) { setErrorMsg('The AI credit for this account is used up, so Mimi is resting.'); disconnect() }
+              })
+              .catch(() => {})
           }
           // Track speaking state
           if (event.type === 'response.audio.delta') setIsSpeaking(true)

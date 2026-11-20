@@ -47,10 +47,10 @@ export const KIT_LINES = {
 export type LineKey = keyof typeof KIT_LINES
 
 export const NARRATOR_LINES: Record<LineKey, string> = {
-  welcome: 'Hey hey, explorer! Welcome to the Reading Quest! Animals all over the world need YOUR help, and every word you read gives you creature power! Let’s go!',
+  welcome: 'Hey hey, explorer! Welcome to the Reading Quest! Animals all over the world need your help, and every word you read gives you creature power! Let’s go!',
   mapHint: 'Where to next, explorer? Tap the glowing circle, and let’s go rescue some animals!',
-  locked: 'Whoa, not so fast! That one is still locked. Finish the glowing mission first!',
-  newSound: 'Ooh, a brand new sound! Listen to this!',
+  locked: 'Not so fast! That one is still locked. Finish the glowing mission first!',
+  newSound: 'A brand new sound! Listen to this.',
   meetExamples: 'Now tap every picture, and listen for our new sound!',
   whichSound: 'Ears on, explorer! Which one makes this sound?',
   blend: 'Power up each sound button, one, two, three! Then smash that arrow to blend them together!',
@@ -70,9 +70,9 @@ export const NARRATOR_LINES: Record<LineKey, string> = {
   help: 'Tap the sound buttons for a little help!',
   reveal: 'Here’s the answer! Let’s look at it together.',
   levelDone: 'You did it! Creature card unlocked!',
-  newWorld: 'Whoa! A brand new world is open!',
-  combo: 'COMBO! Creature power charging up!',
-  reserve: 'Welcome to your animal reserve, explorer! Every animal here was saved by YOU. Tap one to say hello!',
+  newWorld: 'A brand new world is open!',
+  combo: 'Combo! Your creature power is charging up.',
+  reserve: 'Welcome to your animal reserve, explorer! Every animal here was saved by you. Tap one to say hello!',
   soundBlocks: 'Block Buddy time! Build a tower with one block for every sound you hear!',
   readNumber: 'Read the number word, then build a Block Buddy exactly that big!',
   storySum: 'Number story time! Read it, then tap the right Block Buddy!',
@@ -81,8 +81,8 @@ export const NARRATOR_LINES: Record<LineKey, string> = {
   wordChain: 'Build the bridge! Change just one sound to make the new word',
   bubblePop: 'Bubble attack! Pop every bubble that says',
   rocketRead: 'Rocket fuel time! Read each word and tap its picture, super fast!',
-  blastOff: 'Three, two, one, BLAST OFF! Amazing speed reading!',
-  newRecord: 'Whoa! A brand new record!',
+  blastOff: 'Three, two, one, blast off! Great fast reading!',
+  newRecord: 'Wow, a new record!',
 }
 
 function narratorOn(): boolean {
@@ -95,25 +95,27 @@ for (const k of Object.keys(KIT_LINES) as LineKey[]) {
   Object.defineProperty(LINES, k, { get: () => (narratorOn() ? NARRATOR_LINES[k] : KIT_LINES[k]), enumerable: true })
 }
 
+// Cheers are plain, full sentences on purpose: the voice model turns short shouted exclamations
+// ("Woo-hoo!", "Fantastic!") into squeals and howls.
 export const KIT_PRAISE = [
-  'Yes! Great reading!', 'You got it!', 'Awesome!', 'Creature power!',
-  'Wild! That is right!', 'Super reader!', 'Amazing!', 'Fantastic!',
+  'Yay, you did it!', 'Alright, that is right!', 'You did it!', 'Nice job!',
+  'Good job, that is right.', 'Well done!', 'Yes, you got it!', 'Great reading!',
 ] as const
 
 export const NARRATOR_PRAISE = [
-  'BOOM! Creature power!', 'Yes, yes, YES! You got it!', 'Whoa! Awesome reading!',
-  'You are a reading superstar!', 'Wild! That is exactly right!', 'Incredible, explorer!',
-  'Woo-hoo! Nailed it!', 'High five! Amazing reading!',
+  'Yay, you did it, explorer!', 'Alright, that is right!', 'You did it! Great reading!',
+  'Nice job, explorer!', 'Yes, you got it!', 'Well done! That is right!',
+  'Good job! You are a great reader!', 'Great reading, explorer!',
 ] as const
 
 export const KIT_RETRY = ['Almost! Try again.', 'Good try! Look again.', 'Hmm, try another one.'] as const
 
 export const NARRATOR_RETRY = [
-  'Ooh, so close! Try again, explorer!', 'Not quite! Look again, you can do it!', 'Hmm, give it another try!',
+  'So close! Try again, explorer.', 'Not quite! Look again, you can do it!', 'Hmm, give it another try!',
 ] as const
 
-export const KIT_GOAL = 'Goal!'
-export const NARRATOR_GOAL = 'GOOOAL! What a kick!'
+export const KIT_GOAL = 'Goal! Nice kick.'
+export const NARRATOR_GOAL = 'Goal! What a great kick!'
 
 const pick = <T extends readonly string[]>(arr: T) => arr[Math.floor(Math.random() * arr.length)]
 

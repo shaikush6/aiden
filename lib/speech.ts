@@ -2,7 +2,7 @@
 // All public functions return Promise<void> that resolve when audio finishes.
 // Playback goes through the shared player, so only one clip ever plays at a time.
 
-import { isAudioEnabled, playClip, setAudioEnabled, stopAudio } from './audio-player'
+import { isAudioEnabled, playClip, setAudioEnabled, stopAudio, withFallback } from './audio-player'
 import { hashKey } from './hash'
 import { timeoutSignal } from './fetch-timeout'
 
@@ -44,7 +44,9 @@ const PHONEME_MAP: Record<string, string> = {
 const MAX_URLS = 200
 const urlCache = new Map<string, string>()
 const inFlight = new Map<string, Promise<string | null>>()
-const CACHE_NAME = 'aiden-tts-v1'
+// v2 goes with the calmer voice (VOICE_VERSION v3); older saved clips are deleted below.
+const CACHE_NAME = 'aiden-tts-v2'
+const OLD_CACHES = ['aiden-tts-v1']
 
 function rememberUrl(key: string, url: string) {
   urlCache.set(key, url)
@@ -57,8 +59,14 @@ function rememberUrl(key: string, url: string) {
   }
 }
 
+let cleaned = false
+
 async function openCache(): Promise<Cache | null> {
   try {
+    if (!cleaned && typeof caches !== 'undefined') {
+      cleaned = true
+      OLD_CACHES.forEach(name => { void caches.delete(name).catch(() => {}) })
+    }
     return typeof caches === 'undefined' ? null : await caches.open(CACHE_NAME)
   } catch {
     return null
@@ -120,7 +128,8 @@ function fetchTTS(text: string, speed: number, phonics = false): Promise<string 
 
 async function playTTS(text: string, speed = 1.0, phonics = false): Promise<void> {
   if (!isAudioEnabled() || typeof window === 'undefined') return
-  await playClip(() => fetchTTS(text, speed, phonics))
+  const load = () => fetchTTS(text, speed, phonics)
+  await playClip(phonics ? load : withFallback(load, text))
 }
 
 // Public API
@@ -161,11 +170,11 @@ export function speakNumber(n: number): Promise<void> {
 
 export function speakEncouragement(correct: boolean): Promise<void> {
   const correctPhrases = [
-    'Amazing! Well done!',
-    'Super! You got it!',
-    'Fantastic! Great job!',
-    'Wonderful! You are so smart!',
-    'Yes! That is right!',
+    'Yay, you did it!',
+    'Alright, great job!',
+    'You got it!',
+    'Nice job, well done!',
+    'Yes, that is right!',
   ]
   const wrongPhrases = [
     'Try again! You can do it!',

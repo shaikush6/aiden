@@ -3,7 +3,16 @@
 // - iPad Safari only allows programmatic playback on an element that was first played from a tap,
 //   so we reuse a single element and "unlock" it on the first pointer press.
 
-type ClipSource = string | (() => Promise<string | null>)
+/** A clip that is fetched on demand. `fallback` is text the device's own voice can say if the fetch fails. */
+export type LazyClip = { (): Promise<string | null>; fallback?: string }
+export type ClipSource = string | LazyClip
+
+/** Attach text for the device's built-in voice to read if this clip cannot be loaded. */
+export function withFallback(clip: () => Promise<string | null>, text: string): LazyClip {
+  const lazy: LazyClip = () => clip()
+  lazy.fallback = text
+  return lazy
+}
 
 let el: HTMLAudioElement | null = null
 let enabled = true
@@ -74,6 +83,7 @@ export function isAudioEnabled() {
 export function stopAudio() {
   token++
   el?.pause()
+  if (typeof window !== 'undefined' && window.speechSynthesis?.speaking) window.speechSynthesis.cancel()
   finishCurrent?.()
   setSpeaking(false)
 }
@@ -150,6 +160,31 @@ function playOne(url: string): Promise<void> {
 
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
 
+/**
+ * Read text with the device's built-in voice. Only used when a recorded clip could not be loaded,
+ * so words are never silently skipped. Gives up after a while in case the device never reports the end.
+ */
+function speakNative(text: string): Promise<void> {
+  return new Promise(resolve => {
+    const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return resolve()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'en-US'
+    u.rate = 0.95
+    u.volume = voiceVolume
+    const limit = setTimeout(finish, 2000 + text.length * 150)
+    function finish() {
+      clearTimeout(limit)
+      if (finishCurrent === finish) finishCurrent = null
+      resolve()
+    }
+    finishCurrent = finish
+    u.onend = finish
+    u.onerror = finish
+    synth.speak(u)
+  })
+}
+
 /** The clip's address, or null if it took too long to arrive (a slow connection must not freeze the lesson). */
 const CLIP_LOAD_LIMIT_MS = 12_000
 const loaded = (url: Promise<string | null>): Promise<string | null> =>
@@ -170,7 +205,12 @@ export async function playSequence(clips: ClipSource[], gapMs = 120): Promise<bo
   for (let i = 0; i < urls.length; i++) {
     const url = await loaded(urls[i])
     if (mine !== token) return false
-    if (!url) continue
+    if (!url) {
+      const clip = clips[i]
+      if (typeof clip !== 'string' && clip.fallback) await speakNative(clip.fallback)
+      if (mine !== token) return false
+      continue
+    }
     await playOne(url)
     if (mine !== token) return false
     if (gapMs && i < urls.length - 1) await wait(gapMs)

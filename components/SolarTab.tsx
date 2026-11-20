@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { loadSave } from '@/components/space/laser-blaster/types';
 import dynamic from 'next/dynamic';
 import { PLANETS, FUN_FACTS, type Planet } from '@/lib/solar-data';
 import { speakText } from '@/lib/speech';
@@ -127,44 +128,76 @@ type SpaceGame = 'laser' | 'orbit' | 'constellation' | 'daynight' | 'rocket' | '
 
 interface SectionDef {
   id: SpaceSection;
+  label: string;
   emoji: string;
   activeBg: string;
+  /** Said when the section opens, and shown under the title. */
+  intro: string;
 }
 
 const SECTIONS: SectionDef[] = [
-  { id: 'LOOK', emoji: '🔭', activeBg: 'bg-indigo-600' },
-  { id: 'BUILD', emoji: '🏗️', activeBg: 'bg-emerald-600' },
-  { id: 'PLAY', emoji: '🎮', activeBg: 'bg-purple-600' },
-  { id: 'FLY', emoji: '🚀', activeBg: 'bg-orange-600' },
+  { id: 'LOOK', label: 'PLANETS', emoji: '🔭', activeBg: 'bg-indigo-600', intro: 'Tap a planet to visit it!' },
+  { id: 'BUILD', label: 'BUILD', emoji: '🏗️', activeBg: 'bg-emerald-600', intro: 'Build the solar system. Pick a game!' },
+  { id: 'PLAY', label: 'GAMES', emoji: '🎮', activeBg: 'bg-purple-600', intro: 'Space games! Pick one to play.' },
+  { id: 'FLY', label: 'LAB', emoji: '🧪', activeBg: 'bg-orange-600', intro: 'Welcome to the space lab. Pick an experiment!' },
 ];
 
-// Reusable game-launch card
+/** The title row of a section: what it is, and a button to hear it. */
+function SectionTitle({ title, intro }: { title: string; intro: string }) {
+  return (
+    <div className="flex items-center justify-center gap-3 text-center">
+      <div>
+        <h2 className="text-3xl font-black text-white">{title}</h2>
+        <p className="text-indigo-200 text-base font-bold mt-1">{intro}</p>
+      </div>
+      <motion.button
+        whileTap={{ scale: 0.88 }}
+        onClick={() => speakText(intro)}
+        className="w-12 h-12 shrink-0 rounded-full bg-sky-500 border-b-4 border-sky-700 text-2xl shadow-lg"
+        aria-label="Hear it"
+      >
+        🔊
+      </motion.button>
+    </div>
+  );
+}
+
+// One card per game: a big picture, the name, what you do, and a clear PLAY button.
 function GameCard({
   emoji,
   title,
   subtitle,
-  subtitleColor,
-  className,
+  tint,
+  badge,
   onClick,
 }: {
   emoji: string;
   title: string;
   subtitle: string;
-  subtitleColor: string;
-  className: string;
+  /** Tailwind gradient + border classes. */
+  tint: string;
+  badge?: string;
   onClick: () => void;
 }) {
   return (
     <motion.button
-      whileTap={{ scale: 0.95 }}
+      whileTap={{ scale: 0.96 }}
+      whileHover={{ scale: 1.03 }}
       onClick={onClick}
-      className={`flex flex-col items-center gap-2 cursor-pointer ${className}`}
+      className={`relative flex flex-col items-center gap-2 rounded-3xl p-5 border-2 shadow-xl text-center bg-gradient-to-br ${tint}`}
     >
-      <span className="text-5xl">{emoji}</span>
-      <span className="font-black text-white">{title}</span>
-      <span className={`text-xs text-center ${subtitleColor}`}>{subtitle}</span>
+      {badge && <span className="absolute top-3 right-3 bg-yellow-300 text-yellow-950 text-xs font-black rounded-full px-2 py-1">{badge}</span>}
+      <motion.span className="text-6xl" animate={{ y: [0, -5, 0] }} transition={{ duration: 2.2, repeat: Infinity }} aria-hidden>{emoji}</motion.span>
+      <span className="font-black text-white text-2xl leading-tight">{title}</span>
+      <span className="text-base font-bold text-white/80">{subtitle}</span>
+      <span className="mt-1 bg-white text-slate-900 rounded-2xl py-2 px-6 font-black text-lg shadow">PLAY ▶</span>
     </motion.button>
   );
+}
+
+/** Galaxy Command's best score on this device, for the badge on its card. */
+function blasterBest(): number {
+  try { return loadSave().highScore; } catch { return 0; }
 }
 
 export default function SolarTab() {
@@ -190,8 +223,10 @@ export default function SolarTab() {
   const handleSection = useCallback((section: SpaceSection) => {
     setActiveSection(section);
     setActiveGame(null);
-    speakText(section);
+    speakText(SECTIONS.find(x => x.id === section)?.intro ?? '');
   }, []);
+  const [best] = useState(blasterBest);
+  const sectionIntro = SECTIONS.find(x => x.id === activeSection)?.intro ?? '';
 
   return (
     <div className="flex flex-col gap-4 p-4 pb-24 min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900">
@@ -204,12 +239,12 @@ export default function SolarTab() {
               key={section.id}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleSection(section.id)}
-              className={`py-3 rounded-xl font-black text-sm flex flex-col items-center gap-1 shadow ${
-                isActive ? `${section.activeBg} text-white` : 'bg-white/10 text-indigo-300'
+              className={`py-3 rounded-2xl font-black text-base flex flex-col items-center gap-1 shadow border-b-4 ${
+                isActive ? `${section.activeBg} text-white border-black/30` : 'bg-white/10 text-indigo-200 border-white/10'
               }`}
             >
-              <span className="text-xl">{section.emoji}</span>
-              {section.id}
+              <span className="text-3xl">{section.emoji}</span>
+              {section.label}
             </motion.button>
           );
         })}
@@ -227,16 +262,8 @@ export default function SolarTab() {
           {/* ============================ LOOK ============================ */}
           {activeSection === 'LOOK' && (
             <>
-              {/* Title */}
-              <div className="text-center">
-                <h2 className="text-3xl font-black text-white">SPACE EXPLORER 🚀</h2>
-                <p className="text-indigo-300 text-sm font-bold mt-1">TAP A PLANET TO EXPLORE!</p>
-              </div>
-
-              {/* Control hints */}
-              <p className="text-center text-indigo-400 text-xs font-bold tracking-widest">
-                drag to orbit • pinch to zoom • tap a planet
-              </p>
+              <SectionTitle title="OUR SOLAR SYSTEM 🪐" intro={sectionIntro} />
+              <p className="text-center text-indigo-300 text-sm font-bold">👆 drag to spin · 🤏 pinch to zoom · tap a planet</p>
 
               {/* Three.js Solar System */}
               <div className="rounded-2xl overflow-hidden border border-indigo-800/40">
@@ -300,32 +327,17 @@ export default function SolarTab() {
           {activeSection === 'BUILD' && (
             activeGame === null ? (
               <>
-                <h2 className="text-2xl font-black text-white text-center">BUILD THE SOLAR SYSTEM 🏗️</h2>
-                <div className="grid grid-cols-2 gap-4 mx-4">
-                  <GameCard
-                    emoji="🪐"
-                    title="ORBIT BUILDER"
-                    subtitle="Place planets in order!"
-                    subtitleColor="text-emerald-300"
-                    className="bg-emerald-900/60 border border-emerald-500/40 rounded-2xl p-5"
-                    onClick={() => { setActiveGame('orbit'); speakText('Orbit builder!'); }}
-                  />
-                  <GameCard
-                    emoji="⭐"
-                    title="STAR CONNECT"
-                    subtitle="Draw constellations!"
-                    subtitleColor="text-indigo-300"
-                    className="bg-indigo-900/60 border border-indigo-500/40 rounded-2xl p-5"
-                    onClick={() => { setActiveGame('constellation'); speakText('Connect the stars!'); }}
-                  />
-                  <GameCard
-                    emoji="🔢"
-                    title="PLANET SORTER"
-                    subtitle="Sort by size or distance!"
-                    subtitleColor="text-teal-300"
-                    className="bg-teal-900/60 border border-teal-500/40 rounded-2xl p-5"
-                    onClick={() => { setActiveGame('sorter'); speakText('Planet sorter!'); }}
-                  />
+                <SectionTitle title="BUILD IT 🏗️" intro={sectionIntro} />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <GameCard emoji="🪐" title="ORBIT BUILDER" subtitle="Put the planets in order from the Sun."
+                    tint="from-emerald-700/80 to-emerald-950/80 border-emerald-400/50"
+                    onClick={() => { setActiveGame('orbit'); speakText('Orbit builder! Put the planets in order.'); }} />
+                  <GameCard emoji="⭐" title="STAR CONNECT" subtitle="Join the dots to draw star pictures."
+                    tint="from-indigo-700/80 to-indigo-950/80 border-indigo-400/50"
+                    onClick={() => { setActiveGame('constellation'); speakText('Connect the stars!'); }} />
+                  <GameCard emoji="📏" title="PLANET SORTER" subtitle="Sort planets by size or distance."
+                    tint="from-teal-700/80 to-teal-950/80 border-teal-400/50"
+                    onClick={() => { setActiveGame('sorter'); speakText('Planet sorter!'); }} />
                 </div>
               </>
             ) : (
@@ -341,27 +353,16 @@ export default function SolarTab() {
           {activeSection === 'PLAY' && (
             activeGame === null ? (
               <>
-                <h2 className="text-2xl font-black text-white text-center">SPACE GAMES 🎮</h2>
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => { setActiveGame('laser'); speakText('Laser blaster! Shoot the asteroids!'); }}
-                  animate={{ borderColor: ['#a855f7', '#ef4444', '#a855f7'] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="mx-4 flex flex-col items-center gap-2 cursor-pointer bg-gradient-to-br from-purple-900/80 to-red-900/60 border border-purple-500/50 rounded-2xl p-6"
-                >
-                  <span className="text-6xl" style={{ filter: 'drop-shadow(0 0 12px #a855f7)' }}>🔫</span>
-                  <span className="text-3xl font-black text-white">LASER BLASTER</span>
-                  <span className="text-purple-300 text-sm">Shoot the asteroids!</span>
-                  <span className="bg-purple-600 text-white rounded-xl py-2 px-4 font-black mt-2">PLAY NOW →</span>
-                </motion.button>
-                <GameCard
-                  emoji="🪨"
-                  title="ROCKET COUNT"
-                  subtitle="Tap the right number asteroids!"
-                  subtitleColor="text-yellow-300"
-                  className="mx-4 bg-gradient-to-br from-yellow-900/80 to-orange-900/60 border border-yellow-500/40 rounded-2xl p-6"
-                  onClick={() => { setActiveGame('rocket'); speakText('Rocket count! Tap the right numbers!'); }}
-                />
+                <SectionTitle title="SPACE GAMES 🎮" intro={sectionIntro} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <GameCard emoji="🚀" title="GALAXY COMMAND" subtitle="Fly your ship and blast the asteroids!"
+                    tint="from-purple-700/80 to-rose-950/80 border-purple-400/50"
+                    badge={best > 0 ? `🏆 ${best}` : undefined}
+                    onClick={() => { setActiveGame('laser'); speakText('Galaxy Command! Blast the asteroids!'); }} />
+                  <GameCard emoji="☄️" title="ROCKET COUNT" subtitle="Tap the right number of asteroids."
+                    tint="from-amber-600/80 to-orange-950/80 border-amber-400/50"
+                    onClick={() => { setActiveGame('rocket'); speakText('Rocket count! Tap the right numbers!'); }} />
+                </div>
               </>
             ) : (
               <>
@@ -375,36 +376,25 @@ export default function SolarTab() {
           {activeSection === 'FLY' && (
             activeGame === null ? (
               <>
-                <h2 className="text-2xl font-black text-white text-center">SPACE LAB 🚀</h2>
-                <div className="grid grid-cols-2 gap-4 mx-4">
-                  <GameCard
-                    emoji="🌍"
-                    title="DAY & NIGHT"
-                    subtitle="Spin the Earth!"
-                    subtitleColor="text-orange-300"
-                    className="bg-orange-900/60 border border-orange-500/40 rounded-2xl p-5"
-                    onClick={() => { setActiveGame('daynight'); speakText('Day and night lab!'); }}
-                  />
-                  <GameCard
-                    emoji="🧠"
-                    title="SPACE MEMORY"
-                    subtitle="Match the space pairs!"
-                    subtitleColor="text-indigo-300"
-                    className="bg-indigo-900/60 border border-indigo-500/40 rounded-2xl p-5"
-                    onClick={() => { setActiveGame('memory'); speakText('Space memory! Find the matching pairs!'); }}
-                  />
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleFunFact}
-                    className="flex flex-col items-center gap-2 cursor-pointer bg-indigo-900/60 border border-indigo-500/40 rounded-2xl p-5"
-                  >
-                    <span className="text-5xl">🤩</span>
-                    <span className="font-black text-white">DID YOU KNOW?</span>
-                    <span className="text-xs text-center text-indigo-300">
-                      {funFact ? funFact : 'Tap for a space fact!'}
-                    </span>
-                  </motion.button>
+                <SectionTitle title="SPACE LAB 🧪" intro={sectionIntro} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <GameCard emoji="🌍" title="DAY & NIGHT" subtitle="Spin the Earth to make day and night."
+                    tint="from-orange-600/80 to-orange-950/80 border-orange-400/50"
+                    onClick={() => { setActiveGame('daynight'); speakText('Day and night lab!'); }} />
+                  <GameCard emoji="🧠" title="SPACE MEMORY" subtitle="Find the matching space pairs."
+                    tint="from-sky-700/80 to-indigo-950/80 border-sky-400/50"
+                    onClick={() => { setActiveGame('memory'); speakText('Space memory! Find the matching pairs!'); }} />
                 </div>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleFunFact}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xl py-4 px-6 rounded-2xl shadow-xl"
+                >
+                  🤩 DID YOU KNOW?
+                </motion.button>
+                {funFact && (
+                  <p className="bg-white/10 border border-indigo-400/30 rounded-2xl p-4 text-white font-bold text-lg text-center">{funFact}</p>
+                )}
               </>
             ) : (
               <>

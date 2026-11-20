@@ -1,35 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hasProgress, parseProfile } from '@/lib/profile/data'
 import { mergeProfile } from '@/lib/profile/merge'
-import { findInvite, invites } from '@/lib/server/profile-auth'
-import { readProfile, storeAvailable, writeProfile } from '@/lib/server/profile-store'
+import { authEnabled, sessionUser } from '@/lib/server/auth'
+import { kvGetJson, kvSet } from '@/lib/server/kv'
 import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
+import { QUOTA_USD, remainingUsd } from '@/lib/server/quota'
 
 const MAX_BODY = 200_000
-const CODE_HEADER = 'x-profile-code'
+const profileKey = (u: string) => `aiden:profile:${u}`
+const noStore = { 'Cache-Control': 'no-store' }
 
-/** Is the gate on? Only when there is an invite list AND somewhere to keep profiles. */
-function gateOn(): boolean {
-  return invites().length > 0 && storeAvailable()
+async function whoAmI(req: NextRequest): Promise<string | Response> {
+  if (!isSameOrigin(req)) return jsonError('Forbidden', 403)
+  if (!authEnabled()) return jsonError('Accounts are not set up', 503)
+  const user = await sessionUser(req)
+  return user ?? jsonError('Please sign in', 401)
 }
 
-/**
- * No code: just says whether sign-in is needed. With a code: checks it and returns that profile's saved progress.
- * A wrong code gets a plain 401, and too many wrong codes in a minute get slowed down.
- */
+/** The signed-in account's saved progress (and how much AI credit is left). */
 export async function GET(req: NextRequest) {
-  if (!isSameOrigin(req)) return jsonError('Forbidden', 403)
-  const code = req.headers.get(CODE_HEADER)
-  if (!code) return NextResponse.json({ gate: gateOn() })
-  if (!gateOn()) return jsonError('Profiles are not set up', 503)
-
-  const invite = findInvite(code)
-  if (!invite) return rateLimited(req, 'profile-fail', 8, 60_000) ? jsonError('Too many tries', 429) : jsonError('That code is not right', 401)
+  const user = await whoAmI(req)
+  if (typeof user !== 'string') return user
   if (rateLimited(req, 'profile-get', 120, 60_000)) return jsonError('Too many requests', 429)
-
   try {
-    const saved = await readProfile(invite.name)
-    return NextResponse.json({ name: invite.name, data: saved ? parseProfile(saved) : null })
+    const saved = await kvGetJson(profileKey(user))
+    return NextResponse.json({ name: user, data: saved ? parseProfile(saved) : null, quota: QUOTA_USD, remaining: await remainingUsd(user) }, { headers: noStore })
   } catch {
     return jsonError('Could not reach the profile store', 502)
   }
@@ -37,25 +32,21 @@ export async function GET(req: NextRequest) {
 
 /** Save progress. It is merged with what is already saved, so two devices can never overwrite each other. */
 export async function PUT(req: NextRequest) {
-  if (!isSameOrigin(req)) return jsonError('Forbidden', 403)
-  if (!gateOn()) return jsonError('Profiles are not set up', 503)
-  const invite = findInvite(req.headers.get(CODE_HEADER))
-  if (!invite) return rateLimited(req, 'profile-fail', 8, 60_000) ? jsonError('Too many tries', 429) : jsonError('That code is not right', 401)
+  const user = await whoAmI(req)
+  if (typeof user !== 'string') return user
   if (rateLimited(req, 'profile-put', 120, 60_000)) return jsonError('Too many requests', 429)
+  if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY) return jsonError('Too big', 413)
 
-  const length = Number(req.headers.get('content-length') ?? 0)
-  if (length > MAX_BODY) return jsonError('Too big', 413)
   let body: unknown
   try { body = await req.json() } catch { return jsonError('Bad request', 400) }
-
   try {
     const incoming = parseProfile((body as { data?: unknown } | null)?.data)
-    const savedRaw = await readProfile(invite.name)
+    const savedRaw = await kvGetJson(profileKey(user))
     const saved = savedRaw ? parseProfile(savedRaw) : null
     // An empty profile never replaces real progress.
     const merged = saved ? mergeProfile(saved, incoming) : incoming
-    if (hasProgress(merged) || saved) await writeProfile(invite.name, merged)
-    return NextResponse.json({ name: invite.name, data: merged })
+    if (hasProgress(merged) || saved) await kvSet(profileKey(user), JSON.stringify(merged))
+    return NextResponse.json({ name: user, data: merged, quota: QUOTA_USD, remaining: await remainingUsd(user) }, { headers: noStore })
   } catch {
     return jsonError('Could not save', 502)
   }

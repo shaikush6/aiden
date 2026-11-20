@@ -17,7 +17,8 @@ import { numberLandScripts } from '../number-land/allowlist.ts'
 /** How a line is voiced: Kit's teacher voice, the narrator, a single word, a made-up word, or a speech sound. */
 export type LineKind = 'line' | 'narration' | 'word' | 'alien' | 'sound'
 
-export const VOICE_VERSION = 'v2'
+// v3: calmer voice instructions (no shouting or squealing), so every line is generated fresh.
+export const VOICE_VERSION = 'v3'
 
 export function lineId(kind: LineKind, text: string, voice = ''): string {
   return hashKey(`${VOICE_VERSION}|${kind}|${voice}|${text}`)

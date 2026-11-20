@@ -775,6 +775,24 @@ const CAT_COLOR_LIST = [
   'bg-yellow-600', 'bg-orange-600',
 ];
 
+/** Saved filters from this device, or none. */
+function loadFilters(): FilterState {
+  const empty: FilterState = { patternCore: new Set(), changeType: new Set(), theme: new Set(), drillType: new Set() };
+  try {
+    const raw = typeof window === 'undefined' ? null : localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw) as Record<keyof FilterState, string[]>;
+    return {
+      patternCore: new Set((parsed.patternCore ?? []) as PatternCore[]),
+      changeType: new Set((parsed.changeType ?? []) as ChangeType[]),
+      theme: new Set((parsed.theme ?? []) as Theme[]),
+      drillType: new Set((parsed.drillType ?? []) as DrillType[]),
+    };
+  } catch {
+    return empty;
+  }
+}
+
 export default function PatternsTab() {
   const [difficulty, setDifficulty] = useState<Difficulty>('EASY');
   const [tabMode, setTabMode] = useState<TabMode>('QUIZ');
@@ -783,27 +801,10 @@ export default function PatternsTab() {
   const [showConfetti, setShowConfetti] = useState(false);
   const spokenRef = useRef(false);
 
-  const [filters, setFilters] = useState<FilterState>({
-    patternCore: new Set(), changeType: new Set(), theme: new Set(), drillType: new Set(),
-  });
+  const [filters, setFilters] = useState<FilterState>(loadFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['STRUCTURE']));
-
-  // Load saved filters on mount.
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(FILTER_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Record<keyof FilterState, string[]>;
-      setFilters({
-        patternCore: new Set((parsed.patternCore ?? []) as PatternCore[]),
-        changeType: new Set((parsed.changeType ?? []) as ChangeType[]),
-        theme: new Set((parsed.theme ?? []) as Theme[]),
-        drillType: new Set((parsed.drillType ?? []) as DrillType[]),
-      });
-    } catch { /* ignore corrupt storage */ }
-  }, []);
 
   // Persist filters whenever they change.
   useEffect(() => {

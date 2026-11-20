@@ -1,5 +1,6 @@
 // Checks for profiles: merging must never lose progress, and the gate must only open for the right code.
-import { findInvite, invites, normalizeCode } from '../server/profile-auth.ts'
+import { checkPassword, checkUsername, normalizeUsername } from '../server/auth.ts'
+import { QUOTA_USD, chatCost, realtimeCost, ttsCost } from '../server/quota.ts'
 import { parseProfile } from './data.ts'
 import { mergeProfile, type ProfileData } from './merge.ts'
 
@@ -55,13 +56,20 @@ export function validateProfiles(): string[] {
   if (Object.keys(junk.quest.levels).length) err('a broken level got through')
   if (junk.prefs.avatar !== '🦊' || junk.blaster.highScore !== 0) err('broken prefs or score got through')
 
-  // The gate.
-  const list = invites('aiden:K7M2-9QXP-W4TH, maya:ABCD1234EFGH, bad name:SHORT1, x:tiny')
-  if (list.length !== 2) err(`invite list should have 2 valid entries, got ${list.length}`)
-  if (findInvite('k7m2 9qxp w4th', list)?.name !== 'aiden') err('the right code should open the gate, ignoring case and dashes')
-  if (findInvite('K7M29QXPW4TX', list)) err('a code that is one letter wrong opened the gate')
-  if (findInvite('', list) || findInvite(null, list)) err('an empty code opened the gate')
-  if (invites('').length !== 0) err('no invites should mean no gate')
-  if (normalizeCode(' ab-12 ') !== 'AB12') err('code normalizing is wrong')
+  // Accounts.
+  if (checkUsername('Aiden') !== null || normalizeUsername(' Aiden ') !== 'aiden') err('a normal username was refused or not normalized')
+  if (checkUsername('a') === null || checkUsername('no spaces') === null || checkUsername('x'.repeat(30)) === null) err('a bad username was accepted')
+  if (checkPassword('12345') === null || checkPassword('123456') !== null) err('password length rule is wrong')
+
+  // Costs, against OpenAI list prices: a 3-second spoken line is a fraction of a cent,
+  // a minute of Mimi talking is around 15 cents, and the quota lasts a long time.
+  const line = ttsCost(48_000, 400)
+  if (!(line > 0.0001 && line < 0.002)) err(`a short spoken line costs ${line} dollars`)
+  const story = chatCost(300, 300)
+  if (!(story > 0.001 && story < 0.01)) err(`a generated story costs ${story} dollars`)
+  const minute = realtimeCost({ input_token_details: { audio_tokens: 600 }, output_token_details: { audio_tokens: 1200 } })
+  if (!(minute > 0.05 && minute < 0.3)) err(`a minute of Mimi costs ${minute} dollars`)
+  if (realtimeCost({ input_token_details: { audio_tokens: -5 } }) !== 0) err('negative usage was charged')
+  if (QUOTA_USD !== 15) err('the quota should be 15 dollars')
   return errors
 }

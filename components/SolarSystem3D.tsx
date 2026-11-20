@@ -354,11 +354,17 @@ interface PlanetMeshProps {
   onSelect: (id: string) => void;
 }
 
+function startAngle(id: string): number {
+  let h = 0;
+  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return (h / 360) * Math.PI * 2;
+}
+
 function PlanetMesh({ data, onSelect }: PlanetMeshProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const meshRef = useRef<THREE.Mesh>(null!);
-  // Start at a random angle so planets are spread out
-  const angleRef = useRef(Math.random() * Math.PI * 2);
+  // Each planet starts at its own spot on its orbit, so they are spread out.
+  const angleRef = useRef(startAngle(data.id));
   const [hovered, setHovered] = useState(false);
   const scaleRef = useRef(1);
 
@@ -475,7 +481,7 @@ interface SolarSystem3DProps {
   planets: Planet[];
 }
 
-export default function SolarSystem3D({ onSelectPlanet, planets: _planets }: SolarSystem3DProps) {
+export default function SolarSystem3D({ onSelectPlanet }: SolarSystem3DProps) {
   useEffect(() => {
     startAmbientDrone();
     return () => { stopAmbientDrone(); };

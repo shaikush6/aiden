@@ -31,8 +31,8 @@ export type NLKey = keyof typeof KIT_NL
 export const NARRATOR_NL: Record<NLKey, string> = {
   welcome: 'Welcome, explorer, to Block Buddy Land! Count blocks, learn the signs, and solve number mysteries. Let the adventure begin!',
   mapHint: 'Where to next, explorer? Tap the glowing circle, and let’s go!',
-  locked: 'Whoa, not so fast! That one is still locked. Finish the glowing one first!',
-  meetBuddy: 'Ooh, a brand new Block Buddy! Watch it build, block by block, and count along with me!',
+  locked: 'Not so fast! That one is still locked. Finish the glowing one first!',
+  meetBuddy: 'A brand new Block Buddy! Watch it build, block by block, and count along with me!',
   build: 'Builder time! Stack up a Block Buddy that is this big. Tap plus to add blocks, then tap check!',
   rocket: 'Rocket fuel time! Tap the matching number, super fast!',
   rocketWord: 'Rocket fuel time! Read each number name, and tap that number, super fast!',
@@ -48,7 +48,7 @@ export const NARRATOR_NL: Record<NLKey, string> = {
   bookWelcome: 'Welcome to your Buddy Book, explorer! Tap any Block Buddy or sign to learn all about it!',
   bookLocked: 'You have not met this one yet. Keep exploring!',
   levelDone: 'You did it! Amazing counting, explorer!',
-  newTown: 'Whoa! A brand new town is open!',
+  newTown: 'A brand new town is open!',
   countTogether: 'Let’s count together, nice and loud!',
 }
 

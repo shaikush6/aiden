@@ -15,7 +15,7 @@ interface Slot {
   planet: Planet | null;
 }
 
-function pickFourPlanets(seed: number): Planet[] {
+function pickFourPlanets(): Planet[] {
   const shuffled = [...PLANETS].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, 4);
 }
@@ -57,7 +57,6 @@ export default function PlanetSorter({ onBack }: { onBack: () => void }) {
   const [winSize, setWinSize] = useState({ width: 0, height: 0 });
   const [held, setHeld] = useState<{ planet: Planet; from: 'tray' | 'slot'; fromIdx: number } | null>(null);
   const [wrongIds, setWrongIds] = useState<string[]>([]);
-  const [completed, setCompleted] = useState(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -72,7 +71,7 @@ export default function PlanetSorter({ onBack }: { onBack: () => void }) {
   }, []);
 
   const setupRound = useCallback((r: number, m: SortMode) => {
-    const four = pickFourPlanets(r);
+    const four = pickFourPlanets();
     const ord = correctOrder(four, m);
     setCorrect(ord);
     setTrayPlanets([...four].sort(() => Math.random() - 0.5));
@@ -97,7 +96,6 @@ export default function PlanetSorter({ onBack }: { onBack: () => void }) {
     setScore(0);
     setRound(1);
     setShowConfetti(false);
-    setCompleted(false);
     const m: SortMode = 'SIZE';
     setMode(m);
     setPhase('playing');
@@ -115,7 +113,6 @@ export default function PlanetSorter({ onBack }: { onBack: () => void }) {
       advanceTimer.current = setTimeout(() => {
         const nextRound = round + 1;
         if (nextRound > TOTAL_ROUNDS) {
-          setCompleted(true);
           setShowConfetti(true);
           speakText('You sorted all the planets! Amazing!');
           setPhase('done');

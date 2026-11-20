@@ -36,7 +36,8 @@ export default function SpaceMemory({ onBack }: { onBack: () => void }) {
   const [phase, setPhase] = useState<'ready' | 'playing' | 'done'>('ready');
   const [gridSize, setGridSize] = useState<GridSize>(12);
   const [cards, setCards] = useState<Card[]>([]);
-  const [flippedIds, setFlippedIds] = useState<number[]>([]);
+  // The cards turned face-up this turn (at most two). A ref, so a fast double tap cannot open three.
+  const flipped = useRef<number[]>([]);
   const [matchCount, setMatchCount] = useState(0);
   const [flipCount, setFlipCount] = useState(0);
   const [locked, setLocked] = useState(false);
@@ -60,7 +61,7 @@ export default function SpaceMemory({ onBack }: { onBack: () => void }) {
     const size = gridSizeRef.current;
     if (lockTimer.current) clearTimeout(lockTimer.current);
     setCards(buildDeck(size));
-    setFlippedIds([]);
+    flipped.current = [];
     setMatchCount(0);
     setFlipCount(0);
     setLocked(false);
@@ -72,44 +73,37 @@ export default function SpaceMemory({ onBack }: { onBack: () => void }) {
   const handleCardTap = useCallback((id: number) => {
     if (locked) return;
     const totalPairs = SIZE_CONFIG[gridSizeRef.current].pairs;
+    const card = cards.find((c) => c.id === id);
+    const open = flipped.current;
+    if (!card || card.flipped || card.matched || open.length === 2 || open.includes(id)) return;
 
-    setFlippedIds((prev) => {
-      const card = cards.find((c) => c.id === id);
-      if (!card || card.flipped || card.matched) return prev;
-      if (prev.length === 2 || prev.includes(id)) return prev;
+    const next = [...open, id];
+    flipped.current = next;
+    setCards((c) => c.map((cd) => (cd.id === id ? { ...cd, flipped: true } : cd)));
+    setFlipCount((f) => f + 1);
+    if (next.length < 2) return;
 
-      const next = [...prev, id];
-      setCards((c) => c.map((cd) => (cd.id === id ? { ...cd, flipped: true } : cd)));
-      setFlipCount((f) => f + 1);
-
-      if (next.length === 2) {
-        const [a, b] = next.map((fid) => cards.find((c) => c.id === fid)!);
-        if (a && b && a.emoji === b.emoji) {
-          setMatchCount((m) => {
-            const newMatch = m + 1;
-            if (newMatch === totalPairs) {
-              setTimeout(() => {
-                setShowConfetti(true);
-                setPhase('done');
-                speakText('Amazing! You found them all!');
-              }, 500);
-            }
-            return newMatch;
-          });
-          setCards((c) => c.map((cd) => cd.id === a.id || cd.id === b.id ? { ...cd, matched: true } : cd));
-          return [];
-        } else {
-          setLocked(true);
-          lockTimer.current = setTimeout(() => {
-            setCards((c) => c.map((cd) => cd.id === a?.id || cd.id === b?.id ? { ...cd, flipped: false } : cd));
-            setLocked(false);
-          }, 1000);
-          return [];
-        }
+    flipped.current = [];
+    const [a, b] = next.map((fid) => cards.find((c) => c.id === fid)!);
+    if (a && b && a.emoji === b.emoji) {
+      setCards((c) => c.map((cd) => (cd.id === a.id || cd.id === b.id ? { ...cd, matched: true } : cd)));
+      const newMatch = matchCount + 1;
+      setMatchCount(newMatch);
+      if (newMatch === totalPairs) {
+        lockTimer.current = setTimeout(() => {
+          setShowConfetti(true);
+          setPhase('done');
+          speakText('Amazing! You found them all!');
+        }, 500);
       }
-      return next;
-    });
-  }, [locked, cards]);
+    } else {
+      setLocked(true);
+      lockTimer.current = setTimeout(() => {
+        setCards((c) => c.map((cd) => (cd.id === a?.id || cd.id === b?.id ? { ...cd, flipped: false } : cd)));
+        setLocked(false);
+      }, 1000);
+    }
+  }, [locked, cards, matchCount]);
 
   const cfg = SIZE_CONFIG[gridSize];
   const totalPairs = cfg.pairs;

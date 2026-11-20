@@ -1,5 +1,7 @@
-// The browser side of profiles: who is signed in on this device, and keeping his progress in step with the cloud.
+// The browser side of accounts: who is signed in on this device, and keeping their progress in step with the cloud.
 //
+//   - Sign-in is a username and password. The server keeps the session in an httpOnly cookie, so this file
+//     never sees or stores a password or token.
 //   - Local first: the games always read and write this device's storage, so nothing waits for the network.
 //   - Every change is saved to the cloud a moment later. Progress from the cloud is merged in, never swapped in.
 //   - If the network is down, nothing is lost; the next change (or coming back online) tries again.
@@ -12,25 +14,30 @@ import { DEFAULT_AVATAR, mergeProfile, parsePrefs, type Prefs, type ProfileData 
 export type Phase = 'checking' | 'gate' | 'in' | 'open'
 export type SyncState = 'idle' | 'saving' | 'saved' | 'offline'
 
+export interface Credit { quota: number; remaining: number }
+
 export interface ProfileState {
-  /** checking: asking the server. gate: sign-in needed. in: signed in. open: no sign-in is set up, local only. */
+  /** checking: asking the server. gate: sign-in needed. in: signed in. open: accounts are not set up, local only. */
   phase: Phase
   name: string | null
+  displayName: string | null
   prefs: Prefs
   sync: SyncState
+  /** AI credit for this account, in dollars. */
+  credit: Credit | null
 }
 
-const SESSION_KEY = 'aiden-profile-v1'
-const OWNER_KEY = 'aiden-profile-owner'
+const LOCAL_KEY = 'aiden-account-v1'      // remembers the name and avatar, so the badge shows instantly
+const OWNER_KEY = 'aiden-profile-owner'   // whose progress is on this device right now
 const STAMP_KEY = 'aiden-profile-stamp'
+const OLD_KEYS = ['aiden-profile-v1']     // the old invite-code sign-in, replaced by accounts
 const SAVE_DELAY_MS = 2500
 const CHECK_EVERY_MS = 120_000
 
-const CHECKING: ProfileState = { phase: 'checking', name: null, prefs: { avatar: DEFAULT_AVATAR }, sync: 'idle' }
+const CHECKING: ProfileState = { phase: 'checking', name: null, displayName: null, prefs: { avatar: DEFAULT_AVATAR }, sync: 'idle', credit: null }
 let state: ProfileState = CHECKING
 const listeners = new Set<() => void>()
 
-let code: string | null = null
 let started = false
 let applying = false
 let lastSynced = ''
@@ -82,64 +89,73 @@ function applyLocal(d: ProfileData) {
 
 const fingerprint = (d: ProfileData): string => JSON.stringify([d.quest, d.land, d.blaster, d.prefs])
 
+function remember(name: string, displayName: string, prefs: Prefs) {
+  write(LOCAL_KEY, JSON.stringify({ name, displayName, avatar: prefs.avatar }))
+}
+
 // ---------- talking to the server ----------
 
-type Reply = { ok: true; name: string; data: ProfileData | null } | { ok: false; reason: 'wrong' | 'slow' | 'off' | 'unset' }
+type Reply =
+  | { ok: true; name: string; data: ProfileData | null; credit: Credit | null }
+  | { ok: false; reason: 'signedOut' | 'slow' | 'off' | 'unset' }
 
-async function call(method: 'GET' | 'PUT', withCode: string, body?: ProfileData): Promise<Reply> {
+async function call(method: 'GET' | 'PUT', body?: ProfileData): Promise<Reply> {
   try {
     const res = await fetch('/api/profile', {
       method,
-      headers: { 'x-profile-code': withCode, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify({ data: body }) : undefined,
       keepalive: Boolean(body) && JSON.stringify(body).length < 60_000,
       cache: 'no-store',
     })
-    if (res.status === 401) return { ok: false, reason: 'wrong' }
+    if (res.status === 401) return { ok: false, reason: 'signedOut' }
     if (res.status === 429) return { ok: false, reason: 'slow' }
     if (res.status === 503) return { ok: false, reason: 'unset' }
     if (!res.ok) return { ok: false, reason: 'off' }
-    const json = (await res.json()) as { name: string; data: unknown }
-    return { ok: true, name: json.name, data: json.data ? parseProfile(json.data) : null }
+    const json = (await res.json()) as { name: string; data: unknown; quota?: number; remaining?: number }
+    const credit = typeof json.remaining === 'number' && typeof json.quota === 'number' ? { quota: json.quota, remaining: json.remaining } : null
+    return { ok: true, name: json.name, data: json.data ? parseProfile(json.data) : null, credit }
   } catch {
     return { ok: false, reason: 'off' }
   }
 }
 
 /** Merge the cloud's copy into this device, then save the combined result back. */
-async function reconcile(withCode: string, name: string, first: ProfileData | null): Promise<Reply> {
-  const reply = first ? ({ ok: true, name, data: first } as Reply) : await call('GET', withCode)
+async function reconcile(name: string): Promise<Reply> {
+  const reply = await call('GET')
   if (!reply.ok) return reply
-  // Progress that belongs to a different profile must never be mixed into this one.
-  const foreign = read(OWNER_KEY) !== null && read(OWNER_KEY) !== reply.name
+  // Progress that belongs to a different account must never be mixed into this one.
+  const foreign = read(OWNER_KEY) !== null && read(OWNER_KEY) !== name
   const local = foreign ? parseProfile(null) : collectLocal()
   const merged = reply.data ? mergeProfile(reply.data, local) : local
   applyLocal(merged)
-  write(OWNER_KEY, reply.name)
-  setState({ prefs: merged.prefs, sync: 'saving' })
-  const saved = await call('PUT', withCode, merged)
+  write(OWNER_KEY, name)
+  setState({ prefs: merged.prefs, sync: 'saving', credit: reply.credit ?? state.credit })
+  const saved = await call('PUT', merged)
   if (!saved.ok) return saved
   if (saved.data) applyLocal(saved.data)
   lastSynced = fingerprint(collectLocal())
-  setState({ sync: 'saved', prefs: saved.data?.prefs ?? merged.prefs })
+  const prefs = saved.data?.prefs ?? merged.prefs
+  setState({ sync: 'saved', prefs, credit: saved.credit ?? state.credit })
+  remember(name, state.displayName ?? name, prefs)
   return saved
 }
 
 async function pushNow(): Promise<boolean> {
-  if (!code || state.phase !== 'in') return true
+  if (state.phase !== 'in') return true
   const current = collectLocal()
   if (fingerprint(current) === lastSynced) { setState({ sync: 'saved' }); return true }
   setState({ sync: 'saving' })
-  const reply = await call('PUT', code, { ...current, updatedAt: Number(read(STAMP_KEY)) || Date.now() })
+  const reply = await call('PUT', { ...current, updatedAt: Number(read(STAMP_KEY)) || Date.now() })
   if (!reply.ok) {
-    if (reply.reason === 'wrong') await dropSession()
+    if (reply.reason === 'signedOut') dropSession()
     else setState({ sync: 'offline' })
     return false
   }
   if (reply.data) {
     applyLocal(reply.data)
     lastSynced = fingerprint(collectLocal())
-    setState({ sync: 'saved', prefs: reply.data.prefs })
+    setState({ sync: 'saved', prefs: reply.data.prefs, credit: reply.credit ?? state.credit })
   }
   return true
 }
@@ -183,43 +199,47 @@ function stopWatching() {
   saveTimer = null
 }
 
+function dropSession() {
+  stopWatching()
+  write(LOCAL_KEY, null)
+  setState({ phase: 'gate', name: null, displayName: null, sync: 'idle', credit: null })
+}
+
+/** Start syncing for a signed-in account. */
+async function enter(name: string, displayName: string, credit: Credit | null) {
+  const cached = (() => { try { return JSON.parse(read(LOCAL_KEY) ?? 'null') as { name?: string; avatar?: string } | null } catch { return null } })()
+  const prefs = cached?.name === name ? parsePrefs({ avatar: cached.avatar }) : state.prefs
+  setState({ phase: 'in', name, displayName, prefs, credit, sync: 'saving' })
+  startWatching()
+  const result = await reconcile(name)
+  if (!result.ok) {
+    if (result.reason === 'signedOut') dropSession()
+    else setState({ sync: 'offline' })
+  }
+}
+
 // ---------- public actions ----------
 
-async function dropSession() {
-  stopWatching()
-  code = null
-  write(SESSION_KEY, null)
-  setState({ phase: 'gate', name: null, sync: 'idle' })
-}
+interface Me { username: string; displayName: string; quota: number; remaining: number }
 
 /** Run once when the app opens. Returns a cleanup function. */
 export function initProfile(): () => void {
   if (started) return () => {}
   started = true
+  OLD_KEYS.forEach(k => write(k, null))
   void (async () => {
-    const saved = read(SESSION_KEY)
-    let session: { code: string; name: string; avatar?: string } | null = null
-    try { session = saved ? JSON.parse(saved) : null } catch { session = null }
-
-    if (session?.code && session.name) {
-      // Already signed in on this device: open right away, check in the background.
-      code = session.code
-      setState({ phase: 'in', name: session.name, prefs: parsePrefs({ avatar: session.avatar }), sync: 'idle' })
-      startWatching()
-      const result = await reconcile(session.code, session.name, null)
-      if (!result.ok) {
-        if (result.reason === 'wrong') await dropSession()
-        else if (result.reason === 'unset') { stopWatching(); code = null; setState({ phase: 'open', sync: 'idle' }) }
-        else setState({ sync: 'offline' })
-      }
-      return
-    }
-
-    // Nobody signed in: ask whether a sign-in is needed at all.
     try {
-      const res = await fetch('/api/profile', { cache: 'no-store' })
-      const json = res.ok ? ((await res.json()) as { gate: boolean }) : { gate: false }
-      setState({ phase: json.gate ? 'gate' : 'open' })
+      const res = await fetch('/api/auth', { cache: 'no-store' })
+      const json = res.ok ? ((await res.json()) as { enabled: boolean; user: Me | null }) : null
+      if (!json) {
+        // The server is unreachable. If this device was signed in before, keep playing offline.
+        const cached = read(LOCAL_KEY)
+        setState(cached ? { phase: 'in', sync: 'offline', name: JSON.parse(cached).name, displayName: JSON.parse(cached).displayName } : { phase: 'open' })
+        return
+      }
+      if (!json.enabled) { setState({ phase: 'open' }); return }
+      if (!json.user) { setState({ phase: 'gate' }); return }
+      await enter(json.user.username, json.user.displayName, { quota: json.user.quota, remaining: json.user.remaining })
     } catch {
       setState({ phase: 'open' })   // never lock him out because the network is down
     }
@@ -227,50 +247,61 @@ export function initProfile(): () => void {
   return () => { started = false; stopWatching() }
 }
 
-export type SignInResult = { ok: true } | { ok: false; message: string }
+export type AuthResult = { ok: true } | { ok: false; message: string }
 
-export async function signIn(typed: string): Promise<SignInResult> {
-  const attempt = typed.trim()
-  if (!attempt) return { ok: false, message: 'Type the code first.' }
-  const reply = await call('GET', attempt)
-  if (!reply.ok) {
-    return { ok: false, message: reply.reason === 'wrong' ? 'That code is not right. Try again!'
-      : reply.reason === 'slow' ? 'Too many tries. Wait a minute, then try again.'
-        : reply.reason === 'unset' ? 'Sign-in is not ready yet.' : 'Cannot reach the internet right now.' }
+async function authCall(body: Record<string, string>): Promise<AuthResult> {
+  try {
+    const res = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
+    const json = (await res.json().catch(() => ({}))) as { user?: Me; error?: string }
+    if (!res.ok || !json.user) return { ok: false, message: json.error ?? 'Something went wrong. Try again.' }
+    await enter(json.user.username, json.user.displayName, { quota: json.user.quota, remaining: json.user.remaining })
+    return { ok: true }
+  } catch {
+    return { ok: false, message: 'Cannot reach the internet right now.' }
   }
-  code = attempt
-  write(SESSION_KEY, JSON.stringify({ code: attempt, name: reply.name, avatar: reply.data?.prefs.avatar }))
-  setState({ phase: 'in', name: reply.name, prefs: reply.data?.prefs ?? state.prefs, sync: 'saving' })
-  startWatching()
-  const result = await reconcile(attempt, reply.name, reply.data)
-  if (!result.ok) setState({ sync: 'offline' })
-  return { ok: true }
+}
+
+export function signIn(username: string, password: string): Promise<AuthResult> {
+  if (!username.trim() || !password) return Promise.resolve({ ok: false, message: 'Type your username and password.' })
+  return authCall({ action: 'login', username, password })
+}
+
+export function signUp(username: string, password: string, invite: string): Promise<AuthResult> {
+  if (!username.trim() || !password || !invite.trim()) return Promise.resolve({ ok: false, message: 'Fill in all three boxes.' })
+  return authCall({ action: 'signup', username, password, invite })
 }
 
 /** Sign out of this device. Saves first, then clears this device so the next person starts clean. */
 export async function signOut(): Promise<{ ok: boolean; message?: string }> {
-  if (code) {
+  if (state.phase === 'in') {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
     const saved = await pushNow()
-    if (!saved) return { ok: false, message: 'Cannot save his progress to the cloud right now, so it is not safe to sign out. Try again when the internet is back.' }
+    if (!saved) return { ok: false, message: 'Cannot save the progress to the cloud right now, so it is not safe to sign out. Try again when the internet is back.' }
   }
+  await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'logout' }) }).catch(() => {})
   stopWatching()
-  code = null
   applyLocal(parseProfile(null))
-  write(SESSION_KEY, null)
   write(OWNER_KEY, null)
   write(STAMP_KEY, null)
   write(SAVE_KEY, null)
-  setState({ phase: 'gate', name: null, prefs: { avatar: DEFAULT_AVATAR }, sync: 'idle' })
+  dropSession()
   return { ok: true }
 }
 
 export function setAvatar(avatar: string) {
   const prefs = parsePrefs({ avatar })
   setState({ prefs })
-  const saved = read(SESSION_KEY)
-  try { if (saved) write(SESSION_KEY, JSON.stringify({ ...JSON.parse(saved), avatar: prefs.avatar })) } catch { /* ignore */ }
+  if (state.name) remember(state.name, state.displayName ?? state.name, prefs)
   noteChange()
+}
+
+/** Refresh the AI credit shown in the profile badge. */
+export async function refreshCredit(): Promise<void> {
+  try {
+    const res = await fetch('/api/auth', { cache: 'no-store' })
+    const json = (await res.json()) as { user: Me | null }
+    if (json.user) setState({ credit: { quota: json.user.quota, remaining: json.user.remaining } })
+  } catch { /* keep the old figure */ }
 }
 
 export async function syncNow(): Promise<boolean> {

@@ -12,7 +12,7 @@ export type NarratorVoice = (typeof NARRATOR_VOICES)[number]['id']
 export const DEFAULT_NARRATOR_VOICE: NarratorVoice = 'verse'
 
 /** Played when a grown-up previews a narrator voice. */
-export const VOICE_PREVIEW = 'Hey, explorer! I am your narrator! Are you ready to read some words and rescue some animals? Let’s GO!'
+export const VOICE_PREVIEW = 'Hey, explorer! I am your narrator! Are you ready to read some words and rescue some animals? Let’s go!'
 
 export interface WorldNarration {
   /** Played when the child starts the first level of a world. */
@@ -23,7 +23,7 @@ export interface WorldNarration {
 
 export const WORLD_NARRATION: Record<string, WorldNarration> = {
   w1: {
-    arrive: 'Explorer! You have reached the Savanna! Tall golden grass. Hot sun. And somewhere out there, animals who need your help. Your reading power begins right NOW!',
+    arrive: 'Explorer! You have reached the Savanna! Tall golden grass. Hot sun. And somewhere out there, animals who need your help. Your reading power begins right now!',
     complete: 'The Savanna is safe! Zebras, lions, hippos, giraffes and elephants are free, all because of your reading power. But the adventure is not over. The jungle is calling!',
   },
   w2: {
@@ -59,7 +59,7 @@ export const WORLD_NARRATION: Record<string, WorldNarration> = {
     complete: 'You beat every trick in the swamp! Even Big Al the alligator is impressed. Now, get ready for the greatest adventure of all. Prepare for launch!',
   },
   w10: {
-    arrive: 'Three, two, one, BLAST OFF! You are soaring into the Galaxy! Stars, planets, comets, and the biggest words in the universe. This is the final mission, explorer!',
+    arrive: 'Three, two, one, blast off! You are soaring into the Galaxy! Stars, planets, comets, and the biggest words in the universe. This is the final mission, explorer!',
     complete: 'Mission complete! You have rescued every animal and read every word from the Savanna to the stars! You are now an official reading champion of the galaxy!',
   },
 }

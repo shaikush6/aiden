@@ -72,7 +72,7 @@ export default function DayNightLab({ onBack }: { onBack: () => void }) {
       if (!draggingRef.current) return;
       const delta = e.clientX - lastPointerX.current;
       lastPointerX.current = e.clientX;
-      setAngle((a) => a + delta * 0.6);
+      turnBy.current(delta * 0.6);
     };
     const onUp = () => {
       draggingRef.current = false;
@@ -93,31 +93,40 @@ export default function DayNightLab({ onBack }: { onBack: () => void }) {
     };
   }, []);
 
-  // Watch for challenge solved
-  useEffect(() => {
-    if (phase !== 'challenge' || challengeSolved || completed) return;
-    const challenge = CHALLENGES[challengeIdx];
-    if (!challenge) return;
-    const matches =
-      isDayForZone(challenge.zone, angle) === (challenge.targetSide === 'day');
-    if (matches) {
-      setChallengeSolved(true);
-      speakText('You did it!');
-      setSolved((s) => s + 1);
-      advanceTimer.current = setTimeout(() => {
-        setChallengeSolved(false);
-        const next = challengeIdx + 1;
-        if (next >= CHALLENGES.length) {
-          setCompleted(true);
-          setShowConfetti(true);
-          speakText('You are a space scientist! Amazing!');
-        } else {
-          setChallengeIdx(next);
-          speakText(CHALLENGES[next].prompt.replace(/[^\w !?']/g, ''));
-        }
-      }, 1500);
-    }
-  }, [angle, phase, challengeIdx, challengeSolved, completed]);
+  // The latest game state, for the turn handlers (they are set up once, so they cannot read state directly).
+  const live = useRef({ phase, challengeIdx, challengeSolved, completed });
+  useEffect(() => { live.current = { phase, challengeIdx, challengeSolved, completed }; });
+  const angleRef = useRef(0);
+
+  /** Did this turn solve the current challenge? */
+  const checkChallenge = useRef((newAngle: number) => {
+    const s = live.current;
+    if (s.phase !== 'challenge' || s.challengeSolved || s.completed) return;
+    const challenge = CHALLENGES[s.challengeIdx];
+    if (!challenge || isDayForZone(challenge.zone, newAngle) !== (challenge.targetSide === 'day')) return;
+    live.current = { ...s, challengeSolved: true };
+    setChallengeSolved(true);
+    speakText('You did it!');
+    setSolved((n) => n + 1);
+    advanceTimer.current = setTimeout(() => {
+      setChallengeSolved(false);
+      const next = s.challengeIdx + 1;
+      if (next >= CHALLENGES.length) {
+        setCompleted(true);
+        setShowConfetti(true);
+        speakText('You are a space scientist! Amazing!');
+      } else {
+        setChallengeIdx(next);
+        speakText(CHALLENGES[next].prompt.replace(/[^\w !?']/g, ''));
+      }
+    }, 1500);
+  });
+
+  const turnBy = useRef((delta: number) => {
+    angleRef.current += delta;
+    setAngle(angleRef.current);
+    checkChallenge.current(angleRef.current);
+  });
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     draggingRef.current = true;
@@ -126,7 +135,7 @@ export default function DayNightLab({ onBack }: { onBack: () => void }) {
   }, []);
 
   const spin = useCallback((dir: number) => {
-    setAngle((a) => a + dir * 30);
+    turnBy.current(dir * 30);
   }, []);
 
   const startChallenges = useCallback(() => {

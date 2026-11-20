@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AVATARS } from '@/lib/profile/merge';
-import { getProfileState, getServerProfileState, setAvatar, signOut, subscribeProfile, syncNow } from '@/lib/profile/client';
+import { getProfileState, getServerProfileState, refreshCredit, setAvatar, signOut, subscribeProfile, syncNow } from '@/lib/profile/client';
 
 const SYNC_TEXT = {
   idle: '☁️ Ready',
@@ -37,7 +37,7 @@ export default function ProfileBadge() {
       >
         <span className="text-3xl leading-none" aria-hidden>{profile.prefs.avatar}</span>
         <span className="text-left">
-          <span className="block text-xl font-black text-indigo-600 dark:text-indigo-300 leading-none uppercase">{profile.name}</span>
+          <span className="block text-xl font-black text-indigo-600 dark:text-indigo-300 leading-none uppercase">{profile.displayName ?? profile.name}</span>
           <span className="block text-[11px] font-black text-gray-400 dark:text-slate-400 leading-none mt-1">
             {profile.sync === 'offline' ? '📴 offline' : profile.sync === 'saving' ? '⏳ saving' : '☁️ saved'}
           </span>
@@ -55,6 +55,9 @@ function Sheet({ onClose }: { onClose: () => void }) {
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // The credit changes as he plays, so fetch a fresh figure whenever the sheet opens.
+  useEffect(() => { void refreshCredit(); }, []);
+
   const leave = async () => {
     if (Number(answer) !== gate.a * gate.b) { setAnswer(''); return; }
     const result = await signOut();
@@ -71,8 +74,9 @@ function Sheet({ onClose }: { onClose: () => void }) {
         className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl p-6 w-full max-w-md flex flex-col items-center gap-4 text-slate-800 dark:text-slate-100"
       >
         <span className="text-7xl" aria-hidden>{profile.prefs.avatar}</span>
-        <h2 className="text-3xl font-black uppercase">{profile.name}</h2>
+        <h2 className="text-3xl font-black uppercase">{profile.displayName ?? profile.name}</h2>
         <p className="font-bold text-slate-500 dark:text-slate-300">{SYNC_TEXT[profile.sync]}</p>
+        {profile.credit && <Credit quota={profile.credit.quota} remaining={profile.credit.remaining} />}
 
         <div>
           <p className="font-black text-center mb-2">Pick your buddy</p>
@@ -118,5 +122,22 @@ function Sheet({ onClose }: { onClose: () => void }) {
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+/** How much of the account's AI money is left, for the grown-ups. */
+function Credit({ quota, remaining }: { quota: number; remaining: number }) {
+  const pct = Math.max(0, Math.min(100, (remaining / quota) * 100));
+  return (
+    <div className="w-full">
+      <div className="flex justify-between text-sm font-black text-slate-500 dark:text-slate-300 mb-1">
+        <span>🤖 AI credit left</span>
+        <span>${remaining.toFixed(2)} of ${quota.toFixed(0)}</span>
+      </div>
+      <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+        <div className={`h-full rounded-full ${pct > 20 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${pct}%` }} />
+      </div>
+      {remaining <= 0 && <p className="text-xs font-bold text-rose-600 mt-1">Used up: the built-in device voice reads instead, and Mimi is paused.</p>}
+    </div>
   );
 }

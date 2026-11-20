@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { OBJECT_EMOJIS } from "@/lib/math-data";
-import { speakText, speakNumber, speakEncouragement } from "@/lib/speech";
+import { speakText, speakEncouragement } from "@/lib/speech";
 const ReactConfetti = dynamic(() => import("react-confetti"), { ssr: false });
 
 // ── Shared bits ─────────────────────────────────────────────────────

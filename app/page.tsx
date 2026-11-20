@@ -52,24 +52,19 @@ export default function Home() {
   return <App />;
 }
 
+function readFlag(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState<TabId>('quest');
-  const [voiceOn, setVoiceOn] = useState(true);
-  const [isDark, setIsDark] = useState(false);
+  // App only renders in the browser (after the sign-in check), so saved switches can be read straight away.
+  const [voiceOn, setVoiceOn] = useState(() => readFlag('aiden-voice') !== 'false');
+  const [isDark, setIsDark] = useState(() => readFlag('aiden-dark') === 'true');
 
-  useEffect(() => {
-    const stored = localStorage.getItem('aiden-voice');
-    if (stored === 'false') { setVoiceOn(false); setVoiceEnabled(false); }
-  }, []);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('aiden-dark');
-    if (stored === 'true') {
-      setIsDark(true);
-      document.documentElement.classList.add('dark');
-    }
-    return () => {};
-  }, []);
+  // Apply the saved switches to the audio player and the page.
+  useEffect(() => { setVoiceEnabled(voiceOn); }, [voiceOn]);
+  useEffect(() => { document.documentElement.classList.toggle('dark', isDark); }, [isDark]);
 
   const toggleVoice = () => {
     const next = !voiceOn;

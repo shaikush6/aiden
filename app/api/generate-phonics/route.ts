@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
+import { aiGate } from '@/lib/server/ai-gate'
+import { charge, chatCost } from '@/lib/server/quota'
 
 const THEMES = ['animals', 'food', 'adventure', 'the sea', 'the farm', 'space', 'a funny dog']
 const SOUND = /^[A-Z]{1,3}$/
@@ -16,6 +18,8 @@ export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return jsonError('Forbidden', 403)
   if (rateLimited(req, 'generate-phonics', 10, 60_000)) return jsonError('Too many requests', 429)
   if (!process.env.OPENAI_API_KEY) return jsonError('Generation is not configured', 503)
+  const gate = await aiGate(req)
+  if ('error' in gate) return gate.error
 
   let body: Record<string, unknown>
   try { body = (await req.json()) ?? {} } catch { return jsonError('Bad request', 400) }
@@ -62,6 +66,8 @@ Output only the 3 sentences with emojis, nothing else.`
       max_tokens: 300,
     })
     const content = completion.choices[0]?.message?.content ?? ''
+    const used = completion.usage
+    if (gate.user && used) await charge(gate.user, chatCost(used.prompt_tokens, used.completion_tokens)).catch(() => {})
     return NextResponse.json({ content })
   } catch {
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
