@@ -104,7 +104,13 @@ export function collectQuestLines(): QuestLine[] {
     // Any word in the bank can be tapped for help or used as a distractor, so all are allowed.
     level.bank.forEach(w => out.push({ kind: 'word', text: w.say }))
   }
-  return out
+  return out.flatMap(inEachVoice)
+}
+
+/** Single words and made-up words are said by the guide voice too, so each one exists in every voice. */
+function inEachVoice(l: QuestLine): QuestLine[] {
+  if ((l.kind === 'word' || l.kind === 'alien') && !l.voice) return NARRATOR_VOICES.map(v => ({ ...l, voice: v.id }))
+  return [l]
 }
 
 let byId: Map<string, QuestLine> | null = null

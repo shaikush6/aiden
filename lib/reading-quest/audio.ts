@@ -19,8 +19,8 @@ type Clip = string | (() => Promise<string | null>)
 function voiceFor(kind: LineKind): { kind: LineKind; voice: string } {
   const { narrator, narratorVoice } = getProgress().settings
   if (kind === 'narration' || (kind === 'line' && narrator)) return { kind: 'narration', voice: narratorVoice }
-  if (kind === 'line') return { kind: 'line', voice: narratorVoice }
-  return { kind, voice: '' }
+  if (kind === 'sound') return { kind, voice: '' }
+  return { kind, voice: narratorVoice }
 }
 
 export function lineClip(text: string, kind: LineKind = 'line'): Clip {

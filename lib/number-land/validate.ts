@@ -285,7 +285,7 @@ export function validateNumberLand(): string[] {
           // Every spoken line must be on the allowlist, in Kit's voice and in every narrator voice.
           const speech = stepSpeech(s)
           for (const script of speech.scripts) scriptOk(script, s.kind, at)
-          for (const w of speech.words) if (!spoken('word', w)) at(`word not allowlisted: "${w}"`)
+          for (const w of speech.words) for (const v of NARRATOR_VOICES) if (!spoken('word', w, v.id)) at(`word (${v.id}) not allowlisted: "${w}"`)
         }
       }
     }

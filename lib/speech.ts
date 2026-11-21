@@ -5,6 +5,7 @@
 import { isAudioEnabled, playClip, setAudioEnabled, stopAudio, withFallback } from './audio-player'
 import { hashKey } from './hash'
 import { timeoutSignal } from './fetch-timeout'
+import { getProgress } from './reading-quest/progress'
 
 export function setVoiceEnabled(v: boolean) { setAudioEnabled(v) }
 export function getVoiceEnabled() { return isAudioEnabled() }
@@ -124,12 +125,14 @@ export async function cachedAudioUrl(
 }
 
 function fetchTTS(text: string, speed: number, phonics = false): Promise<string | null> {
-  const key = `${phonics ? 'ph:' : ''}${text}|${speed}`
+  // Everything read from the screen uses the guide voice the child picked (Frankie or Todd); letter sounds do not.
+  const voice = phonics ? '' : getProgress().settings.narratorVoice
+  const key = `${phonics ? 'ph:' : `v:${voice}:`}${text}|${speed}`
   return cachedAudioUrl(key, `/__tts-cache/${hashKey(key)}`, () =>
     fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, speed, phonics }),
+      body: JSON.stringify({ text, speed, phonics, voice }),
       signal: timeoutSignal(10_000),
     }),
   )

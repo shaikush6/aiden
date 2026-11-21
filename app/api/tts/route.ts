@@ -8,6 +8,7 @@ import { ELEVEN_VOICES, elevenSpeak } from '@/lib/server/elevenlabs'
 
 // If ElevenLabs cannot speak a guide line (no key yet, or out of credits), an OpenAI voice of the same kind reads it.
 const FALLBACK_VOICE: Record<string, string> = { frankie: 'coral', todd: 'ash' }
+const HEBREW = /[\u0590-\u05FF]/
 
 const MODEL = 'gpt-4o-mini-tts-2025-12-15'
 const MAX_TEXT = 400
@@ -80,8 +81,8 @@ export async function GET(req: NextRequest) {
     gate = await aiGate(req)
   }
   if ('error' in gate) return gate.error
-  // The guide's lines: Frankie or Todd, from ElevenLabs.
-  if ((line.kind === 'line' || line.kind === 'narration') && line.voice && ELEVEN_VOICES[line.voice]) {
+  // Everything but speech sounds: Frankie or Todd, from ElevenLabs.
+  if (line.kind !== 'sound' && line.voice && ELEVEN_VOICES[line.voice]) {
     const eleven = await elevenSpeak(line.voice, line.text, line.kind)
     if (eleven) {
       if (gate.user) await charge(gate.user, elevenCost(line.text.length)).catch(() => {})
@@ -91,7 +92,8 @@ export async function GET(req: NextRequest) {
 
   const voice = QUEST_VOICE[line.kind]
   const fallback = line.voice ? FALLBACK_VOICE[line.voice] : undefined
-  const audio = await synthesize(line.text, voice.instructions, voice.speed, fallback ?? (line.voice || undefined))
+  // Narration keeps the stand-in voice; Kit lines and words use the clear teacher voice.
+  const audio = await synthesize(line.text, voice.instructions, voice.speed, line.kind === 'narration' ? fallback : undefined)
   if (!audio) return jsonError('Speech failed', 502)
   if (gate.user) await charge(gate.user, ttsCost(audio.length, line.text.length + voice.instructions.length)).catch(() => {})
   // A stand-in voice is never cached, so the real one takes over as soon as ElevenLabs works again.
@@ -111,16 +113,26 @@ function audioResponse(audio: Buffer, keep: boolean) {
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return jsonError('Forbidden', 403)
   if (rateLimited(req, 'tts-post', 60, 60_000)) return jsonError('Too many requests', 429)
-  if (!process.env.OPENAI_API_KEY) return jsonError('Speech is not configured', 503)
+  if (!process.env.OPENAI_API_KEY && !process.env.ELEVENLABS_API_KEY) return jsonError('Speech is not configured', 503)
   const gate = await aiGate(req)
   if ('error' in gate) return gate.error
 
   let body: unknown
   try { body = await req.json() } catch { return jsonError('Bad request', 400) }
-  const { text, speed, phonics } = (body ?? {}) as Record<string, unknown>
+  const { text, speed, phonics, voice } = (body ?? {}) as Record<string, unknown>
 
   if (typeof text !== 'string' || !text.trim() || text.length > MAX_TEXT) return jsonError('Bad text', 400)
   const safeSpeed = typeof speed === 'number' && Number.isFinite(speed) ? Math.min(1.5, Math.max(0.5, speed)) : 1.0
+
+  // Anything read from the screen, in the guide voice the child picked. Letter sounds and Hebrew (the Hebrew tab) stay below.
+  if (phonics !== true && !HEBREW.test(text) && typeof voice === 'string' && ELEVEN_VOICES[voice]) {
+    const single = !/\s/.test(text.trim())
+    const eleven = await elevenSpeak(voice, text, single ? 'word' : 'line', safeSpeed === 1 ? undefined : safeSpeed)
+    if (eleven) {
+      if (gate.user) await charge(gate.user, elevenCost(text.length)).catch(() => {})
+      return new NextResponse(new Uint8Array(eleven), { headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'private, max-age=86400' } })
+    }
+  }
   const instructions = phonics === true ? PHONICS_VOICE : CHILD_VOICE
 
   const audio = await synthesize(text, instructions, safeSpeed)
