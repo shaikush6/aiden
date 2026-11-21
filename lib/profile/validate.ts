@@ -3,6 +3,8 @@ import { checkPassword, checkUsername, normalizeUsername } from '../server/auth.
 import { QUOTA_USD, chatCost, realtimeCost, ttsCost } from '../server/quota.ts'
 import { parseProfile } from './data.ts'
 import { mergeProfile, type ProfileData } from './merge.ts'
+import { findQuestLine, isPublicLine, lineId, publicLines, sharedLines } from '../reading-quest/allowlist.ts'
+import { welcomeScripts } from './welcome-lines.ts'
 
 /** Same progress, whatever order the keys and the unordered lists came out in. */
 function canon(p: ProfileData): string {
@@ -75,5 +77,16 @@ export function validateProfiles(): string[] {
   if (!(minute > 0.05 && minute < 0.3)) err(`a minute of Mimi costs ${minute} dollars`)
   if (realtimeCost({ input_token_details: { audio_tokens: -5 } }) !== 0) err('negative usage was charged')
   if (QUOTA_USD !== 15) err('the quota should be 15 dollars')
+  // The sign-in screen's lines play without an account; nothing else may.
+  const pub = publicLines()
+  if (pub.length === 0) err('no public sign-in lines')
+  for (const l of pub) {
+    const id = lineId(l.kind, l.text, l.voice)
+    if (!findQuestLine(id)) err(`public line not allowlisted: ${l.text}`)
+    if (!isPublicLine(id)) err(`public line not recognised: ${l.text}`)
+  }
+  for (const l of sharedLines().slice(0, 50)) if (isPublicLine(lineId(l.kind, l.text, l.voice))) err(`quest line is public: ${l.text}`)
+  for (const t of welcomeScripts()) if (t.includes('/') || t.includes('[')) err(`welcome line has script markers: ${t}`)
+
   return errors
 }

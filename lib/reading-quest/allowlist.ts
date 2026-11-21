@@ -13,6 +13,7 @@ import { NARRATOR_VOICES, narrationLines, WORLD_NARRATION } from './narration.ts
 import { phonemeTtsTexts } from './phonemes.ts'
 import { spokenFragments } from './script.ts'
 import { numberLandScripts } from '../number-land/allowlist.ts'
+import { SIGN_IN_LINES, STARTING_POINT_LINES } from '../profile/welcome-lines.ts'
 
 /** How a line is voiced: Kit's teacher voice, the narrator, a single word, a made-up word, or a speech sound. */
 export type LineKind = 'line' | 'narration' | 'word' | 'alien' | 'sound'
@@ -78,8 +79,17 @@ export function sharedLines(): QuestLine[] {
   ]
 }
 
+/** The sign-in screen's lines, in Kit's voice and every narrator voice. Anyone may hear these, signed in or not. */
+export function publicLines(): QuestLine[] {
+  const scripts = Object.values(SIGN_IN_LINES)
+  return [...asKit(scripts), ...asNarrator(scripts)]
+}
+
 export function collectQuestLines(): QuestLine[] {
-  const out = sharedLines()
+  const out = [...sharedLines(), ...publicLines()]
+  // Right after a new account is made: "have you played before?"
+  const welcome = Object.values(STARTING_POINT_LINES)
+  out.push(...asKit(welcome), ...asNarrator(welcome))
   // Block Buddy Land (the Numbers tab) speaks through the same locked-down endpoint.
   const nl = numberLandScripts()
   out.push(
@@ -96,8 +106,15 @@ export function collectQuestLines(): QuestLine[] {
 }
 
 let byId: Map<string, QuestLine> | null = null
+let publicIds: Set<string> | null = null
 
 export function findQuestLine(id: string): QuestLine | undefined {
   if (!byId) byId = new Map(collectQuestLines().map(l => [lineId(l.kind, l.text, l.voice), l]))
   return byId.get(id)
+}
+
+/** True for the few sign-in screen lines that need no account. */
+export function isPublicLine(id: string): boolean {
+  if (!publicIds) publicIds = new Set(publicLines().map(l => lineId(l.kind, l.text, l.voice)))
+  return publicIds.has(id)
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { findQuestLine, type LineKind } from '@/lib/reading-quest/allowlist'
+import { findQuestLine, isPublicLine, type LineKind } from '@/lib/reading-quest/allowlist'
 import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
 import { aiGate } from '@/lib/server/ai-gate'
 import { charge, ttsCost } from '@/lib/server/quota'
@@ -65,7 +65,16 @@ export async function GET(req: NextRequest) {
   if (!line) return jsonError('Unknown line', 404)
 
   // Only lines nobody has heard yet reach this point (the CDN serves the rest for free), and those cost money.
-  const gate = await aiGate(req)
+  // The sign-in screen's few lines need no account. To keep the CDN serving them, extra query
+  // parameters (a way to dodge the cache) are refused, and misses get a much tighter limit.
+  let gate: Awaited<ReturnType<typeof aiGate>>
+  if (isPublicLine(id)) {
+    if ([...req.nextUrl.searchParams.keys()].some(k => k !== 'id')) return jsonError('Bad request', 400)
+    if (rateLimited(req, 'tts-public', 30, 60_000)) return jsonError('Too many requests', 429)
+    gate = { user: null }
+  } else {
+    gate = await aiGate(req)
+  }
   if ('error' in gate) return gate.error
   const voice = QUEST_VOICE[line.kind]
   const audio = await synthesize(line.text, voice.instructions, voice.speed, line.voice)

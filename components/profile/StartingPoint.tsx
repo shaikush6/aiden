@@ -8,6 +8,9 @@ import { completeUpTo, getProgress, getServerProgress, nextLevelIndex, subscribe
 import { NUMBER_LEVELS, TOWNS } from '@/lib/number-land/curriculum';
 import { completeNLUpTo, getNL, getServerNL, nextNLIndex, subscribeNL } from '@/lib/number-land/progress';
 import { getProfileState, getServerProfileState, markPlaced, subscribeProfile } from '@/lib/profile/client';
+import { STARTING_POINT_LINES } from '@/lib/profile/welcome-lines';
+import HearMe from './HearMe';
+import { useGuide } from './useGuide';
 
 interface Group { key: string; name: string; emoji: string; levels: { index: number; title: string; boss: boolean }[] }
 
@@ -38,6 +41,7 @@ export default function StartingPoint() {
   const [tab, setTab] = useState<'quest' | 'land'>('quest');
   const [questNext, setQuestNext] = useState(() => nextLevelIndex(getProgress()));
   const [landNext, setLandNext] = useState(() => nextNLIndex(getNL()));
+  const guide = useGuide(step === 'ask' ? STARTING_POINT_LINES.ask : STARTING_POINT_LINES.pick);
 
   const questDone = Object.keys(quest.levels).length;
   const landDone = Object.keys(land.levels).length;
@@ -52,7 +56,7 @@ export default function StartingPoint() {
   if (step === 'ask') {
     return (
       <Shell>
-        <span className="text-7xl" aria-hidden>👋</span>
+        <HearMe emoji="👋" speaking={guide.speaking} onTap={() => guide.say(STARTING_POINT_LINES.ask)} />
         <h1 className="text-3xl font-black text-slate-800 dark:text-white">Welcome, {name}!</h1>
         <p className="font-bold text-slate-600 dark:text-slate-300 text-lg">
           Have you played before? Show us where you got to, so you do not have to start again.
@@ -80,6 +84,7 @@ export default function StartingPoint() {
 
   return (
     <Shell wide>
+      <HearMe emoji="🦊" small speaking={guide.speaking} onTap={() => guide.say(STARTING_POINT_LINES.pick)} />
       <h1 className="text-3xl font-black text-slate-800 dark:text-white">Where were you?</h1>
       <p className="font-bold text-slate-600 dark:text-slate-300">Tap the level to play next. Everything before it counts as done.</p>
 
