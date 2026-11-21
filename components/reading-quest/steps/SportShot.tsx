@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, type TargetAndTransition } from 'framer-motion';
 import { say, sayWord, wordClip } from '@/lib/reading-quest/audio';
 import { goalLine, sportAsk } from '@/lib/reading-quest/lines';
@@ -10,23 +10,28 @@ import { Guide, SpeakerButton, useAnswer, useSayOnMount, WordView, type StepResu
 
 type Props = { step: Extract<Step, { kind: 'goal' }>; onDone: (r: StepResult) => void };
 
-/** `i` is the ball's slot (0, 1, 2): the middle ball flies straight, the others curve in toward the middle. */
+/**
+ * Where the target is, measured from the ball when it is tapped (screens differ, so fixed distances miss).
+ * dx, dy: from the centre of the ball to the centre of the target. oy: the ball's centre inside its button,
+ * used as the point the button scales and spins around, so the ball itself lands on the target.
+ */
+interface Aim { dx: number; dy: number; oy: number }
+
+/** `i` is the ball's slot (0, 1, 2); the left ball bounces off to the left when it misses, the others to the right. */
 interface SportLook {
   ball: string;
   cheer: string;
   field: string;
   target: ReactNode;
-  score: (i: number) => TargetAndTransition;
-  miss: (i: number) => TargetAndTransition;
+  score: (aim: Aim) => TargetAndTransition;
+  miss: (aim: Aim, i: number) => TargetAndTransition;
   duration: number;
 }
 
-const toMiddle = (i: number, px: number) => (1 - i) * px;
-/** Which way a missed ball bounces away: the left ball to the left, the others to the right. */
 const away = (i: number) => (i === 0 ? -1 : 1);
 
 const SOCCER_GOAL = (
-  <div className="mx-auto w-2/3 h-28 border-8 border-b-0 border-white rounded-t-lg relative
+  <div data-aim className="mx-auto w-2/3 h-28 border-8 border-b-0 border-white rounded-t-lg relative
     bg-[linear-gradient(45deg,rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(-45deg,rgba(255,255,255,.35)_1px,transparent_1px)] bg-[size:14px_14px]">
     <motion.div
       className="absolute left-1/2 bottom-0 -translate-x-1/2 text-5xl"
@@ -46,7 +51,7 @@ const BASKETBALL_HOOP = (
       <div className="absolute left-1/2 -translate-x-1/2 bottom-2 w-16 h-10 border-4 border-orange-500 rounded-sm" />
     </div>
     {/* Rim and net */}
-    <div className="absolute left-1/2 -translate-x-1/2 top-[4.6rem] w-24 h-2.5 bg-orange-500 rounded-full shadow z-10" />
+    <div data-aim className="absolute left-1/2 -translate-x-1/2 top-[4.6rem] w-24 h-2.5 bg-orange-500 rounded-full shadow z-10" />
     <div className="absolute left-1/2 -translate-x-1/2 top-[5.1rem] w-20 h-9 [clip-path:polygon(0_0,100%_0,82%_100%,18%_100%)]
       bg-[linear-gradient(60deg,rgba(255,255,255,.9)_1.5px,transparent_1.5px),linear-gradient(-60deg,rgba(255,255,255,.9)_1.5px,transparent_1.5px)] bg-[size:10px_10px]" />
   </div>
@@ -55,7 +60,7 @@ const BASKETBALL_HOOP = (
 const VOLLEYBALL_NET = (
   <div className="mx-auto w-[90%] h-28 relative" aria-hidden>
     {/* The far side of the court, where the ball lands */}
-    <div className="absolute inset-x-6 top-1 h-14 border-4 border-white/80 border-b-0 rounded-t-md" />
+    <div data-aim className="absolute inset-x-6 top-1 h-14 border-4 border-white/80 border-b-0 rounded-t-md" />
     {/* Posts and net */}
     <div className="absolute left-0 bottom-0 w-2.5 h-16 bg-slate-500 rounded-t" />
     <div className="absolute right-0 bottom-0 w-2.5 h-16 bg-slate-500 rounded-t" />
@@ -70,8 +75,9 @@ const SPORTS: Record<Sport, SportLook> = {
     cheer: 'GOAL!',
     field: 'bg-[repeating-linear-gradient(90deg,#4ade80_0,#4ade80_60px,#22c55e_60px,#22c55e_120px)]',
     target: SOCCER_GOAL,
-    score: i => ({ y: -170, x: toMiddle(i, 90), scale: 0.55, rotate: 540 }),
-    miss: i => ({ y: -120, x: (i - 1) * 160 + (i === 1 ? 140 : 0), scale: 0.7, rotate: 360, opacity: 0.4 }),
+    score: a => ({ x: a.dx, y: a.dy + 20, scale: 0.55, rotate: 540 }),
+    // Wide of the goal.
+    miss: (a, i) => ({ x: a.dx + 230 * away(i), y: a.dy, scale: 0.7, rotate: 360, opacity: 0.4 }),
     duration: 0.6,
   },
   basketball: {
@@ -79,17 +85,24 @@ const SPORTS: Record<Sport, SportLook> = {
     cheer: 'SWISH!',
     field: 'bg-[repeating-linear-gradient(90deg,#f59e0b_0,#f59e0b_46px,#d97706_46px,#d97706_50px,#fbbf24_50px,#fbbf24_96px,#d97706_96px,#d97706_100px)]',
     target: BASKETBALL_HOOP,
-    // Up in an arc, then down through the hoop.
-    score: i => ({ y: [0, -250, -150], x: [0, toMiddle(i, 70), toMiddle(i, 90)], scale: [1, 0.75, 0.5], rotate: [0, 360, 540] }),
-    // Clanks off the rim and drops away to the side.
-    miss: i => ({
-      y: [0, -230, -160, -40],
-      x: [0, toMiddle(i, 70), toMiddle(i, 90) + 50 * away(i), toMiddle(i, 90) + 150 * away(i)],
-      scale: [1, 0.75, 0.6, 0.7],
-      rotate: [0, 300, 420, 540],
-      opacity: [1, 1, 1, 0.4],
+    // Up in an arc above the hoop, down onto the rim, and through the net.
+    score: a => ({
+      x: [0, a.dx * 0.7, a.dx, a.dx],
+      y: [0, a.dy - 110, a.dy - 12, a.dy + 40],
+      scale: [1, 0.7, 0.45, 0.42],
+      rotate: [0, 300, 480, 540],
+      transition: { duration: 1.1, times: [0, 0.45, 0.75, 1], ease: 'easeInOut' },
     }),
-    duration: 0.9,
+    // Hits the edge of the rim and bounces away to the side.
+    miss: (a, i) => ({
+      x: [0, a.dx * 0.7, a.dx + 34 * away(i), a.dx + 170 * away(i)],
+      y: [0, a.dy - 110, a.dy - 8, a.dy + 90],
+      scale: [1, 0.7, 0.5, 0.6],
+      rotate: [0, 300, 420, 560],
+      opacity: [1, 1, 1, 0.4],
+      transition: { duration: 1.1, times: [0, 0.45, 0.7, 1], ease: 'easeInOut' },
+    }),
+    duration: 1.1,
   },
   volleyball: {
     ball: '🏐',
@@ -97,9 +110,9 @@ const SPORTS: Record<Sport, SportLook> = {
     field: 'bg-[linear-gradient(180deg,#fde68a_0%,#fcd34d_55%,#fbbf24_100%)]',
     target: VOLLEYBALL_NET,
     // High over the net and down on the far side.
-    score: i => ({ y: [0, -230, -175], x: [0, toMiddle(i, 40), toMiddle(i, 60)], scale: [1, 0.8, 0.55], rotate: [0, 270, 400] }),
-    // Into the net, then it drops back down.
-    miss: i => ({ y: [0, -110, -80, -10], x: [0, toMiddle(i, 30), toMiddle(i, 40), toMiddle(i, 40)], scale: [1, 0.85, 0.85, 0.9], rotate: [0, 120, 160, 200], opacity: [1, 1, 1, 0.4] }),
+    score: a => ({ x: [0, a.dx * 0.5, a.dx], y: [0, a.dy - 70, a.dy], scale: [1, 0.8, 0.55], rotate: [0, 270, 400] }),
+    // Into the net (just below the far court), then it drops back down.
+    miss: a => ({ x: [0, a.dx * 0.4, a.dx * 0.5, a.dx * 0.5], y: [0, a.dy + 20, a.dy + 55, a.dy + 140], scale: [1, 0.85, 0.8, 0.9], rotate: [0, 120, 160, 200], opacity: [1, 1, 1, 0.4] }),
     duration: 0.9,
   },
 };
@@ -111,10 +124,22 @@ export default function SportShot({ step, onDone }: Props) {
   const ask = sportAsk(sport);
   const { right, wrong, busy, stateFor } = useAnswer(onDone);
   const [kicked, setKicked] = useState<string | null>(null);
+  const [aim, setAim] = useState<Aim>({ dx: 0, dy: -170, oy: 36 });
+  const court = useRef<HTMLDivElement>(null);
   useSayOnMount(ask, wordClip(word));
 
-  const shoot = (text: string) => {
+  const shoot = (text: string, button: HTMLElement) => {
     if (busy) return;
+    const ball = button.firstElementChild?.getBoundingClientRect();
+    const target = court.current?.querySelector('[data-aim]')?.getBoundingClientRect();
+    const box = button.getBoundingClientRect();
+    if (ball && target) {
+      setAim({
+        dx: target.left + target.width / 2 - (ball.left + ball.width / 2),
+        dy: target.top + target.height / 2 - (ball.top + ball.height / 2),
+        oy: ball.top + ball.height / 2 - box.top,
+      });
+    }
     setKicked(text);
     if (text === word.text) right(() => say(goalLine(sport)));
     else wrong(text, () => sayWord(word)).then(() => setKicked(null));
@@ -125,7 +150,7 @@ export default function SportShot({ step, onDone }: Props) {
       <Guide text={`${ask}…`} onReplay={() => say(ask, wordClip(word))} />
 
       <div className={`relative w-full max-w-3xl rounded-[2rem] overflow-hidden shadow-xl border-4 border-white/70 pt-4 pb-6 ${look.field}`}>
-        <div className="relative">
+        <div className="relative" ref={court}>
           {look.target}
           <AnimatePresence>
             {kicked === word.text && (
@@ -149,10 +174,11 @@ export default function SportShot({ step, onDone }: Props) {
               <motion.button
                 key={o.text}
                 type="button"
-                onClick={() => shoot(o.text)}
+                onClick={e => shoot(o.text, e.currentTarget)}
                 disabled={busy}
-                animate={flying ? (o.text === word.text ? look.score(i) : look.miss(i)) : { y: 0, x: 0, scale: 1, rotate: 0, opacity: 1 }}
+                animate={flying ? (o.text === word.text ? look.score(aim) : look.miss(aim, i)) : { y: 0, x: 0, scale: 1, rotate: 0, opacity: 1 }}
                 transition={{ duration: look.duration, ease: 'easeOut' }}
+                style={{ transformOrigin: `50% ${aim.oy}px` }}
                 className="flex flex-col items-center gap-1 z-10"
                 aria-label={`ball ${o.text}`}
               >
