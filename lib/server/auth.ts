@@ -2,7 +2,8 @@
 // Signing in gives the browser a random session token in an httpOnly cookie; the token is looked up in the store.
 import { randomBytes, scrypt as scryptCb, timingSafeEqual, type ScryptOptions } from 'node:crypto'
 import type { NextRequest } from 'next/server'
-import { kvAvailable, kvDel, kvGet, kvGetJson, kvSet, kvSetNew } from './kv.ts'
+import { kvAvailable, kvDel, kvGet, kvGetJson, kvKeys, kvSet, kvSetNew } from './kv.ts'
+import { getConfig } from './app-config.ts'
 
 const scrypt = (password: string, salt: Buffer, len: number, opts: ScryptOptions) =>
   new Promise<Buffer>((resolve, reject) => scryptCb(password, salt, len, opts, (err, key) => (err ? reject(err) : resolve(key))))
@@ -35,9 +36,14 @@ export function checkPassword(p: string): string | null {
 /** Accounts work when there is a store. Without one (never in production here) the app stays open and local-only. */
 export const authEnabled = (): boolean => kvAvailable()
 
-/** New accounts need the family's invite code, so strangers cannot sign up and spend the AI budget. */
-export function inviteOk(code: string | undefined | null): boolean {
-  const expected = (process.env.INVITE_CODE ?? (process.env.NODE_ENV !== 'production' ? 'AIDEN-DEV' : '')).trim()
+/**
+ * New accounts need the family's invite code, so strangers cannot sign up and spend the AI budget.
+ * The admin can close sign-ups or replace the code from inside the app; otherwise INVITE_CODE from Vercel is used.
+ */
+export async function inviteOk(code: string | undefined | null): Promise<boolean> {
+  const config = await getConfig()
+  if (!config.signupsOpen) return false
+  const expected = (config.inviteCode || process.env.INVITE_CODE || (process.env.NODE_ENV !== 'production' ? 'AIDEN-DEV' : '')).trim()
   if (!expected) return false
   const a = Buffer.from((code ?? '').trim().toUpperCase())
   const b = Buffer.from(expected.toUpperCase())
@@ -69,6 +75,25 @@ export async function getUser(username: string): Promise<User | null> {
   return kvGetJson<User>(userKey(username))
 }
 
+/** Every account's username (for the admin's list). */
+export async function listUsernames(): Promise<string[]> {
+  return (await kvKeys('aiden:user:*')).map(k => k.slice('aiden:user:'.length)).sort()
+}
+
+/** Admin: give an account a new password (for a forgotten one). */
+export async function setPassword(username: string, password: string): Promise<boolean> {
+  const user = await getUser(username)
+  if (!user) return false
+  const salt = randomBytes(16)
+  await kvSet(userKey(username), JSON.stringify({ ...user, hash: await hashPassword(password, salt), salt: salt.toString('hex') }))
+  return true
+}
+
+/** Admin: remove an account and its saved progress. Its devices are signed out on their next request. */
+export async function deleteAccount(username: string): Promise<void> {
+  await Promise.all([kvDel(userKey(username)), kvDel(`aiden:profile:${username}`)])
+}
+
 export async function createSession(username: string): Promise<{ token: string; maxAge: number }> {
   const token = randomBytes(32).toString('base64url')
   const maxAge = SESSION_DAYS * 86_400
@@ -84,7 +109,12 @@ export async function endSession(token: string | undefined): Promise<void> {
 export async function sessionUser(req: NextRequest): Promise<string | null> {
   const token = req.cookies.get(SESSION_COOKIE)?.value
   if (!token || token.length > 100) return null
-  try { return await kvGet(sessionKey(token)) } catch { return null }
+  try {
+    const username = await kvGet(sessionKey(token))
+    // A deleted account's old sessions stop working.
+    if (!username || (await kvGet(userKey(username))) === null) return null
+    return username
+  } catch { return null }
 }
 
 export function sessionCookie(token: string, maxAge: number) {

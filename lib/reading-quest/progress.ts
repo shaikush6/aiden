@@ -18,7 +18,13 @@ export interface QuestSettings {
   voiceVolume: number
   /** Lower the music while the voice is talking. */
   duck: boolean
+  /** Settings the player changed themselves. The admin's app-wide defaults never override these. */
+  custom: ('narratorVoice' | 'music')[]
 }
+
+/** The settings the admin can set a default for, for everyone. */
+export type DefaultableSetting = QuestSettings['custom'][number]
+const DEFAULTABLE: DefaultableSetting[] = ['narratorVoice', 'music']
 
 export interface QuestProgress {
   v: 1
@@ -34,7 +40,7 @@ export interface QuestProgress {
 }
 
 const KEY = 'aiden-reading-quest-v1'
-const DEFAULT_SETTINGS: QuestSettings = { music: true, narrator: true, narratorVoice: DEFAULT_NARRATOR_VOICE, musicVolume: 0.5, voiceVolume: 1, duck: true }
+const DEFAULT_SETTINGS: QuestSettings = { music: true, narrator: true, narratorVoice: DEFAULT_NARRATOR_VOICE, musicVolume: 0.5, voiceVolume: 1, duck: true, custom: [] }
 const EMPTY: QuestProgress = {
   v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: DEFAULT_SETTINGS, celebratedWorlds: [], rocketBest: null,
 }
@@ -50,6 +56,7 @@ function cleanSettings(raw: Partial<QuestSettings> | undefined): QuestSettings {
   merged.musicVolume = level(merged.musicVolume, DEFAULT_SETTINGS.musicVolume)
   merged.voiceVolume = level(merged.voiceVolume, DEFAULT_SETTINGS.voiceVolume)
   merged.duck = typeof merged.duck === 'boolean' ? merged.duck : true
+  merged.custom = Array.isArray(merged.custom) ? DEFAULTABLE.filter(k => merged.custom.includes(k)) : []
   return merged
 }
 
@@ -134,9 +141,22 @@ export function setUnlockAll(v: boolean) {
   commit({ ...getProgress(), unlockAll: v })
 }
 
+/** A change the player (or a grown-up) made. Voice and music choices are remembered as theirs. */
 export function setSettings(patch: Partial<QuestSettings>) {
   const p = getProgress()
-  commit({ ...p, settings: { ...p.settings, ...patch } })
+  const custom = [...new Set([...p.settings.custom, ...DEFAULTABLE.filter(k => k in patch)])]
+  commit({ ...p, settings: { ...p.settings, ...patch, custom } })
+}
+
+/** The admin's app-wide defaults: applied only to settings this player never changed. */
+export function applyDefaults(defaults: Pick<QuestSettings, DefaultableSetting>) {
+  const p = getProgress()
+  const patch: Partial<QuestSettings> = {}
+  for (const k of DEFAULTABLE) {
+    if (p.settings.custom.includes(k) || p.settings[k] === defaults[k]) continue
+    Object.assign(patch, { [k]: defaults[k] })
+  }
+  if (Object.keys(patch).length) commit({ ...p, settings: { ...p.settings, ...patch } })
 }
 
 export function markWorldCelebrated(worldId: string) {

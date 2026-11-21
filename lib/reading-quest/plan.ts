@@ -2,7 +2,7 @@
 // Call it from an event handler (it uses randomness), then pass the steps down as props.
 import { tokenize, type HeartWord, type LevelInfo, type StorySum } from './catalog.ts'
 import { defaultPhoneme, isKnownGrapheme } from './phonemes.ts'
-import type { ParsedWord, SentenceDef, SoundDef, StoryDef } from './types.ts'
+import { SPORTS, type ParsedWord, type SentenceDef, type SoundDef, type Sport, type StoryDef } from './types.ts'
 import type { QuestProgress } from './progress.ts'
 
 export type Step =
@@ -11,7 +11,7 @@ export type Step =
   | { kind: 'blend'; word: ParsedWord; choices: ParsedWord[] }
   | { kind: 'readPick'; word: ParsedWord; choices: ParsedWord[] }
   | { kind: 'build'; word: ParsedWord; tiles: string[] }
-  | { kind: 'goal'; word: ParsedWord; options: ParsedWord[] }
+  | { kind: 'goal'; sport: Sport; word: ParsedWord; options: ParsedWord[] }
   | { kind: 'alien'; word: ParsedWord; real: boolean }
   | { kind: 'heart'; heart: HeartWord; options: ParsedWord[] }
   | { kind: 'sentence'; sentence: SentenceDef; pics?: string[] }
@@ -257,9 +257,11 @@ export function planLevel(level: LevelInfo, progress: QuestProgress): Step[] {
     for (let tries = 0; tries < 4 && word.chunks.length > 6; tries++) word = nextWord()
     return { kind: 'build', word, tiles: buildTiles(level, word) }
   }
+  // Soccer, basketball or volleyball: neighbouring levels differ, and each replay of a level moves on to the next sport.
+  const sport = SPORTS[(level.index + (progress.levels[level.def.id]?.plays ?? 0)) % SPORTS.length]
   const goal = (): Step => {
     const word = nextWord()
-    return { kind: 'goal', word, options: shuffle([word, ...pickSimilar(word, allBank, 2, false)]) }
+    return { kind: 'goal', sport, word, options: shuffle([word, ...pickSimilar(word, allBank, 2, false)]) }
   }
   const aliens = shuffle(level.aliens)
   const alien = (i: number): Step | null => {

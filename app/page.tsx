@@ -9,6 +9,8 @@ import ProfileBadge from '@/components/profile/ProfileBadge';
 import SignIn from '@/components/profile/SignIn';
 import StartingPoint from '@/components/profile/StartingPoint';
 import { getProfileState, getServerProfileState, initProfile, subscribeProfile } from '@/lib/profile/client';
+import { getAppConfig, getServerAppConfig, loadAppConfig, subscribeAppConfig } from '@/lib/app-config-client';
+import type { ThemeId } from '@/lib/app-config';
 import PhonicsTab from '@/components/PhonicsTab';
 import PatternsTab from '@/components/PatternsTab';
 import MathTab from '@/components/MathTab';
@@ -30,6 +32,14 @@ const TAB_BACKGROUNDS: Record<TabId, string> = {
   prep:     'from-rose-300 via-pink-200 to-fuchsia-200 dark:from-rose-950 dark:via-slate-900 dark:to-slate-950',
 };
 
+// The admin's app-wide colour themes ('tabs' keeps each tab's own colours above). Space always stays dark.
+const THEME_BACKGROUNDS: Record<Exclude<ThemeId, 'tabs'>, string> = {
+  sunset: 'from-amber-200 via-orange-200 to-pink-200 dark:from-orange-950 dark:via-slate-900 dark:to-rose-950',
+  ocean:  'from-cyan-200 via-sky-200 to-blue-300 dark:from-cyan-950 dark:via-slate-900 dark:to-blue-950',
+  forest: 'from-lime-200 via-green-200 to-emerald-300 dark:from-lime-950 dark:via-slate-900 dark:to-emerald-950',
+  candy:  'from-pink-200 via-fuchsia-200 to-violet-300 dark:from-pink-950 dark:via-slate-900 dark:to-violet-950',
+};
+
 const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string; textColor: string }> = {
   quest:    { title: 'READING QUEST',   subtitle: 'Read words, rescue animals!',        icon: '🦊', textColor: 'text-emerald-800' },
   phonics:  { title: 'READ WITH ME',    subtitle: 'Tap words and letters to hear them!', icon: '🔤', textColor: 'text-sky-800' },
@@ -45,13 +55,14 @@ const TAB_HEADERS: Record<TabId, { title: string; subtitle: string; icon: string
 export default function Home() {
   const profile = useSyncExternalStore(subscribeProfile, getProfileState, getServerProfileState);
   useEffect(() => initProfile(), []);
+  useEffect(() => { void loadAppConfig(); }, []);
 
   if (profile.phase === 'checking') {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-200 to-pink-200 dark:from-slate-900 dark:to-indigo-950 text-8xl" aria-label="Loading">🦊</div>;
   }
   if (profile.phase === 'gate') return <SignIn />;
   // Once per account: a returning player can say where they got to, so they do not start over.
-  if (profile.phase === 'in' && profile.synced && !profile.prefs.placed) return <StartingPoint />;
+  if (profile.phase === 'in' && profile.synced && (!profile.prefs.placed || profile.replayStart)) return <StartingPoint />;
   return <App />;
 }
 
@@ -60,7 +71,11 @@ function readFlag(key: string): string | null {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState<TabId>('quest');
+  const [chosenTab, setActiveTab] = useState<TabId>('quest');
+  const config = useSyncExternalStore(subscribeAppConfig, getAppConfig, getServerAppConfig);
+  const admin = useSyncExternalStore(subscribeProfile, () => getProfileState().admin, () => false);
+  // A tab the admin hides while someone is on it sends them back to the Reading Quest.
+  const activeTab: TabId = !admin && config.hiddenTabs.includes(chosenTab) ? 'quest' : chosenTab;
   // App only renders in the browser (after the sign-in check), so saved switches can be read straight away.
   const [voiceOn, setVoiceOn] = useState(() => readFlag('aiden-voice') !== 'false');
   const [isDark, setIsDark] = useState(() => readFlag('aiden-dark') === 'true');
@@ -84,7 +99,7 @@ function App() {
   };
 
   const header = TAB_HEADERS[activeTab];
-  const bg = TAB_BACKGROUNDS[activeTab];
+  const bg = config.theme === 'tabs' || activeTab === 'solar' ? TAB_BACKGROUNDS[activeTab] : THEME_BACKGROUNDS[config.theme];
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${bg} transition-all duration-500`}>
@@ -115,7 +130,7 @@ function App() {
       </header>
 
       {/* Navigation */}
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} hidden={config.hiddenTabs} showHidden={admin} />
 
       {/* Tab content */}
       <main className="mt-2">

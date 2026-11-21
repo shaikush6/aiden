@@ -4,7 +4,7 @@ import { mergeProfile } from '@/lib/profile/merge'
 import { authEnabled, sessionUser } from '@/lib/server/auth'
 import { kvGetJson, kvSet } from '@/lib/server/kv'
 import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
-import { QUOTA_USD, remainingUsd } from '@/lib/server/quota'
+import { quotaUsd, remainingUsd } from '@/lib/server/quota'
 
 const MAX_BODY = 200_000
 const profileKey = (u: string) => `aiden:profile:${u}`
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   if (rateLimited(req, 'profile-get', 120, 60_000)) return jsonError('Too many requests', 429)
   try {
     const saved = await kvGetJson(profileKey(user))
-    return NextResponse.json({ name: user, data: saved ? parseProfile(saved) : null, quota: QUOTA_USD, remaining: await remainingUsd(user) }, { headers: noStore })
+    return NextResponse.json({ name: user, data: saved ? parseProfile(saved) : null, quota: await quotaUsd(user), remaining: await remainingUsd(user) }, { headers: noStore })
   } catch {
     return jsonError('Could not reach the profile store', 502)
   }
@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest) {
     // An empty profile never replaces real progress.
     const merged = saved ? mergeProfile(saved, incoming) : incoming
     if (hasProgress(merged) || saved) await kvSet(profileKey(user), JSON.stringify(merged))
-    return NextResponse.json({ name: user, data: merged, quota: QUOTA_USD, remaining: await remainingUsd(user) }, { headers: noStore })
+    return NextResponse.json({ name: user, data: merged, quota: await quotaUsd(user), remaining: await remainingUsd(user) }, { headers: noStore })
   } catch {
     return jsonError('Could not save', 502)
   }

@@ -4,13 +4,16 @@ import {
   sessionCookie, sessionUser, verifyUser,
 } from '@/lib/server/auth'
 import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
-import { QUOTA_USD, remainingUsd } from '@/lib/server/quota'
+import { quotaUsd, remainingUsd } from '@/lib/server/quota'
+import { isAdmin } from '@/lib/server/admin'
+import { getConfig } from '@/lib/server/app-config'
 
 const noStore = { 'Cache-Control': 'no-store' }
 
 async function me(username: string) {
   const user = await getUser(username)
-  return { username, displayName: user?.displayName ?? username, quota: QUOTA_USD, remaining: await remainingUsd(username) }
+  const [quota, remaining] = await Promise.all([quotaUsd(username), remainingUsd(username)])
+  return { username, displayName: user?.displayName ?? username, quota, remaining, admin: isAdmin(username) }
 }
 
 /** Who is signed in on this device (and how much AI credit they have left). */
@@ -49,7 +52,8 @@ export async function POST(req: NextRequest) {
 
     let signedIn: string | null = null
     if (action === 'signup') {
-      if (!inviteOk(typeof body.invite === 'string' ? body.invite : '')) return jsonError('That invite code is not right.', 403)
+      if (!(await getConfig()).signupsOpen) return jsonError('New accounts are closed right now. Ask the grown-up who runs the app.', 403)
+      if (!(await inviteOk(typeof body.invite === 'string' ? body.invite : ''))) return jsonError('That invite code is not right.', 403)
       const problem = checkUsername(username) ?? checkPassword(password)
       if (problem) return jsonError(problem, 400)
       const user = await createUser(username, password)

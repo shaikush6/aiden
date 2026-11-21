@@ -16,7 +16,7 @@ import HearPick from './steps/HearPick';
 import BlendWord from './steps/BlendWord';
 import ReadPick from './steps/ReadPick';
 import BuildWord from './steps/BuildWord';
-import GoalKick from './steps/GoalKick';
+import SportShot from './steps/SportShot';
 import RealOrAlien from './steps/RealOrAlien';
 import HeartWord from './steps/HeartWord';
 import SentenceCheck from './steps/SentenceCheck';
@@ -28,6 +28,7 @@ import WordChain from './steps/WordChain';
 import BubblePop from './steps/BubblePop';
 import RocketRead from './steps/RocketRead';
 import { useJuice } from './Juice';
+import SkipButton from '@/components/admin/SkipButton';
 
 const ReactConfetti = dynamic(() => import('react-confetti'), { ssr: false });
 
@@ -125,6 +126,7 @@ export default function LevelPlayer({ level, steps, script, onExit, onReplay, on
             transition={{ duration: 0.25 }}
           >
             <StepView step={steps[index]} level={level} storyIntro={script.storyIntro} onDone={finishStep} />
+            <SkipButton onSkip={() => finishStep({ firstTry: true })} />
           </motion.div>
         )}
         {phase === 'done' && result && (
@@ -144,7 +146,7 @@ function StepView({ step, level, storyIntro, onDone }: { step: Step; level: Leve
     case 'blend': return <BlendWord step={step} onDone={onDone} />;
     case 'readPick': return <ReadPick step={step} onDone={onDone} />;
     case 'build': return <BuildWord step={step} onDone={onDone} />;
-    case 'goal': return <GoalKick step={step} onDone={onDone} />;
+    case 'goal': return <SportShot step={step} onDone={onDone} />;
     case 'alien': return <RealOrAlien step={step} onDone={onDone} />;
     case 'heart': return <HeartWord step={step} onDone={onDone} />;
     case 'sentence': return <SentenceCheck step={step} level={level} onDone={onDone} />;

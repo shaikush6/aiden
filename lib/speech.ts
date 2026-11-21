@@ -46,6 +46,13 @@ const urlCache = new Map<string, string>()
 const inFlight = new Map<string, Promise<string | null>>()
 // v2 goes with the calmer voice (VOICE_VERSION v3); older saved clips are deleted below.
 const CACHE_NAME = 'aiden-tts-v2'
+
+/** Admin: forget every saved voice clip on this device, so the next play fetches fresh audio. */
+export async function clearVoiceCache(): Promise<void> {
+  for (const url of urlCache.values()) URL.revokeObjectURL(url)
+  urlCache.clear()
+  if (typeof caches !== 'undefined') await caches.delete(CACHE_NAME).catch(() => false)
+}
 const OLD_CACHES = ['aiden-tts-v1']
 
 function rememberUrl(key: string, url: string) {

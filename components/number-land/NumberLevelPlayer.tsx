@@ -12,6 +12,7 @@ import { isNScored, nStepNumbers, nWordsInStep, type NStep } from '@/lib/number-
 import { TOPIC_SIGNS } from '@/lib/number-land/terms';
 import { recordNLLevel, type NumberStat } from '@/lib/number-land/progress';
 import { BigButton, useSayOnMount, type StepResult } from '@/components/reading-quest/ui';
+import SkipButton from '@/components/admin/SkipButton';
 import { useJuice } from '@/components/reading-quest/Juice';
 import SoundSwitches from '@/components/reading-quest/SoundSwitches';
 import NumberBuddy from './NumberBuddy';
@@ -129,6 +130,7 @@ export default function NumberLevelPlayer({ level, steps, script, onExit, onRepl
             transition={{ duration: 0.25 }}
           >
             <StepView step={steps[index]} onDone={finishStep} />
+            <SkipButton onSkip={() => finishStep({ firstTry: true })} />
           </motion.div>
         )}
         {phase === 'done' && result && (

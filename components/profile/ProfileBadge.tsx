@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AVATARS } from '@/lib/profile/merge';
+import AdminPanel from '@/components/admin/AdminPanel';
 import { getProfileState, getServerProfileState, refreshCredit, setAvatar, signOut, subscribeProfile, syncNow } from '@/lib/profile/client';
 
 const SYNC_TEXT = {
@@ -16,6 +17,7 @@ const SYNC_TEXT = {
 export default function ProfileBadge() {
   const profile = useSyncExternalStore(subscribeProfile, getProfileState, getServerProfileState);
   const [open, setOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
   if (profile.phase !== 'in' || !profile.name) {
     return (
@@ -43,12 +45,13 @@ export default function ProfileBadge() {
           </span>
         </span>
       </motion.button>
-      <AnimatePresence>{open && <Sheet onClose={() => setOpen(false)} />}</AnimatePresence>
+      <AnimatePresence>{open && <Sheet onClose={() => setOpen(false)} onAdmin={() => { setOpen(false); setAdminOpen(true); }} />}</AnimatePresence>
+      <AnimatePresence>{adminOpen && profile.admin && <AdminPanel onClose={() => setAdminOpen(false)} />}</AnimatePresence>
     </>
   );
 }
 
-function Sheet({ onClose }: { onClose: () => void }) {
+function Sheet({ onClose, onAdmin }: { onClose: () => void; onAdmin: () => void }) {
   const profile = useSyncExternalStore(subscribeProfile, getProfileState, getServerProfileState);
   const [confirming, setConfirming] = useState(false);
   const [gate] = useState(() => ({ a: 3 + Math.floor(Math.random() * 6), b: 3 + Math.floor(Math.random() * 6) }));
@@ -99,6 +102,9 @@ function Sheet({ onClose }: { onClose: () => void }) {
           <button type="button" onClick={() => { void syncNow(); }} className="font-black rounded-xl px-4 py-3 bg-sky-500 text-white">☁️ Save now</button>
           <button type="button" onClick={onClose} className="font-black rounded-xl px-4 py-3 bg-emerald-500 text-white">OK ✓</button>
         </div>
+        {profile.admin && (
+          <button type="button" onClick={onAdmin} className="w-full font-black rounded-xl px-4 py-3 bg-slate-800 text-white dark:bg-white dark:text-slate-900">🛠️ Admin</button>
+        )}
 
         <div className="border-t-2 border-slate-100 dark:border-slate-700 pt-3 w-full flex flex-col items-center gap-2">
           {confirming ? (

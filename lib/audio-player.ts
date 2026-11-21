@@ -194,6 +194,17 @@ const loaded = (url: Promise<string | null>): Promise<string | null> =>
  * Play clips in order. Each clip is a URL or a function that resolves to one (e.g. a TTS fetch).
  * Resolves true if the whole sequence finished (or audio is off, so there is nothing to wait for), false if it was interrupted.
  */
+// The last few things the voice tried to say, for the admin's debug view. Capped so it never grows.
+export interface AudioLogEntry { at: number; result: 'played' | 'device voice' | 'skipped'; what: string }
+const LOG_MAX = 40
+const audioLog: AudioLogEntry[] = []
+function note(result: AudioLogEntry['result'], clip: ClipSource) {
+  const what = typeof clip === 'string' ? clip.split('/').pop() ?? clip : clip.fallback ?? 'speech sound'
+  audioLog.push({ at: Date.now(), result, what: what.slice(0, 80) })
+  if (audioLog.length > LOG_MAX) audioLog.shift()
+}
+export const getAudioLog = (): AudioLogEntry[] => [...audioLog]
+
 export async function playSequence(clips: ClipSource[], gapMs = 120): Promise<boolean> {
   stopAudio()
   // With the voice switched off the lesson carries on silently; callers treat false as "interrupted" and would stall.
@@ -207,10 +218,12 @@ export async function playSequence(clips: ClipSource[], gapMs = 120): Promise<bo
     if (mine !== token) return false
     if (!url) {
       const clip = clips[i]
+      note(typeof clip !== 'string' && clip.fallback ? 'device voice' : 'skipped', clip)
       if (typeof clip !== 'string' && clip.fallback) await speakNative(clip.fallback)
       if (mine !== token) return false
       continue
     }
+    note('played', clips[i])
     await playOne(url)
     if (mine !== token) return false
     if (gapMs && i < urls.length - 1) await wait(gapMs)

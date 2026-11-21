@@ -3,11 +3,11 @@
 import { LEVELS, tokenize, type LevelInfo } from './catalog.ts'
 import { isKnownGrapheme } from './phonemes.ts'
 import { parseSeg, parseWord } from './parse.ts'
-import type { ParsedWord } from './types.ts'
+import { SPORTS, type ParsedWord } from './types.ts'
 import { planLevel } from './plan.ts'
 import { checkScript } from './script.ts'
 import { parseScene } from './scene.ts'
-import { KIT_LINES, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, KIT_PRAISE, KIT_RETRY } from './lines.ts'
+import { KIT_LINES, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, KIT_PRAISE, KIT_RETRY, KIT_SCORE, NARRATOR_SCORE } from './lines.ts'
 import { narrationLines } from './narration.ts'
 import { WORLDS } from './curriculum/index.ts'
 import type { QuestProgress } from './progress.ts'
@@ -123,13 +123,13 @@ export function validateCurriculum(): string[] {
   // Fixed lines, narration, and world intros.
   const fixed = [
     ...Object.values(KIT_LINES), ...Object.values(NARRATOR_LINES), ...KIT_PRAISE, ...KIT_RETRY,
-    ...NARRATOR_PRAISE, ...NARRATOR_RETRY, ...narrationLines(), ...WORLDS.map(w => w.intro),
+    ...NARRATOR_PRAISE, ...NARRATOR_RETRY, ...Object.values(KIT_SCORE), ...Object.values(NARRATOR_SCORE), ...narrationLines(), ...WORLDS.map(w => w.intro),
   ]
   for (const text of fixed) checkScript(text).forEach(p => errors.push(`fixed line "${text.slice(0, 40)}…": ${p}`))
   return errors
 }
 
-const NO_PROGRESS: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: { music: false, narrator: false, narratorVoice: 'alloy', musicVolume: 0.5, voiceVolume: 1, duck: true }, celebratedWorlds: [], rocketBest: null }
+const NO_PROGRESS: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: { music: false, narrator: false, narratorVoice: 'alloy', musicVolume: 0.5, voiceVolume: 1, duck: true, custom: [] }, celebratedWorlds: [], rocketBest: null }
 
 /** Generate each level's activities many times and make sure every activity has a full set of choices. */
 export function validatePlans(runs = 25): string[] {
@@ -144,6 +144,7 @@ export function validatePlans(runs = 25): string[] {
         if ((st.kind === 'blend' || st.kind === 'readPick') && (st.choices.length !== 3 || new Set(st.choices.map(c => c.emoji)).size !== 3))
           at(`"${st.word.text}" (${st.kind}) could not get 3 distinct pictures`)
         if (st.kind === 'goal' && st.options.length !== 3) at(`goal "${st.word.text}" has ${st.options.length} options`)
+        if (st.kind === 'goal' && !SPORTS.includes(st.sport)) at(`goal has unknown sport ${st.sport}`)
         if (st.kind === 'heart' && st.options.length !== 3) at(`heart "${st.heart.word.text}" has ${st.options.length} options`)
         if (st.kind === 'hearPick' && st.options.length !== 3) at(`sound "${st.answer}" has ${st.options.length} options`)
         if (st.kind === 'build' && st.tiles.length < st.word.chunks.length + 1) at(`build "${st.word.text}" lacks spare tiles`)

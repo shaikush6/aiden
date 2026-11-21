@@ -7,6 +7,10 @@
 
 export type PhonemeKey = string
 
+/** Which ball game the "pick the word" round is dressed up as. */
+export const SPORTS = ['soccer', 'basketball', 'volleyball'] as const
+export type Sport = (typeof SPORTS)[number]
+
 /** A word as authored in the curriculum. */
 export interface WordDef {
   seg: string

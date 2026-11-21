@@ -7,7 +7,7 @@ import { hashKey } from '../hash.ts'
 import { COUNTING_WORDS, LEVELS, type LevelInfo } from './catalog.ts'
 import { WORLDS } from './curriculum/index.ts'
 import {
-  KIT_GOAL, KIT_LINES, KIT_PRAISE, KIT_RETRY, NARRATOR_GOAL, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, rescuedLine,
+  KIT_LINES, KIT_PRAISE, KIT_RETRY, KIT_SCORE, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, NARRATOR_SCORE, rescuedLine,
 } from './lines.ts'
 import { NARRATOR_VOICES, narrationLines, WORLD_NARRATION } from './narration.ts'
 import { phonemeTtsTexts } from './phonemes.ts'
@@ -69,8 +69,8 @@ export function levelLines(level: LevelInfo): QuestLine[] {
 /** The lines every level uses: instructions, praise, narrator moments, and speech sounds. */
 export function sharedLines(): QuestLine[] {
   return [
-    ...asKit([...Object.values(KIT_LINES), ...KIT_PRAISE, ...KIT_RETRY, KIT_GOAL]),
-    ...asNarrator([...Object.values(NARRATOR_LINES), ...NARRATOR_PRAISE, ...NARRATOR_RETRY, NARRATOR_GOAL, ...narrationLines()]),
+    ...asKit([...Object.values(KIT_LINES), ...KIT_PRAISE, ...KIT_RETRY, ...Object.values(KIT_SCORE)]),
+    ...asNarrator([...Object.values(NARRATOR_LINES), ...NARRATOR_PRAISE, ...NARRATOR_RETRY, ...Object.values(NARRATOR_SCORE), ...narrationLines()]),
     ...phonemeTtsTexts().map(text => ({ kind: 'sound' as const, text })),
     // Counting a Block Buddy out loud, and naming a newly unlocked world.
     ...COUNTING_WORDS.map(text => ({ kind: 'word' as const, text })),

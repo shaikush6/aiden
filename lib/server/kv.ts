@@ -78,3 +78,19 @@ export async function kvIncr(key: string, by: number): Promise<number> {
   memory.set(key, { value: String(next), expiresAt: null })
   return next
 }
+
+/** Every key matching a pattern like `aiden:user:*`. Capped, because this is only for a short list of accounts. */
+export async function kvKeys(pattern: string, max = 2000): Promise<string[]> {
+  if (!remote()) {
+    const re = new RegExp(`^${pattern.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`)
+    return [...memory.keys()].filter(k => re.test(k) && memGet(k) !== null).slice(0, max)
+  }
+  const out: string[] = []
+  let cursor = '0'
+  do {
+    const [next, keys] = (await redis(['SCAN', cursor, 'MATCH', pattern, 'COUNT', 500])) as [string, string[]]
+    out.push(...keys)
+    cursor = next
+  } while (cursor !== '0' && out.length < max)
+  return out.slice(0, max)
+}

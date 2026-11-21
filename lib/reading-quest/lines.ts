@@ -4,6 +4,7 @@
 // Components read LINES, which picks the right style from the current settings.
 // All of these are pre-approved for text-to-speech by the server allowlist.
 import { getProgress } from './progress.ts'
+import type { Sport } from './types.ts'
 
 export const KIT_LINES = {
   welcome: 'Hi! I am Kit the fox. Animals need our help! Read words to power up and rescue them.',
@@ -17,6 +18,8 @@ export const KIT_LINES = {
   readPick: 'Read the word. Then tap the picture that matches.',
   build: 'Build this word. Tap the sounds in order.',
   goal: 'Kick the ball that says',
+  hoop: 'Shoot the ball that says',
+  net: 'Hit the ball over the net. Pick the one that says',
   alien: 'Real word or alien word? Read it, then tap the Earth or the alien.',
   realWord: 'Yes! That is a real word.',
   alienWord: 'Yes! That is an alien word!',
@@ -58,6 +61,8 @@ export const NARRATOR_LINES: Record<LineKey, string> = {
   readPick: 'Read it with your super eyes! Then tap the picture that matches!',
   build: 'Let’s build it! Tap the sounds in order, just like a builder!',
   goal: 'Here comes the big kick! Kick the ball that says',
+  hoop: 'Time to shoot some hoops! Shoot the ball that says',
+  net: 'Volleyball time! Hit the ball over the net. Pick the one that says',
   alien: 'Uh oh, an alien spaceship! Is this a real Earth word, or a silly alien word? Read it and decide!',
   realWord: 'Yes! That is a real Earth word!',
   alienWord: 'You got it! That is a silly alien word!',
@@ -114,8 +119,17 @@ export const NARRATOR_RETRY = [
   'So close! Try again, explorer.', 'Not quite! Look again, you can do it!', 'Hmm, give it another try!',
 ] as const
 
-export const KIT_GOAL = 'Goal! Nice kick.'
-export const NARRATOR_GOAL = 'Goal! What a great kick!'
+/** What the guide says when the right ball scores, per sport. */
+export const KIT_SCORE: Record<Sport, string> = {
+  soccer: 'Goal! Nice kick.',
+  basketball: 'Swish! Nice shot.',
+  volleyball: 'Point! Nice hit.',
+}
+export const NARRATOR_SCORE: Record<Sport, string> = {
+  soccer: 'Goal! What a great kick!',
+  basketball: 'Swish! What a great shot!',
+  volleyball: 'Point! What a great hit!',
+}
 
 const pick = <T extends readonly string[]>(arr: T) => arr[Math.floor(Math.random() * arr.length)]
 
@@ -127,8 +141,13 @@ export function randomRetry(): string {
   return pick(narratorOn() ? NARRATOR_RETRY : KIT_RETRY)
 }
 
-export function goalLine(): string {
-  return narratorOn() ? NARRATOR_GOAL : KIT_GOAL
+export function goalLine(sport: Sport = 'soccer'): string {
+  return (narratorOn() ? NARRATOR_SCORE : KIT_SCORE)[sport]
+}
+
+/** The instruction that leads into the spoken word, per sport. */
+export function sportAsk(sport: Sport): string {
+  return sport === 'basketball' ? LINES.hoop : sport === 'volleyball' ? LINES.net : LINES.goal
 }
 
 export function rescuedLine(animalName: string): string {

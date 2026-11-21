@@ -27,6 +27,10 @@ export interface ProfileState {
   credit: Credit | null
   /** True once this account's saved copy has been loaded from the cloud on this device. */
   synced: boolean
+  /** This account runs the app: it sees the admin panel and the testing tools. */
+  admin: boolean
+  /** Admin testing: show the "where were you?" question again on this device (the cloud copy is not changed). */
+  replayStart: boolean
 }
 
 const LOCAL_KEY = 'aiden-account-v1'      // remembers the name and avatar, so the badge shows instantly
@@ -36,7 +40,7 @@ const OLD_KEYS = ['aiden-profile-v1']     // the old invite-code sign-in, replac
 const SAVE_DELAY_MS = 2500
 const CHECK_EVERY_MS = 120_000
 
-const CHECKING: ProfileState = { phase: 'checking', name: null, displayName: null, prefs: { avatar: DEFAULT_AVATAR, placed: false }, sync: 'idle', credit: null, synced: false }
+const CHECKING: ProfileState = { phase: 'checking', name: null, displayName: null, prefs: { avatar: DEFAULT_AVATAR, placed: false }, sync: 'idle', credit: null, synced: false, admin: false, replayStart: false }
 let state: ProfileState = CHECKING
 const listeners = new Set<() => void>()
 
@@ -204,14 +208,14 @@ function stopWatching() {
 function dropSession() {
   stopWatching()
   write(LOCAL_KEY, null)
-  setState({ phase: 'gate', name: null, displayName: null, sync: 'idle', credit: null, synced: false })
+  setState({ phase: 'gate', name: null, displayName: null, sync: 'idle', credit: null, synced: false, admin: false })
 }
 
 /** Start syncing for a signed-in account. */
-async function enter(name: string, displayName: string, credit: Credit | null) {
+async function enter(name: string, displayName: string, credit: Credit | null, admin = false) {
   const cached = (() => { try { return JSON.parse(read(LOCAL_KEY) ?? 'null') as { name?: string; avatar?: string } | null } catch { return null } })()
   const prefs = cached?.name === name ? parsePrefs({ avatar: cached.avatar }) : state.prefs
-  setState({ phase: 'in', name, displayName, prefs, credit, sync: 'saving', synced: false })
+  setState({ phase: 'in', name, displayName, prefs, credit, sync: 'saving', synced: false, admin })
   startWatching()
   const result = await reconcile(name)
   if (!result.ok) {
@@ -222,7 +226,7 @@ async function enter(name: string, displayName: string, credit: Credit | null) {
 
 // ---------- public actions ----------
 
-interface Me { username: string; displayName: string; quota: number; remaining: number }
+interface Me { username: string; displayName: string; quota: number; remaining: number; admin?: boolean }
 
 /** Run once when the app opens. Returns a cleanup function. */
 export function initProfile(): () => void {
@@ -241,7 +245,7 @@ export function initProfile(): () => void {
       }
       if (!json.enabled) { setState({ phase: 'open' }); return }
       if (!json.user) { setState({ phase: 'gate' }); return }
-      await enter(json.user.username, json.user.displayName, { quota: json.user.quota, remaining: json.user.remaining })
+      await enter(json.user.username, json.user.displayName, { quota: json.user.quota, remaining: json.user.remaining }, json.user.admin === true)
     } catch {
       setState({ phase: 'open' })   // never lock him out because the network is down
     }
@@ -256,7 +260,7 @@ async function authCall(body: Record<string, string>): Promise<AuthResult> {
     const res = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
     const json = (await res.json().catch(() => ({}))) as { user?: Me; error?: string }
     if (!res.ok || !json.user) return { ok: false, message: json.error ?? 'Something went wrong. Try again.' }
-    await enter(json.user.username, json.user.displayName, { quota: json.user.quota, remaining: json.user.remaining })
+    await enter(json.user.username, json.user.displayName, { quota: json.user.quota, remaining: json.user.remaining }, json.user.admin === true)
     return { ok: true }
   } catch {
     return { ok: false, message: 'Cannot reach the internet right now.' }
@@ -299,8 +303,13 @@ export function setAvatar(avatar: string) {
 
 /** The starting-point question has been answered (or skipped): never ask this account again. */
 export function markPlaced() {
-  setState({ prefs: { ...state.prefs, placed: true } })
+  setState({ prefs: { ...state.prefs, placed: true }, replayStart: false })
   noteChange()
+}
+
+/** Admin testing: ask the "where were you?" question again, as if this were a brand-new account. */
+export function askStartingPointAgain() {
+  setState({ replayStart: true })
 }
 
 /** Refresh the AI credit shown in the profile badge. */

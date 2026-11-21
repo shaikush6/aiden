@@ -1,7 +1,7 @@
 // Each account gets $15 to spend on the paid AI features (the voice, Mimi, and story writing).
 // Costs are worked out on the server from what each request actually used, at OpenAI's list prices.
 // Spending is kept in millionths of a dollar so it adds up exactly.
-import { kvGet, kvIncr } from './kv.ts'
+import { kvDel, kvGet, kvIncr, kvSet } from './kv.ts'
 
 export const QUOTA_USD = 15
 const MICRO = 1_000_000
@@ -14,20 +14,45 @@ export const PRICES = {
 }
 
 const spentKey = (u: string) => `aiden:spent:${u}`
+const quotaKey = (u: string) => `aiden:quota:${u}`
+
+/** This account's budget: $15, unless the admin topped it up. */
+export async function quotaUsd(username: string): Promise<number> {
+  const custom = Number(await kvGet(quotaKey(username)))
+  return custom > 0 ? custom : QUOTA_USD
+}
+
+/** Admin: set this account's budget (in dollars). */
+export async function setQuotaUsd(username: string, usd: number): Promise<void> {
+  const value = Math.round(Math.min(1000, Math.max(0, usd)) * 100) / 100
+  if (value === QUOTA_USD) await kvDel(quotaKey(username))
+  else await kvSet(quotaKey(username), String(value))
+}
+
+/** Admin: forget what this account has spent, so the whole budget is available again. */
+export async function resetSpent(username: string): Promise<void> {
+  await kvDel(spentKey(username))
+}
+
+/** Admin: remove every money record of an account that is being deleted. */
+export async function forgetMoney(username: string): Promise<void> {
+  await Promise.all([kvDel(spentKey(username)), kvDel(quotaKey(username))])
+}
 
 export async function spentUsd(username: string): Promise<number> {
   return Number((await kvGet(spentKey(username))) ?? 0) / MICRO
 }
 
 export async function remainingUsd(username: string): Promise<number> {
-  return Math.max(0, QUOTA_USD - (await spentUsd(username)))
+  const [quota, spent] = await Promise.all([quotaUsd(username), spentUsd(username)])
+  return Math.max(0, quota - spent)
 }
 
 /** Add a cost to this account. Returns what is left. */
 export async function charge(username: string, usd: number): Promise<number> {
   if (!(usd > 0)) return remainingUsd(username)
-  const total = await kvIncr(spentKey(username), usd * MICRO)
-  return Math.max(0, QUOTA_USD - total / MICRO)
+  const [total, quota] = await Promise.all([kvIncr(spentKey(username), usd * MICRO), quotaUsd(username)])
+  return Math.max(0, quota - total / MICRO)
 }
 
 // ---------- what each kind of request costs ----------

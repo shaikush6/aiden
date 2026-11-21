@@ -14,7 +14,7 @@ interface Tab {
   inactiveColor: string;
 }
 
-const TABS: Tab[] = [
+export const TABS: Tab[] = [
   { id: 'quest', label: 'QUEST', icon: '🦊', spokenName: 'Reading Quest!', activeColor: 'bg-amber-500 text-white', inactiveColor: 'bg-white/80 text-amber-600 dark:bg-slate-700/60 dark:text-amber-400' },
   { id: 'phonics', label: 'READ', icon: '🔤', spokenName: 'Read with me!', activeColor: 'bg-sky-500 text-white', inactiveColor: 'bg-white/80 text-sky-600 dark:bg-slate-700/60 dark:text-sky-400' },
   { id: 'patterns', label: 'PATTERNS', icon: '🔷', spokenName: 'Spot the Pattern!', activeColor: 'bg-purple-500 text-white', inactiveColor: 'bg-white/80 text-purple-600 dark:bg-slate-700/60 dark:text-purple-400' },
@@ -28,9 +28,14 @@ const TABS: Tab[] = [
 interface NavigationProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
+  /** Tabs the admin turned off for everyone. */
+  hidden?: readonly TabId[];
+  /** The admin still sees hidden tabs, dimmed. */
+  showHidden?: boolean;
 }
 
-export default function Navigation({ activeTab, onTabChange }: NavigationProps) {
+export default function Navigation({ activeTab, onTabChange, hidden = [], showHidden = false }: NavigationProps) {
+  const tabs = TABS.filter(t => showHidden || !hidden.includes(t.id));
   const handleTabClick = (tab: Tab) => {
     onTabChange(tab.id);
     speakText(tab.spokenName);
@@ -38,7 +43,7 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
 
   return (
     <nav className="flex gap-2 p-3 bg-white/30 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-lg mx-4 mt-4">
-      {TABS.map(tab => (
+      {tabs.map(tab => (
         <motion.button
           key={tab.id}
           whileTap={{ scale: 0.92 }}
@@ -49,7 +54,9 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
             font-extrabold text-xs sm:text-sm transition-all duration-200 shadow-sm
             min-h-[64px] select-none
             ${activeTab === tab.id ? tab.activeColor + ' shadow-md' : tab.inactiveColor}
+            ${hidden.includes(tab.id) ? 'opacity-40 outline-dashed outline-2 outline-slate-400' : ''}
           `}
+          title={hidden.includes(tab.id) ? 'Hidden for everyone else' : undefined}
         >
           <span className="text-2xl leading-none">{tab.icon}</span>
           <span className="leading-none tracking-wide">{tab.label}</span>
