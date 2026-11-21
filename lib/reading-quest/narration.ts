@@ -3,13 +3,14 @@
 
 /** Narrator voices a grown-up can choose from (OpenAI text-to-speech voice names). */
 export const NARRATOR_VOICES = [
-  { id: 'verse', label: 'Verse' },
+  { id: 'alloy', label: 'Alloy' },
   { id: 'ash', label: 'Ash' },
   { id: 'coral', label: 'Coral' },
   { id: 'ballad', label: 'Ballad' },
 ] as const
 export type NarratorVoice = (typeof NARRATOR_VOICES)[number]['id']
-export const DEFAULT_NARRATOR_VOICE: NarratorVoice = 'verse'
+// Alloy replaced Verse (Nov 2026). Anyone who had Verse picked falls back to this default.
+export const DEFAULT_NARRATOR_VOICE: NarratorVoice = 'alloy'
 
 /** Played when a grown-up previews a narrator voice. */
 export const VOICE_PREVIEW = 'Hey, explorer! I am your narrator! Are you ready to read some words and rescue some animals? Let’s go!'

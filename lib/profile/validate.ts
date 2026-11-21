@@ -22,7 +22,7 @@ export function validateProfiles(): string[] {
 
   const blank = parseProfile(null)
   const a: ProfileData = parseProfile({
-    quest: { v: 1, levels: { l1: { stars: 3, plays: 2 }, l2: { stars: 1, plays: 1 } }, sounds: { s: { right: 5, wrong: 1 } }, wordsRead: 40, unlockAll: false, settings: { music: false, narrator: true, narratorVoice: 'verse', musicVolume: 0.3, voiceVolume: 1, duck: true }, celebratedWorlds: ['w1'], rocketBest: 20 },
+    quest: { v: 1, levels: { l1: { stars: 3, plays: 2 }, l2: { stars: 1, plays: 1 } }, sounds: { s: { right: 5, wrong: 1 } }, wordsRead: 40, unlockAll: false, settings: { music: false, narrator: true, narratorVoice: 'alloy', musicVolume: 0.3, voiceVolume: 1, duck: true }, celebratedWorlds: ['w1'], rocketBest: 20 },
     land: { v: 2, levels: { n1: { stars: 2, plays: 1 } }, buddies: [1, 2], signs: ['+'], wordsRead: 3, numbers: { 2: { right: 1, wrong: 0 } }, rocketBest: 15, celebratedTowns: [], unlockAll: false },
     blaster: { highScore: 900, unlocked: ['blaster', 'spread'], zoneStars: [3, 1] },
     prefs: { avatar: '🐯' },
