@@ -12,10 +12,14 @@ import type { ParsedWord, PhonemeKey } from './types.ts'
 
 type Clip = string | (() => Promise<string | null>)
 
-/** Guide and content lines switch to the narrator voice when narrator mode is on. Words and sounds never do. */
+/**
+ * Guide lines are spoken in the chosen guide voice (Frankie or Todd): Kit's script, or the narrator's when
+ * narrator mode is on. Single words and speech sounds keep their own teacher voice.
+ */
 function voiceFor(kind: LineKind): { kind: LineKind; voice: string } {
   const { narrator, narratorVoice } = getProgress().settings
   if (kind === 'narration' || (kind === 'line' && narrator)) return { kind: 'narration', voice: narratorVoice }
+  if (kind === 'line') return { kind: 'line', voice: narratorVoice }
   return { kind, voice: '' }
 }
 
@@ -82,8 +86,8 @@ export async function prefetchLines(items: { text: string; kind: LineKind; voice
       const item = queue.shift()!
       // Only warm the voice the child will actually hear.
       const { narrator, narratorVoice } = getProgress().settings
-      if (item.kind === 'line' && narrator) continue
-      if (item.kind === 'narration' && (!narrator || item.voice !== narratorVoice)) continue
+      if (item.kind === 'line' && (narrator || (item.voice && item.voice !== narratorVoice))) continue
+      if (item.kind === 'narration' && (!narrator || (item.voice && item.voice !== narratorVoice))) continue
       const clip = lineClip(item.text, item.kind)
       if (typeof clip !== 'string') await clip()
     }

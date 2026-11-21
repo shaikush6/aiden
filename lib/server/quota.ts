@@ -68,6 +68,15 @@ export function ttsCost(audioBytes: number, textChars: number): number {
   return (audioTokens * PRICES.tts.audioOut + textTokens * PRICES.tts.textIn) / MICRO
 }
 
+/**
+ * ElevenLabs: one credit per character. Credits come with the monthly plan (Creator: about 131,000 for $22),
+ * so a character costs about $0.00017.
+ */
+export const ELEVEN_USD_PER_CHAR = 0.00017
+export function elevenCost(chars: number): number {
+  return chars * ELEVEN_USD_PER_CHAR
+}
+
 export function chatCost(promptTokens: number, completionTokens: number): number {
   return (promptTokens * PRICES.chat.in + completionTokens * PRICES.chat.out) / MICRO
 }

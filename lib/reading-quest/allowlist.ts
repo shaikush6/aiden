@@ -9,7 +9,7 @@ import { WORLDS } from './curriculum/index.ts'
 import {
   KIT_LINES, KIT_PRAISE, KIT_RETRY, KIT_SCORE, NARRATOR_LINES, NARRATOR_PRAISE, NARRATOR_RETRY, NARRATOR_SCORE, rescuedLine,
 } from './lines.ts'
-import { NARRATOR_VOICES, narrationLines, WORLD_NARRATION } from './narration.ts'
+import { NARRATOR_VOICES, narrationLines, VOICE_HELLO, WORLD_NARRATION } from './narration.ts'
 import { phonemeTtsTexts } from './phonemes.ts'
 import { spokenFragments } from './script.ts'
 import { numberLandScripts } from '../number-land/allowlist.ts'
@@ -27,12 +27,12 @@ export function lineId(kind: LineKind, text: string, voice = ''): string {
 
 export interface QuestLine { kind: LineKind; text: string; voice?: string }
 
-/** Kit's voice: every text piece of these scripts. */
+/** Kit's script: every text piece of these scripts, in each guide voice. */
 export function asKit(scripts: string[]): QuestLine[] {
-  return scripts.flatMap(spokenFragments).map(text => ({ kind: 'line' as const, text }))
+  return scripts.flatMap(spokenFragments).flatMap(text => NARRATOR_VOICES.map(v => ({ kind: 'line' as const, text, voice: v.id })))
 }
 
-/** Narrator voice: every text piece of these scripts, in every voice a grown-up can choose. */
+/** Narrator script: every text piece of these scripts, in each guide voice. */
 export function asNarrator(scripts: string[]): QuestLine[] {
   return scripts.flatMap(spokenFragments).flatMap(text => NARRATOR_VOICES.map(v => ({ kind: 'narration' as const, text, voice: v.id })))
 }
@@ -76,6 +76,8 @@ export function sharedLines(): QuestLine[] {
     ...COUNTING_WORDS.map(text => ({ kind: 'word' as const, text })),
     ...asKit(WORLDS.map(w => w.name)),
     ...asNarrator(WORLDS.map(w => w.name)),
+    // Each guide voice introduces itself (only in its own voice).
+    ...NARRATOR_VOICES.map(v => ({ kind: 'narration' as const, text: VOICE_HELLO[v.id], voice: v.id })),
   ]
 }
 

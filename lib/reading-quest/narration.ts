@@ -1,16 +1,23 @@
 // Dramatic narration for "narrator mode": the cinematic moments between the reading.
 // Spoken by the narrator voice. Reading content (words, sounds) always stays in the clear teacher voice.
 
-/** Narrator voices a grown-up can choose from (OpenAI text-to-speech voice names). */
+/**
+ * The guide's two voices (ElevenLabs), for everything Kit and the narrator say. The child can switch any time.
+ * Single words and letter sounds keep their own clear teacher voice.
+ */
 export const NARRATOR_VOICES = [
-  { id: 'alloy', label: 'Alloy' },
-  { id: 'ash', label: 'Ash' },
-  { id: 'coral', label: 'Coral' },
-  { id: 'ballad', label: 'Ballad' },
+  { id: 'frankie', label: 'Frankie', emoji: '👩' },
+  { id: 'todd', label: 'Todd', emoji: '👨' },
 ] as const
 export type NarratorVoice = (typeof NARRATOR_VOICES)[number]['id']
-// Alloy replaced Verse (Nov 2026). Anyone who had Verse picked falls back to this default.
-export const DEFAULT_NARRATOR_VOICE: NarratorVoice = 'alloy'
+// Frankie and Todd replaced the OpenAI voices (Nov 2026). Anyone with an old voice saved falls back to this default.
+export const DEFAULT_NARRATOR_VOICE: NarratorVoice = 'frankie'
+
+/** Said in the new voice when the child switches guide voice. */
+export const VOICE_HELLO: Record<NarratorVoice, string> = {
+  frankie: 'Hi, I am Frankie! I will be your guide.',
+  todd: 'Hi, I am Todd! I will be your guide.',
+}
 
 /** Played when a grown-up previews a narrator voice. */
 export const VOICE_PREVIEW = 'Hey, explorer! I am your narrator! Are you ready to read some words and rescue some animals? Let’s go!'

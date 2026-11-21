@@ -3,7 +3,11 @@ import OpenAI from 'openai'
 import { findQuestLine, isPublicLine, type LineKind } from '@/lib/reading-quest/allowlist'
 import { isSameOrigin, jsonError, rateLimited } from '@/lib/server/api-guard'
 import { aiGate } from '@/lib/server/ai-gate'
-import { charge, ttsCost } from '@/lib/server/quota'
+import { charge, elevenCost, ttsCost } from '@/lib/server/quota'
+import { ELEVEN_VOICES, elevenSpeak } from '@/lib/server/elevenlabs'
+
+// If ElevenLabs cannot speak a guide line (no key yet, or out of credits), an OpenAI voice of the same kind reads it.
+const FALLBACK_VOICE: Record<string, string> = { frankie: 'coral', todd: 'ash' }
 
 const MODEL = 'gpt-4o-mini-tts-2025-12-15'
 const MAX_TEXT = 400
@@ -58,7 +62,7 @@ export async function GET(req: NextRequest) {
   if (!isSameOrigin(req)) return jsonError('Forbidden', 403)
   // Lines are pre-approved and cached, so a level's worth of warming up must never hit this limit.
   if (rateLimited(req, 'tts-get', 900, 60_000)) return jsonError('Too many requests', 429)
-  if (!process.env.OPENAI_API_KEY) return jsonError('Speech is not configured', 503)
+  if (!process.env.OPENAI_API_KEY && !process.env.ELEVENLABS_API_KEY) return jsonError('Speech is not configured', 503)
 
   const id = req.nextUrl.searchParams.get('id') ?? ''
   const line = /^[a-z0-9]{1,16}$/.test(id) ? findQuestLine(id) : undefined
@@ -76,14 +80,29 @@ export async function GET(req: NextRequest) {
     gate = await aiGate(req)
   }
   if ('error' in gate) return gate.error
+  // The guide's lines: Frankie or Todd, from ElevenLabs.
+  if ((line.kind === 'line' || line.kind === 'narration') && line.voice && ELEVEN_VOICES[line.voice]) {
+    const eleven = await elevenSpeak(line.voice, line.text, line.kind)
+    if (eleven) {
+      if (gate.user) await charge(gate.user, elevenCost(line.text.length)).catch(() => {})
+      return audioResponse(eleven, true)
+    }
+  }
+
   const voice = QUEST_VOICE[line.kind]
-  const audio = await synthesize(line.text, voice.instructions, voice.speed, line.voice)
+  const fallback = line.voice ? FALLBACK_VOICE[line.voice] : undefined
+  const audio = await synthesize(line.text, voice.instructions, voice.speed, fallback ?? (line.voice || undefined))
   if (!audio) return jsonError('Speech failed', 502)
   if (gate.user) await charge(gate.user, ttsCost(audio.length, line.text.length + voice.instructions.length)).catch(() => {})
+  // A stand-in voice is never cached, so the real one takes over as soon as ElevenLabs works again.
+  return audioResponse(audio, !fallback)
+}
+
+function audioResponse(audio: Buffer, keep: boolean) {
   return new NextResponse(new Uint8Array(audio), {
     headers: {
       'Content-Type': 'audio/mpeg',
-      'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+      'Cache-Control': keep ? 'public, max-age=31536000, s-maxage=31536000, immutable' : 'no-store',
     },
   })
 }

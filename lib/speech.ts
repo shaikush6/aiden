@@ -105,7 +105,9 @@ export async function cachedAudioUrl(
       if (!res) {
         const fresh = await load()
         if (!fresh.ok) return null
-        if (cache) await cache.put(persistKey, fresh.clone()).catch(() => {})
+        // A stand-in voice (sent with no-store) is played but never kept, so the real voice replaces it later.
+        const keep = !(fresh.headers.get('Cache-Control') ?? '').includes('no-store')
+        if (cache && keep) await cache.put(persistKey, fresh.clone()).catch(() => {})
         res = fresh
       }
       const url = URL.createObjectURL(await res.blob())

@@ -3,7 +3,8 @@
 import { useState, useSyncExternalStore } from 'react';
 import { motion } from 'framer-motion';
 import { stopAudio } from '@/lib/audio-player';
-import { lineClip, say } from '@/lib/reading-quest/audio';
+import { lineClip, previewVoice, say } from '@/lib/reading-quest/audio';
+import { NARRATOR_VOICES, VOICE_HELLO } from '@/lib/reading-quest/narration';
 import { MUSIC_READY } from '@/lib/reading-quest/music-tracks';
 import { getProgress, getServerProgress, setSettings, subscribeProgress } from '@/lib/reading-quest/progress';
 
@@ -11,8 +12,25 @@ import { getProgress, getServerProgress, setSettings, subscribeProgress } from '
 export default function SoundSwitches({ compact = false }: { compact?: boolean }) {
   const { settings } = useSyncExternalStore(subscribeProgress, getProgress, getServerProgress);
   const [mixing, setMixing] = useState(false);
+  const voice = NARRATOR_VOICES.find(v => v.id === settings.narratorVoice) ?? NARRATOR_VOICES[0];
+  const switchVoice = () => {
+    const next = NARRATOR_VOICES.find(v => v.id !== voice.id) ?? voice;
+    setSettings({ narratorVoice: next.id });
+    void previewVoice(next.id, VOICE_HELLO[next.id]);
+  };
   return (
     <div className="flex gap-2 relative">
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.9 }}
+        onClick={switchVoice}
+        aria-label={`Guide voice: ${voice.label}. Tap to switch.`}
+        className={`rounded-2xl shadow font-black flex items-center gap-2 border-b-4 bg-sky-500 border-sky-700 text-white
+          ${compact ? 'w-12 h-12 justify-center text-2xl' : 'px-4 py-2 text-xl'}`}
+      >
+        <span>{voice.emoji}</span>
+        {!compact && <span className="text-sm uppercase">{voice.label}</span>}
+      </motion.button>
       {MUSIC_READY && (
         <Switch
           on={settings.music}

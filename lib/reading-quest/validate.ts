@@ -129,7 +129,7 @@ export function validateCurriculum(): string[] {
   return errors
 }
 
-const NO_PROGRESS: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: { music: false, narrator: false, narratorVoice: 'alloy', musicVolume: 0.5, voiceVolume: 1, duck: true, custom: [] }, celebratedWorlds: [], rocketBest: null }
+const NO_PROGRESS: QuestProgress = { v: 1, levels: {}, sounds: {}, wordsRead: 0, unlockAll: false, settings: { music: false, narrator: false, narratorVoice: 'frankie', musicVolume: 0.5, voiceVolume: 1, duck: true, custom: [] }, celebratedWorlds: [], rocketBest: null }
 
 /** Generate each level's activities many times and make sure every activity has a full set of choices. */
 export function validatePlans(runs = 25): string[] {

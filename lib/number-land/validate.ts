@@ -135,7 +135,7 @@ export function validateNumberLand(): string[] {
   const spoken = (kind: 'line' | 'narration' | 'word', text: string, voice = ''): boolean => approved.has(lineId(kind, text, voice))
   const scriptOk = (script: string, what: string, at: (m: string) => void) => {
     for (const frag of spokenFragments(script)) {
-      if (!spoken('line', frag)) at(`${what}: Kit line not allowlisted: "${frag}"`)
+      for (const v of NARRATOR_VOICES) if (!spoken('line', frag, v.id)) at(`${what}: Kit (${v.id}) line not allowlisted: "${frag}"`)
       for (const v of NARRATOR_VOICES) if (!spoken('narration', frag, v.id)) at(`${what}: narrator (${v.id}) line not allowlisted: "${frag}"`)
     }
   }
@@ -293,7 +293,7 @@ export function validateNumberLand(): string[] {
 
   // Level intros and outros, in Kit's voice and in the narrator's voice.
   const lineOk = (script: string, narrator: boolean): boolean => spokenFragments(script).every(frag =>
-    narrator ? NARRATOR_VOICES.every(v => spoken('narration', frag, v.id)) : spoken('line', frag))
+    NARRATOR_VOICES.every(v => spoken(narrator ? 'narration' : 'line', frag, v.id)))
   for (const level of NUMBER_LEVELS) {
     for (const narrator of [false, true]) {
       const { intro, outro } = levelScript(level, narrator)
