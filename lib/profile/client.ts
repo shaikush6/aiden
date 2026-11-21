@@ -25,6 +25,8 @@ export interface ProfileState {
   sync: SyncState
   /** AI credit for this account, in dollars. */
   credit: Credit | null
+  /** True once this account's saved copy has been loaded from the cloud on this device. */
+  synced: boolean
 }
 
 const LOCAL_KEY = 'aiden-account-v1'      // remembers the name and avatar, so the badge shows instantly
@@ -34,7 +36,7 @@ const OLD_KEYS = ['aiden-profile-v1']     // the old invite-code sign-in, replac
 const SAVE_DELAY_MS = 2500
 const CHECK_EVERY_MS = 120_000
 
-const CHECKING: ProfileState = { phase: 'checking', name: null, displayName: null, prefs: { avatar: DEFAULT_AVATAR }, sync: 'idle', credit: null }
+const CHECKING: ProfileState = { phase: 'checking', name: null, displayName: null, prefs: { avatar: DEFAULT_AVATAR, placed: false }, sync: 'idle', credit: null, synced: false }
 let state: ProfileState = CHECKING
 const listeners = new Set<() => void>()
 
@@ -136,7 +138,7 @@ async function reconcile(name: string): Promise<Reply> {
   if (saved.data) applyLocal(saved.data)
   lastSynced = fingerprint(collectLocal())
   const prefs = saved.data?.prefs ?? merged.prefs
-  setState({ sync: 'saved', prefs, credit: saved.credit ?? state.credit })
+  setState({ sync: 'saved', prefs, credit: saved.credit ?? state.credit, synced: true })
   remember(name, state.displayName ?? name, prefs)
   return saved
 }
@@ -202,14 +204,14 @@ function stopWatching() {
 function dropSession() {
   stopWatching()
   write(LOCAL_KEY, null)
-  setState({ phase: 'gate', name: null, displayName: null, sync: 'idle', credit: null })
+  setState({ phase: 'gate', name: null, displayName: null, sync: 'idle', credit: null, synced: false })
 }
 
 /** Start syncing for a signed-in account. */
 async function enter(name: string, displayName: string, credit: Credit | null) {
   const cached = (() => { try { return JSON.parse(read(LOCAL_KEY) ?? 'null') as { name?: string; avatar?: string } | null } catch { return null } })()
   const prefs = cached?.name === name ? parsePrefs({ avatar: cached.avatar }) : state.prefs
-  setState({ phase: 'in', name, displayName, prefs, credit, sync: 'saving' })
+  setState({ phase: 'in', name, displayName, prefs, credit, sync: 'saving', synced: false })
   startWatching()
   const result = await reconcile(name)
   if (!result.ok) {
@@ -289,9 +291,15 @@ export async function signOut(): Promise<{ ok: boolean; message?: string }> {
 }
 
 export function setAvatar(avatar: string) {
-  const prefs = parsePrefs({ avatar })
+  const prefs = { ...state.prefs, avatar: parsePrefs({ avatar }).avatar }
   setState({ prefs })
   if (state.name) remember(state.name, state.displayName ?? state.name, prefs)
+  noteChange()
+}
+
+/** The starting-point question has been answered (or skipped): never ask this account again. */
+export function markPlaced() {
+  setState({ prefs: { ...state.prefs, placed: true } })
   noteChange()
 }
 

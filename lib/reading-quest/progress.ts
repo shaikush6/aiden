@@ -157,6 +157,23 @@ export function replaceProgress(raw: unknown) {
   commit(parseProgress(raw))
 }
 
+/**
+ * Start from a later level (a returning player picking where they got to): every level before `index`
+ * counts as done. Only ever adds progress, so stars already earned are kept.
+ */
+export function completeUpTo(index: number) {
+  const p = getProgress()
+  const levels = { ...p.levels }
+  const worldsDone = new Set<string>()
+  LEVELS.forEach((l, i) => {
+    if (i >= index) return
+    if (!levels[l.def.id]) levels[l.def.id] = { stars: 3, plays: 0 }
+  })
+  // Worlds finished entirely before the start point have had their "new world" moment already.
+  for (const l of LEVELS) if (l.world.levels.every(d => levels[d.id])) worldsDone.add(l.world.id)
+  commit({ ...p, levels, celebratedWorlds: [...new Set([...p.celebratedWorlds, ...worldsDone])] })
+}
+
 /** Reset rescues and stats, but keep the grown-up's sound settings. */
 export function resetProgress() {
   commit({ ...EMPTY, settings: getProgress().settings })

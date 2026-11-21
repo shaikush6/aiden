@@ -9,6 +9,8 @@ export interface BlasterSave { highScore: number; unlocked: string[]; zoneStars:
 export interface Prefs {
   /** The emoji that stands for him in the corner of the screen. */
   avatar: string
+  /** True once the new-account "where were you up to?" question has been answered or skipped. */
+  placed: boolean
 }
 
 export interface ProfileData {
@@ -74,7 +76,8 @@ export function mergeProfile(a: ProfileData, b: ProfileData): ProfileData {
     quest: mergeQuest(a.quest, b.quest, newer),
     land: mergeLand(a.land, b.land),
     blaster: mergeBlaster(a.blaster, b.blaster),
-    prefs: newer === 'a' ? a.prefs : b.prefs,
+    // Once answered on any device, the starting-point question never comes back.
+    prefs: { ...(newer === 'a' ? a.prefs : b.prefs), placed: a.prefs.placed || b.prefs.placed },
     updatedAt: Math.max(a.updatedAt, b.updatedAt),
   }
 }
@@ -92,6 +95,10 @@ export function parseBlaster(raw: unknown): BlasterSave {
 }
 
 export function parsePrefs(raw: unknown): Prefs {
-  const avatar = (raw as Partial<Prefs> | null)?.avatar
-  return { avatar: (AVATARS as readonly string[]).includes(avatar ?? '') ? (avatar as string) : DEFAULT_AVATAR }
+  const p = raw as Partial<Prefs> | null
+  const avatar = p?.avatar
+  return {
+    avatar: (AVATARS as readonly string[]).includes(avatar ?? '') ? (avatar as string) : DEFAULT_AVATAR,
+    placed: p?.placed === true,
+  }
 }

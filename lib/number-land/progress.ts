@@ -1,6 +1,7 @@
 // Number Land progress, saved in this browser's localStorage and exposed as a tiny external store
 // (read it with useSyncExternalStore, like the Quest's progress).
-import { NUMBER_LEVELS } from './curriculum.ts'
+import { NUMBER_LEVELS, TOWNS } from './curriculum.ts'
+import { TOPIC_SIGNS } from './terms.ts'
 
 export interface NLLevelProgress { stars: number; plays: number }
 export interface NumberStat { right: number; wrong: number }
@@ -144,6 +145,26 @@ export function setNLUnlockAll(v: boolean) {
 /** Replace everything (used when progress arrives from his profile in the cloud). */
 export function replaceNL(raw: unknown) {
   commit(parseNL(raw))
+}
+
+/**
+ * Start from a later level: every level before `index` counts as done, with its Block Buddies met
+ * and its signs taught. Only ever adds progress.
+ */
+export function completeNLUpTo(index: number) {
+  const p = getNL()
+  const levels = { ...p.levels }
+  const buddies = new Set(p.buddies)
+  const signs = new Set(p.signs)
+  NUMBER_LEVELS.forEach((l, i) => {
+    if (i >= index) return
+    if (!levels[l.id]) levels[l.id] = { stars: 3, plays: 0 }
+    l.meets.forEach(n => buddies.add(n))
+    l.learn.forEach(t => (TOPIC_SIGNS[t] ?? []).forEach(s => signs.add(s)))
+  })
+  const towns = new Set(p.celebratedTowns)
+  TOWNS.forEach((t, ti) => { if (NUMBER_LEVELS.filter(l => l.town === ti).every(l => levels[l.id])) towns.add(t.id) })
+  commit({ ...p, levels, buddies: [...buddies].sort((a, b) => a - b), signs: [...signs], celebratedTowns: [...towns] })
 }
 
 export function resetNL() {

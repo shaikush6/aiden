@@ -7,6 +7,7 @@ import Navigation, { type TabId } from '@/components/Navigation';
 import AudioSettingsBridge from '@/components/AudioSettingsBridge';
 import ProfileBadge from '@/components/profile/ProfileBadge';
 import SignIn from '@/components/profile/SignIn';
+import StartingPoint from '@/components/profile/StartingPoint';
 import { getProfileState, getServerProfileState, initProfile, subscribeProfile } from '@/lib/profile/client';
 import PhonicsTab from '@/components/PhonicsTab';
 import PatternsTab from '@/components/PatternsTab';
@@ -49,6 +50,8 @@ export default function Home() {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-200 to-pink-200 dark:from-slate-900 dark:to-indigo-950 text-8xl" aria-label="Loading">🦊</div>;
   }
   if (profile.phase === 'gate') return <SignIn />;
+  // Once per account: a returning player can say where they got to, so they do not start over.
+  if (profile.phase === 'in' && profile.synced && !profile.prefs.placed) return <StartingPoint />;
   return <App />;
 }
 

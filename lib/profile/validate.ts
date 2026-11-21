@@ -56,6 +56,10 @@ export function validateProfiles(): string[] {
   if (Object.keys(junk.quest.levels).length) err('a broken level got through')
   if (junk.prefs.avatar !== '🦊' || junk.blaster.highScore !== 0) err('broken prefs or score got through')
 
+  const placedOld = parseProfile({ prefs: { placed: true }, updatedAt: 1 })
+  const placedNew = parseProfile({ prefs: { placed: false }, updatedAt: 999 })
+  if (!mergeProfile(placedOld, placedNew).prefs.placed) err('the starting-point question came back after being answered')
+
   // Accounts.
   if (checkUsername('Aiden') !== null || normalizeUsername(' Aiden ') !== 'aiden') err('a normal username was refused or not normalized')
   if (checkUsername('a') === null || checkUsername('no spaces') === null || checkUsername('x'.repeat(30)) === null) err('a bad username was accepted')
