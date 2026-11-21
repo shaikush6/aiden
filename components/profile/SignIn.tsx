@@ -45,16 +45,16 @@ export default function SignIn() {
 
         <label className="w-full text-left">
           <span className="font-black text-sm text-slate-500 dark:text-slate-400">USERNAME</span>
-          <input value={username} onChange={e => setUsername(e.target.value.slice(0, 24))} autoCapitalize="none" autoCorrect="off" autoComplete="username" spellCheck={false} onFocus={() => guide.sayOnce(SIGN_IN_LINES.username)} className={field} />
+          <input value={username} onChange={e => setUsername(e.target.value.slice(0, 24))} autoCapitalize="none" autoCorrect="off" autoComplete="username" spellCheck={false} onPointerDown={() => guide.sayOnce(SIGN_IN_LINES.username)} className={field} />
         </label>
         <label className="w-full text-left">
           <span className="font-black text-sm text-slate-500 dark:text-slate-400">PASSWORD</span>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value.slice(0, 200))} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} onFocus={() => guide.sayOnce(SIGN_IN_LINES.password)} className={field} />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value.slice(0, 200))} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} onPointerDown={() => guide.sayOnce(SIGN_IN_LINES.password)} className={field} />
         </label>
         {mode === 'signup' && (
           <label className="w-full text-left">
             <span className="font-black text-sm text-slate-500 dark:text-slate-400">INVITE CODE</span>
-            <input value={invite} onChange={e => setInvite(e.target.value.toUpperCase().slice(0, 40))} autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false} onFocus={() => guide.sayOnce(SIGN_IN_LINES.invite)} className={`${field} tracking-widest`} />
+            <input value={invite} onChange={e => setInvite(e.target.value.toUpperCase().slice(0, 40))} autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false} onPointerDown={() => guide.sayOnce(SIGN_IN_LINES.invite)} className={`${field} tracking-widest`} />
           </label>
         )}
 

@@ -14,7 +14,7 @@ function canPlaySound(): boolean {
 
 /**
  * The guide's voice on the screens around signing in.
- * `say` reads a line now; `sayOnce` reads it only the first time (so tapping into a box twice is not repeated);
+ * `say` reads a line now; `sayOnce` reads it only the first time (so tapping a box twice is not repeated; call it from a real tap, not focus, which autofill and password managers trigger);
  * `intro` reads the screen's opening line by itself when the browser already allows sound.
  * Stops talking when the screen goes away.
  */
