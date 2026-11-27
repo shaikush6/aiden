@@ -1,6 +1,6 @@
 // Checks for profiles: merging must never lose progress, and the gate must only open for the right code.
 import { checkPassword, checkUsername, normalizeUsername } from '../server/auth.ts'
-import { QUOTA_USD, chatCost, realtimeCost, ttsCost } from '../server/quota.ts'
+import { MIMI_START_USD, MIMI_USD_PER_MINUTE, QUOTA_USD, chatCost, ttsCost } from '../server/quota.ts'
 import { parseProfile } from './data.ts'
 import { mergeProfile, type ProfileData } from './merge.ts'
 import { findQuestLine, isPublicLine, lineId, publicLines, sharedLines } from '../reading-quest/allowlist.ts'
@@ -67,15 +67,14 @@ export function validateProfiles(): string[] {
   if (checkUsername('a') === null || checkUsername('no spaces') === null || checkUsername('x'.repeat(30)) === null) err('a bad username was accepted')
   if (checkPassword('12345') === null || checkPassword('123456') !== null) err('password length rule is wrong')
 
-  // Costs, against OpenAI list prices: a 3-second spoken line is a fraction of a cent,
-  // a minute of Mimi talking is around 15 cents, and the quota lasts a long time.
+  // Costs, against list prices: a 3-second spoken line is a fraction of a cent,
+  // a minute of Mimi (ElevenLabs agent) is around 10 cents, and the quota lasts a long time.
   const line = ttsCost(48_000, 400)
   if (!(line > 0.0001 && line < 0.002)) err(`a short spoken line costs ${line} dollars`)
   const story = chatCost(300, 300)
   if (!(story > 0.001 && story < 0.01)) err(`a generated story costs ${story} dollars`)
-  const minute = realtimeCost({ input_token_details: { audio_tokens: 600 }, output_token_details: { audio_tokens: 1200 } })
-  if (!(minute > 0.05 && minute < 0.3)) err(`a minute of Mimi costs ${minute} dollars`)
-  if (realtimeCost({ input_token_details: { audio_tokens: -5 } }) !== 0) err('negative usage was charged')
+  if (!(MIMI_USD_PER_MINUTE > 0.05 && MIMI_USD_PER_MINUTE < 0.3)) err(`a minute of Mimi costs ${MIMI_USD_PER_MINUTE} dollars`)
+  if (MIMI_START_USD <= 0) err('starting a Mimi chat should not be free')
   if (QUOTA_USD !== 15) err('the quota should be 15 dollars')
   // The sign-in screen's lines play without an account; nothing else may.
   const pub = publicLines()

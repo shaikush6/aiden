@@ -53,3 +53,36 @@ export async function elevenSpeak(voice: string, text: string, kind: ElevenKind,
     return null
   }
 }
+
+/** Mimi, the voice teacher: an ElevenLabs agent (prompt, model and default voice live in the ElevenLabs dashboard). */
+export const MIMI_AGENT_ID = 'agent_8301m8erctgnfx3amd0dkbrh5zqz'
+/** Todd unless the player picked Frankie. */
+export const MIMI_DEFAULT_VOICE = 'todd'
+
+export type MimiToken = { token: string } | { error: 'not-allowed' | 'failed' }
+
+/**
+ * A one-time token that lets this browser open one private conversation with Mimi.
+ * 'not-allowed' means the key is missing the ElevenLabs Agents permission.
+ */
+export async function mimiConversationToken(): Promise<MimiToken> {
+  const key = process.env.ELEVENLABS_API_KEY
+  if (!key) return { error: 'failed' }
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${MIMI_AGENT_ID}`, {
+      headers: { 'xi-api-key': key },
+      signal: AbortSignal.timeout(10_000),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      const detail = (await res.text().catch(() => '')).slice(0, 200)
+      console.error('elevenlabs mimi token failed', res.status, detail)
+      return { error: res.status === 401 || res.status === 403 ? 'not-allowed' : 'failed' }
+    }
+    const data = (await res.json()) as { token?: string }
+    return data.token ? { token: data.token } : { error: 'failed' }
+  } catch (err) {
+    console.error('elevenlabs mimi token failed', 'network', String((err as Error)?.message ?? err).slice(0, 120))
+    return { error: 'failed' }
+  }
+}

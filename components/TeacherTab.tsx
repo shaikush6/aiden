@@ -2,139 +2,140 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Conversation } from '@elevenlabs/client'
 
 type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error'
+type Line = { role: 'user' | 'mimi'; text: string }
+type MimiSession = Awaited<ReturnType<typeof Conversation.startSession>>
+
+/** Mimi's two voices. Todd is the default; the choice is remembered on this device. */
+const VOICES = [
+  { id: 'todd', label: 'Todd', emoji: '👨' },
+  { id: 'frankie', label: 'Frankie', emoji: '👩' },
+] as const
+type VoiceId = (typeof VOICES)[number]['id']
+const VOICE_KEY = 'aiden:mimi-voice'
+const CREDIT_GONE = 'The AI credit for this account is used up, so Mimi is resting.'
+
+function savedVoice(): VoiceId {
+  if (typeof window === 'undefined') return 'todd'
+  try {
+    const v = localStorage.getItem(VOICE_KEY)
+    return v === 'frankie' ? 'frankie' : 'todd'
+  } catch { return 'todd' }
+}
 
 export default function TeacherTab() {
   const [connState, setConnState] = useState<ConnectionState>('idle')
-  const [isSpeaking, setIsSpeaking] = useState(false)        // AI is speaking
-  const [isListening, setIsListening] = useState(false)      // mic is active
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [transcript, setTranscript] = useState<{ role: 'user' | 'mimi'; text: string }[]>([])
+  const [transcript, setTranscript] = useState<Line[]>([])
+  // The tab only renders after sign-in (in the browser), so reading the saved voice here is safe.
+  const [voice, setVoice] = useState<VoiceId>(savedVoice)
 
-  const pcRef = useRef<RTCPeerConnection | null>(null)
-  const dcRef = useRef<RTCDataChannel | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const sessionRef = useRef<MimiSession | null>(null)
+  const minuteTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  const alive = useRef(true)
+
+  const stopTimer = () => {
+    if (minuteTimer.current) clearInterval(minuteTimer.current)
+    minuteTimer.current = null
+  }
 
   const disconnect = useCallback(() => {
-    dcRef.current?.close()
-    pcRef.current?.close()
-    streamRef.current?.getTracks().forEach(t => t.stop())
-    if (audioRef.current) { audioRef.current.srcObject = null }
-    pcRef.current = null
-    dcRef.current = null
-    streamRef.current = null
-    setConnState('idle')
+    stopTimer()
+    const session = sessionRef.current
+    sessionRef.current = null
+    void session?.endSession().catch(() => {})
+    if (!alive.current) return
+    setConnState(s => (s === 'error' ? s : 'idle'))
     setIsSpeaking(false)
-    setIsListening(false)
   }, [])
 
-  useEffect(() => () => disconnect(), [disconnect])
+  useEffect(() => {
+    alive.current = true
+    return () => { alive.current = false; disconnect() }
+  }, [disconnect])
 
-  /** Ask Mimi about a topic by typing it into the conversation for him, then asking her to answer. */
+  const pickVoice = (id: VoiceId) => {
+    setVoice(id)
+    try { localStorage.setItem(VOICE_KEY, id) } catch { /* private window: just not remembered */ }
+  }
+
+  /** Ask Mimi about a topic as if Aiden said it. */
   const ask = useCallback((topic: string) => {
-    const dc = dcRef.current
-    if (!dc || dc.readyState !== 'open') return
+    const session = sessionRef.current
+    if (!session) return
     const text = `Tell me about ${topic.toLowerCase()}, in a fun way for a five year old.`
-    dc.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } }))
-    dc.send(JSON.stringify({ type: 'response.create' }))
+    session.sendUserMessage(text)
     setTranscript(t => [...t.slice(-6), { role: 'user', text }])
   }, [])
+
+  /** One ping a minute while Mimi is on, so her time counts against the account's AI credit. */
+  const countMinutes = useCallback(() => {
+    stopTimer()
+    minuteTimer.current = setInterval(() => {
+      void fetch('/api/usage', { method: 'POST' })
+        .then(r => (r.ok ? r.json() : null))
+        .then((j: { stop?: boolean } | null) => {
+          if (j?.stop && alive.current) { setErrorMsg(CREDIT_GONE); disconnect() }
+        })
+        .catch(() => {})
+    }, 60_000)
+  }, [disconnect])
 
   const connect = useCallback(async () => {
     try {
       setConnState('connecting')
       setErrorMsg(null)
 
-      // 1. Get ephemeral token from our server
-      const tokenRes = await fetch('/api/realtime-token', { method: 'POST' })
-      if (tokenRes.status === 402) throw new Error('The AI credit for this account is used up, so Mimi is resting.')
-      if (tokenRes.status === 401) throw new Error('Please sign in again.')
-      if (!tokenRes.ok) throw new Error('Could not get session token')
-      const { token, error: tokenErr } = await tokenRes.json() as { token: string | null; error?: string }
-      if (tokenErr || !token) throw new Error(tokenErr ?? 'No token returned')
-
-      // 2. Create RTCPeerConnection
-      const pc = new RTCPeerConnection()
-      pcRef.current = pc
-
-      // 3. Play incoming audio
-      const audio = new Audio()
-      audio.autoplay = true
-      audioRef.current = audio
-      pc.ontrack = (e) => {
-        audio.srcObject = e.streams[0]
-        audio.play().catch(() => {})
-      }
-
-      // 4. Add microphone
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      streamRef.current = stream
-      stream.getTracks().forEach(track => pc.addTrack(track, stream))
-      setIsListening(true)
-
-      // 5. Data channel for events
-      const dc = pc.createDataChannel('oai-events')
-      dcRef.current = dc
-      dc.onmessage = (e) => {
-        try {
-          const event = JSON.parse(e.data as string) as {
-            type: string
-            item?: {
-              role?: string
-              content?: { transcript?: string }[]
-            }
-            response?: { usage?: unknown }
-          }
-          // Each finished reply carries its token totals: pass them on so they count against the account's AI credit.
-          if (event.type === 'response.done' && event.response?.usage) {
-            void fetch('/api/usage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usage: event.response.usage }) })
-              .then(r => (r.ok ? r.json() : null))
-              .then((j: { stop?: boolean } | null) => {
-                if (j?.stop) { setErrorMsg('The AI credit for this account is used up, so Mimi is resting.'); disconnect() }
-              })
-              .catch(() => {})
-          }
-          // Track speaking state
-          if (event.type === 'response.audio.delta') setIsSpeaking(true)
-          if (event.type === 'response.audio.done') setIsSpeaking(false)
-          // Capture transcripts
-          if (event.type === 'conversation.item.created' && event.item?.role === 'user') {
-            const text = event.item?.content?.[0]?.transcript ?? ''
-            if (text) setTranscript(t => [...t.slice(-6), { role: 'user', text }])
-          }
-          if (event.type === 'response.output_item.done' && event.item?.role === 'assistant') {
-            const text = event.item?.content?.[0]?.transcript ?? ''
-            if (text) setTranscript(t => [...t.slice(-6), { role: 'mimi', text }])
-          }
-        } catch { /* ignore parse errors */ }
-      }
-      dc.onerror = () => setErrorMsg('Connection error — try again')
-
-      // 6. SDP offer/answer
-      const offer = await pc.createOffer()
-      await pc.setLocalDescription(offer)
-
-      const sdpRes = await fetch('https://api.openai.com/v1/realtime/calls', {
+      // 1. A one-time token from our server (the API key stays there), plus the chosen voice.
+      const tokenRes = await fetch('/api/realtime-token', {
         method: 'POST',
-        body: offer.sdp,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/sdp',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice }),
       })
-      if (!sdpRes.ok) throw new Error('WebRTC handshake failed')
-      const answerSdp = await sdpRes.text()
-      await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp })
+      if (tokenRes.status === 402) throw new Error(CREDIT_GONE)
+      if (tokenRes.status === 401) throw new Error('Please sign in again.')
+      const data = await tokenRes.json().catch(() => ({})) as { token?: string; voiceId?: string; error?: string }
+      if (!tokenRes.ok || !data.token) throw new Error(data.error ?? 'Could not start voice chat')
 
+      // 2. Open the voice chat. The SDK asks for the microphone and plays Mimi's voice.
+      const session = await Conversation.startSession({
+        conversationToken: data.token,
+        connectionType: 'webrtc',
+        overrides: data.voiceId ? { tts: { voiceId: data.voiceId } } : undefined,
+        onModeChange: ({ mode }) => { if (alive.current) setIsSpeaking(mode === 'speaking') },
+        onMessage: ({ message, role }) => {
+          if (!alive.current || !message) return
+          setTranscript(t => [...t.slice(-6), { role: role === 'agent' ? 'mimi' : 'user', text: message }])
+        },
+        onDisconnect: details => {
+          stopTimer()
+          sessionRef.current = null
+          if (!alive.current) return
+          setIsSpeaking(false)
+          if (details.reason === 'error') { setErrorMsg('Connection error — try again'); setConnState('error') }
+          else setConnState(s => (s === 'error' ? s : 'idle'))
+        },
+        onError: message => console.error('mimi error', message),
+      })
+
+      // The tab was closed while connecting: hang up straight away.
+      if (!alive.current) { void session.endSession().catch(() => {}); return }
+      sessionRef.current = session
+      countMinutes()
       setConnState('connected')
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Connection failed')
+      const msg = err instanceof Error ? err.message : 'Connection failed'
+      if (!alive.current) return
+      setErrorMsg(/permission|notallowed|denied/i.test(msg) ? 'Mimi needs the microphone. Allow it and try again.' : msg)
       setConnState('error')
       disconnect()
     }
-  }, [disconnect])
+  }, [voice, countMinutes, disconnect])
+
+  const isListening = connState === 'connected' && !isSpeaking
 
   return (
     <div className="flex flex-col items-center gap-6 p-4 pb-10 min-h-[70vh]">
@@ -159,7 +160,7 @@ export default function TeacherTab() {
           </>
         )}
         {/* Listening indicator */}
-        {isListening && !isSpeaking && connState === 'connected' && (
+        {isListening && (
           <motion.div className="absolute -bottom-2 -right-2 w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white text-xl shadow-lg"
             animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1, repeat: Infinity }}>
             🎤
@@ -177,6 +178,28 @@ export default function TeacherTab() {
            'Try again!'}
         </p>
       </div>
+
+      {/* Voice switch: picked before the chat starts */}
+      {connState !== 'connected' && (
+        <div className="flex gap-2" role="radiogroup" aria-label="Mimi's voice">
+          {VOICES.map(v => (
+            <button
+              key={v.id}
+              type="button"
+              role="radio"
+              aria-checked={voice === v.id}
+              disabled={connState === 'connecting'}
+              onClick={() => pickVoice(v.id)}
+              className={`rounded-2xl px-4 py-2 font-black text-base shadow border-b-4 transition-colors
+                ${voice === v.id
+                  ? 'bg-emerald-500 text-white border-emerald-700'
+                  : 'bg-white dark:bg-slate-700/60 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900'}`}
+            >
+              {v.emoji} {v.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Error message */}
       {errorMsg && (

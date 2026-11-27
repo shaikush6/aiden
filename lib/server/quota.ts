@@ -10,7 +10,6 @@ const MICRO = 1_000_000
 export const PRICES = {
   tts: { textIn: 0.6, audioOut: 12 },                         // gpt-4o-mini-tts
   chat: { in: 2.5, out: 10 },                                 // gpt-4o
-  realtime: { audioIn: 32, cachedIn: 0.4, audioOut: 64, textIn: 4, textOut: 16 }, // gpt-realtime-2
 }
 
 const spentKey = (u: string) => `aiden:spent:${u}`
@@ -81,22 +80,11 @@ export function chatCost(promptTokens: number, completionTokens: number): number
   return (promptTokens * PRICES.chat.in + completionTokens * PRICES.chat.out) / MICRO
 }
 
-export interface RealtimeUsage {
-  input_token_details?: { audio_tokens?: number; text_tokens?: number; cached_tokens?: number }
-  output_token_details?: { audio_tokens?: number; text_tokens?: number }
-}
+/**
+ * Mimi is an ElevenLabs voice agent, billed by the minute (voice and the model behind her together).
+ * About 10 cents a minute on the Pro plan; rounded up so the budget errs on the safe side.
+ */
+export const MIMI_USD_PER_MINUTE = 0.12
 
-const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.min(v, 2_000_000) : 0)
-
-/** Mimi's usage, from the totals OpenAI sends at the end of each reply. */
-export function realtimeCost(u: RealtimeUsage): number {
-  const inp = u.input_token_details ?? {}
-  const out = u.output_token_details ?? {}
-  const cached = n(inp.cached_tokens)
-  const audioIn = Math.max(0, n(inp.audio_tokens) - cached)
-  const p = PRICES.realtime
-  return (audioIn * p.audioIn + cached * p.cachedIn + n(inp.text_tokens) * p.textIn + n(out.audio_tokens) * p.audioOut + n(out.text_tokens) * p.textOut) / MICRO
-}
-
-/** Charged when a Mimi session starts, so a session is never free even if the usage reports never arrive. */
-export const REALTIME_START_USD = 0.03
+/** Charged when a Mimi session starts (her first minute), so a session is never free even if the minute pings never arrive. */
+export const MIMI_START_USD = MIMI_USD_PER_MINUTE

@@ -10,6 +10,7 @@
     "quest:check": "node --experimental-strip-types --no-warnings scripts/validate-quest.ts"
   },
   "dependencies": {
+    "@elevenlabs/react": "^1.24.0",
     "@react-spring/three": "^10.0.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
